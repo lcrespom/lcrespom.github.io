@@ -2,48 +2,62 @@
 <head>
 	<meta charset="utf-8">
 	<title>Luis Crespo GitHub site</title>
+	<style>
+		body {
+			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+		}
+		.content {
+			margin-left: auto;
+			margin-right: auto;
+			margin-top: 1em;
+			margin-bottom: 1em;
+			max-width: 850px;
+		}
+	</style>
 </head>
 <body>
-	<h1>My projects</h1>
-	<h2>Synth</h2>
-	<p>
-		Synth (until a better name is found) lets you graphically build a
-		modular software synthesizer.
-		The <a href="https://webaudio.github.io/web-audio-api/">Web Audio API</a>
-		is used for generating the sound.
-		<p>Here is a sample screenshot:
-			<div><img src="img/synth.png"></div>
+	<div class="content">
+		<h1>My projects</h1>
+		<h2>Synth</h2>
+		<p>
+			Synth (until a better name is found) lets you graphically build a
+			modular software synthesizer.
+			The <a href="https://webaudio.github.io/web-audio-api/">Web Audio API</a>
+			is used for generating the sound.
+			<p>Here is a sample screenshot:
+				<div><img src="img/synth.png"></div>
+			</p>
 		</p>
-	</p>
-	<p>
-		<b>Using synth</b>:
-		<ul>
-			<li>Click any synth node from the palette at the right to add
-				it to the canvas. New nodes are always placed at the center
-				of the canvas and must be manually placed elsewhere.</li>
-			<li>Use regular drag & drop to move audio nodes around in the canvas</li>
-			<li>To connect two nodes:
-				<ul>
-					<li>Place the mouse pointer over the source node</li>
-					<li>Press the shift key</li>
-					<li>Move the mouse pointer to the destination node
-						(but don't press the mouse button or you will start
-						dragging the node)
-					</li>
-					<li>Release the shift key to make the connection</li>
-				</ul>
-			</li>
-			<li>To disconnect two nodes, simply make the same connection again, and
-				this time it will be removed</li>
-		</ul>
-	</p>
-	<p>
-		Development is still at a very early stage.
-		Synth repo is <a href="https://github.com/lcrespom/Graph">here</a>.
-	</p>
-	<p>
-		<a href="synth/">Try Synth</a>. Did I already mention development is still at a
-		very early stage?</p>
-	</p>
+		<p>
+			<b>Using synth</b>:
+			<ul>
+				<li>Click any synth node from the palette at the right to add
+					it to the canvas. New nodes are always placed at the center
+					of the canvas and must be manually placed elsewhere.</li>
+				<li>Use regular drag & drop to move audio nodes around in the canvas</li>
+				<li>To connect two nodes:
+					<ul>
+						<li>Place the mouse pointer over the source node</li>
+						<li>Press the shift key</li>
+						<li>Move the mouse pointer to the destination node
+							(but don't press the mouse button or you will start
+							dragging the node)
+						</li>
+						<li>Release the shift key to make the connection</li>
+					</ul>
+				</li>
+				<li>To disconnect two nodes, simply make the same connection again, and
+					this time it will be removed</li>
+			</ul>
+		</p>
+		<p>
+			Development is still at a very early stage.
+			Synth repo is <a href="https://github.com/lcrespom/Graph">here</a>.
+		</p>
+		<p>
+			<a href="synth/">Try Synth</a>. Did I already mention development is still at a
+			very early stage?</p>
+		</p>
+	</div>
 </body>
 </html>
