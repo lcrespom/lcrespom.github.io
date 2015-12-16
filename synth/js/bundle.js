@@ -58,10 +58,13 @@
 	        _super.apply(this, arguments);
 	    }
 	    SynthNode.prototype.addInput = function (n) {
+	        var _this = this;
 	        _super.prototype.addInput.call(this, n);
-	        if (n.nodeDef.control) {
-	            if (!n.controlParam)
-	                n.controlParam = Object.keys(this.nodeDef.params)[0];
+	        if (n.nodeDef.control && !this.nodeDef.control) {
+	            n.controlParams = Object.keys(this.nodeDef.params)
+	                .filter(function (pname) { return _this.anode[pname] instanceof AudioParam; });
+	            n.controlParam = n.controlParams[0];
+	            n.controlTarget = this.anode;
 	            n.anode.connect(this.anode[n.controlParam]);
 	        }
 	        else
@@ -69,14 +72,12 @@
 	    };
 	    SynthNode.prototype.removeInput = function (np) {
 	        var removed = _super.prototype.removeInput.call(this, np);
-	        if (removed.nodeDef.control) {
+	        if (removed.nodeDef.control && !this.nodeDef.control) {
+	            removed.controlParams = null;
 	            removed.anode.disconnect(this.anode[removed.controlParam]);
-	            removed.controlParam = null;
 	        }
-	        else {
-	            //TODO test fan-out
+	        else
 	            removed.anode.disconnect(this.anode);
-	        }
 	        return removed;
 	    };
 	    SynthNode.prototype.canBeSource = function () {
@@ -101,7 +102,7 @@
 	}
 	function registerNodeSelection() {
 	    gr.nodeSelected = function (n) {
-	        paramsUI_1.renderParams(n.anode, synth.palette[n.type], $('.params-box'));
+	        paramsUI_1.renderParams(n, synth.palette[n.type], $('#node-params'));
 	    };
 	}
 	function addOutputNode() {
@@ -190,7 +191,6 @@
 	            .addClass('node')
 	            .text(n.name)
 	            .css({ left: n.x, top: n.y, cursor: 'default' });
-	        //TODO check if $.addClass admits multiple classes
 	        if (classes)
 	            n.element.addClass(classes);
 	        this.nodeCanvas.append(n.element);
@@ -487,7 +487,7 @@
 	            gain: {
 	                initial: 1,
 	                min: 0,
-	                max: 1,
+	                max: 10,
 	                linear: true
 	            }
 	        }
@@ -510,6 +510,16 @@
 	            }
 	        },
 	    },
+	    Delay: {
+	        constructor: 'createDelay',
+	        params: {
+	            delayTime: {
+	                initial: 1,
+	                min: 0,
+	                max: 5
+	            }
+	        }
+	    },
 	    // Controllers
 	    LFO: {
 	        constructor: 'createOscillator',
@@ -527,6 +537,19 @@
 	            }
 	        }
 	    },
+	    GainCtrl: {
+	        constructor: 'createGain',
+	        control: true,
+	        params: {
+	            gain: {
+	                initial: 10,
+	                min: 0,
+	                max: 1000,
+	                linear: true
+	            }
+	        }
+	    },
+	    // Output
 	    Speaker: {
 	        constructor: null,
 	        params: null
@@ -538,14 +561,17 @@
 /* 3 */
 /***/ function(module, exports) {
 
-	function renderParams(anode, ndef, panel) {
+	//TODO refactor main so "n" can be typed to SynthNode
+	function renderParams(n, ndef, panel) {
 	    panel.empty();
+	    if (ndef.control)
+	        renderParamControl(n, panel);
 	    for (var _i = 0, _a = Object.keys(ndef.params || {}); _i < _a.length; _i++) {
 	        var param = _a[_i];
-	        if (anode[param] instanceof AudioParam)
-	            renderAudioParam(anode, ndef, param, panel);
+	        if (n.anode[param] instanceof AudioParam)
+	            renderAudioParam(n.anode, ndef, param, panel);
 	        else
-	            renderOtherParam(anode, ndef, param, panel);
+	            renderOtherParam(n.anode, ndef, param, panel);
 	    }
 	}
 	exports.renderParams = renderParams;
@@ -557,33 +583,59 @@
 	        .attr('min', 0)
 	        .attr('max', 1)
 	        .attr('step', 0.001)
-	        .attr('value', param2slider(aparam.value, pdef))
-	        .on('input', function (_) {
-	        var value = slider2param(parseFloat(slider.val()), pdef);
-	        //TODO linear/log ramp at frame rate
-	        aparam.setValueAtTime(value, 0);
-	    });
+	        .attr('value', param2slider(aparam.value, pdef));
+	    var numInput = $('<input type="number">')
+	        .attr('min', pdef.min)
+	        .attr('max', pdef.max)
+	        .attr('value', aparam.value);
+	    sliderBox.append(numInput);
 	    sliderBox.append(slider);
-	    slider.after('<br/>' + ucfirst(param));
+	    sliderBox.append($('<span><br/>' + ucfirst(param) + '</span>'));
 	    panel.append(sliderBox);
+	    slider.on('input', function (_) {
+	        var value = slider2param(parseFloat(slider.val()), pdef);
+	        numInput.val(truncateFloat(value, 5));
+	        aparam.setValueAtTime(value, 0); //TODO linear/log ramp at frame rate
+	    });
+	    numInput.on('input', function (_) {
+	        var value = numInput.val();
+	        if (value.length == 0 || isNaN(value))
+	            return;
+	        slider.val(param2slider(value, pdef));
+	        aparam.setValueAtTime(value, 0); //TODO linear/log ramp at frame rate
+	    });
+	}
+	function renderParamControl(n, panel) {
+	    if (!n.controlParams)
+	        return;
+	    var combo = renderCombo(panel, n.controlParams, n.controlParam, 'Controlling');
+	    combo.on('input', function (_) {
+	        if (n.controlParam)
+	            n.anode.disconnect(n.controlTarget[n.controlParam]);
+	        n.controlParam = combo.val();
+	        n.anode.connect(n.controlTarget[n.controlParam]);
+	    });
 	}
 	function renderOtherParam(anode, ndef, param, panel) {
-	    var pdef = ndef.params[param];
+	    var combo = renderCombo(panel, ndef.params[param].choices, anode[param], ucfirst(param));
+	    combo.on('input', function (_) {
+	        anode[param] = combo.val();
+	    });
+	}
+	function renderCombo(panel, choices, selected, label) {
 	    var choiceBox = $('<div class="choice-box">');
-	    var combo = $('<select>').attr('size', pdef.choices.length);
-	    for (var _i = 0, _a = pdef.choices; _i < _a.length; _i++) {
-	        var choice = _a[_i];
+	    var combo = $('<select>').attr('size', choices.length);
+	    for (var _i = 0; _i < choices.length; _i++) {
+	        var choice = choices[_i];
 	        var option = $('<option>').text(choice);
-	        if (choice == anode[param])
+	        if (choice == selected)
 	            option.attr('selected', 'selected');
 	        combo.append(option);
 	    }
 	    choiceBox.append(combo);
-	    combo.after('<br/><br/>' + ucfirst(param));
+	    combo.after('<br/><br/>' + label);
 	    panel.append(choiceBox);
-	    combo.on('input', function (_) {
-	        anode[param] = combo.val();
-	    });
+	    return combo;
 	}
 	var LOG_BASE = 2;
 	function logarithm(base, x) {
@@ -612,6 +664,14 @@
 	//-------------------- Misc utilities --------------------
 	function ucfirst(str) {
 	    return str[0].toUpperCase() + str.substring(1);
+	}
+	function truncateFloat(f, len) {
+	    var s = '' + f;
+	    s = s.substr(0, len);
+	    if (s[s.length - 1] == '.')
+	        return s.substr(0, len - 1);
+	    else
+	        return s;
 	}
 
 
