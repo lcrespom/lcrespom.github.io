@@ -44,29 +44,42 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/**
+	 * Main entry point: setup synth editor and keyboard listener.
+	 */
 	var synthUI_1 = __webpack_require__(1);
+	var keyboard_1 = __webpack_require__(8);
+	setupTheme();
 	var graphCanvas = $('#graph-canvas')[0];
 	var synthUI = new synthUI_1.SynthUI(graphCanvas, $('#node-params'));
-	registerPlayHandler();
-	function registerPlayHandler() {
-	    var playing = false;
-	    var $playBut = $('#play-stop');
-	    $playBut.click(togglePlayStop);
-	    $('body').keypress(function (evt) {
-	        if (evt.keyCode == 32)
-	            togglePlayStop();
-	    });
-	    function togglePlayStop() {
-	        if (playing) {
-	            synthUI.synth.stop();
-	            $playBut.text('Play');
-	        }
-	        else {
-	            synthUI.synth.play();
-	            $playBut.text('Stop');
-	        }
-	        playing = !playing;
+	setupKeyboard();
+	function setupKeyboard() {
+	    var kb = new keyboard_1.Keyboard();
+	    kb.noteOn = function (midi, ratio) {
+	        synthUI.synth.noteOn(midi, 1, ratio);
+	    };
+	    kb.noteOff = function (midi) {
+	        synthUI.synth.noteOff(midi, 1);
+	    };
+	}
+	function setupTheme() {
+	    var search = getSearch();
+	    if (search.theme)
+	        $('body').addClass(search.theme);
+	}
+	function getSearch() {
+	    var search = {};
+	    var sstr = document.location.search;
+	    if (!sstr)
+	        return search;
+	    if (sstr[0] == '?')
+	        sstr = sstr.substr(1);
+	    for (var _i = 0, _a = sstr.split('&'); _i < _a.length; _i++) {
+	        var part = _a[_i];
+	        var kv = part.split('=');
+	        search[kv[0]] = kv[1];
 	    }
+	    return search;
 	}
 
 
@@ -74,83 +87,116 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var notes_1 = __webpack_require__(2);
+	/**
+	 * Customizes the generic graph editor in order to manipulate and control a graph of
+	 * AudioNodes
+	 */
 	var SynthUI = (function () {
 	    function SynthUI(graphCanvas, jqParams) {
 	        this.gr = new graph_1.Graph(graphCanvas);
-	        this.gr.handler = new SynthGraphHandler();
+	        this.gr.handler = new SynthGraphHandler(this.gr, jqParams);
 	        this.synth = new synth_1.Synth();
-	        this.registerNodeSelection(jqParams);
-	        this.setArrowColors();
 	        this.registerPaletteHandler();
 	        this.addOutputNode();
 	    }
-	    SynthUI.prototype.registerNodeSelection = function (jqParams) {
-	        this.gr.nodeSelected = function (n) {
-	            var data = n.data;
-	            paramsUI_1.renderParams(data, data.nodeDef, jqParams);
-	        };
-	    };
 	    SynthUI.prototype.addOutputNode = function () {
 	        //TODO avoid using hardcoded position
-	        var out = new graph_1.Node(500, 180, 'Out');
+	        var out = new graph_1.Node(500, 210, 'Out');
 	        var data = new NodeData();
 	        out.data = data;
 	        data.anode = this.synth.ac.destination;
 	        data.nodeDef = this.synth.palette['Speaker'];
 	        this.gr.addNode(out);
+	        this.initNodeDimensions(out);
 	    };
 	    SynthUI.prototype.registerPaletteHandler = function () {
-	        var self = this; // JQuery sets this in event handlers
+	        var self = this; // JQuery sets 'this' in event handlers
 	        $('.palette > .node').click(function (evt) {
 	            var elem = $(this);
-	            var n = new graph_1.Node(260, 180, elem.text());
-	            var data = new NodeData();
-	            n.data = data;
-	            var type = elem.attr('data-type');
-	            data.anode = self.synth.createAudioNode(type);
-	            data.nodeDef = self.synth.palette[type];
-	            self.gr.addNode(n, data.nodeDef.control ? 'node-ctrl' : undefined);
-	            if (!data.anode) {
-	                console.warn("No AudioNode found for '" + type + "'");
-	                n.element.css('background-color', '#BBB');
-	            }
-	            else {
-	                if (data.anode['start'])
-	                    data.anode['start']();
-	            }
+	            self.addNode(elem.attr('data-type'), elem.text());
 	        });
 	    };
-	    SynthUI.prototype.setArrowColors = function () {
-	        var arrowColor = this.getCssFromClass('arrow', 'color');
-	        var ctrlArrowColor = this.getCssFromClass('arrow-ctrl', 'color');
-	        var originalDrawArrow = this.gr.graphDraw.drawArrow;
-	        this.gr.graphDraw.drawArrow = function (srcNode, dstNode) {
-	            var srcData = srcNode.data;
-	            this.arrowColor = srcData.nodeDef.control ? ctrlArrowColor : arrowColor;
-	            originalDrawArrow.bind(this)(srcNode, dstNode);
-	        };
+	    SynthUI.prototype.addNode = function (type, text) {
+	        var _a = this.findFreeSpot(), x = _a.x, y = _a.y;
+	        var n = new graph_1.Node(x, y, text);
+	        var data = new NodeData();
+	        n.data = data;
+	        data.anode = this.synth.createAudioNode(type);
+	        data.nodeDef = this.synth.palette[type];
+	        this.gr.addNode(n, data.nodeDef.control ? 'node-ctrl' : undefined);
+	        this.gr.selectNode(n);
+	        if (!data.anode) {
+	            console.warn("No AudioNode found for '" + type + "'");
+	            n.element.css('background-color', '#BBB');
+	        }
+	        else {
+	            var nh = data.nodeDef.noteHandler;
+	            if (nh) {
+	                data.noteHandler = new notes_1.NoteHandlers[nh](n);
+	                this.synth.addNoteHandler(data.noteHandler);
+	            }
+	            else if (data.anode['start'])
+	                data.anode['start']();
+	        }
 	    };
-	    SynthUI.prototype.getCssFromClass = function (className, propName) {
-	        var tmp = $('<div>').addClass(className);
-	        $('body').append(tmp);
-	        var propValue = tmp.css(propName);
-	        tmp.remove();
-	        return propValue;
+	    //----- Rest of methods are used to find a free spot in the canvas -----
+	    SynthUI.prototype.findFreeSpot = function () {
+	        var maxDist = 0;
+	        var canvasW = this.gr.canvas.width;
+	        var canvasH = this.gr.canvas.height;
+	        var x = canvasW / 2;
+	        var y = canvasH / 2;
+	        for (var xx = 10; xx < canvasW - this.nw; xx += 10) {
+	            for (var yy = 10; yy < canvasH - this.nh; yy += 10) {
+	                var dist = this.dist2nearestNode(xx, yy);
+	                if (dist > maxDist && dist < this.nw * 3) {
+	                    x = xx;
+	                    y = yy;
+	                    maxDist = dist;
+	                }
+	            }
+	        }
+	        return { x: x, y: y };
+	    };
+	    SynthUI.prototype.dist2nearestNode = function (x, y) {
+	        var minDist = Number.MAX_VALUE;
+	        for (var _i = 0, _a = this.gr.nodes; _i < _a.length; _i++) {
+	            var n = _a[_i];
+	            var dx = x - n.x;
+	            var dy = y - n.y;
+	            var dist = Math.sqrt(dx * dx + dy * dy);
+	            if (dist < minDist)
+	                minDist = dist;
+	        }
+	        return minDist;
+	    };
+	    SynthUI.prototype.initNodeDimensions = function (n) {
+	        this.nw = n.element.outerWidth();
+	        this.nh = n.element.outerHeight();
 	    };
 	    return SynthUI;
 	})();
 	exports.SynthUI = SynthUI;
-	//-------------------- Privates --------------------
-	var graph_1 = __webpack_require__(2);
-	var synth_1 = __webpack_require__(3);
-	var paramsUI_1 = __webpack_require__(4);
+	/**
+	 * Holds all data associated with an AudioNode in the graph
+	 */
 	var NodeData = (function () {
 	    function NodeData() {
 	    }
 	    return NodeData;
 	})();
+	exports.NodeData = NodeData;
+	//-------------------- Privates --------------------
+	var graph_1 = __webpack_require__(4);
+	var synth_1 = __webpack_require__(5);
+	var paramsUI_1 = __webpack_require__(7);
 	var SynthGraphHandler = (function () {
-	    function SynthGraphHandler() {
+	    function SynthGraphHandler(gr, jqParams) {
+	        this.gr = gr;
+	        this.jqParams = jqParams;
+	        this.arrowColor = getCssFromClass('arrow', 'color');
+	        this.ctrlArrowColor = getCssFromClass('arrow-ctrl', 'color');
 	    }
 	    SynthGraphHandler.prototype.canBeSource = function (n) {
 	        var data = n.data;
@@ -186,32 +232,273 @@
 	        }
 	        else
 	            srcData.anode.disconnect(dstData.anode);
-	        return srcData;
+	    };
+	    SynthGraphHandler.prototype.nodeSelected = function (n) {
+	        var _this = this;
+	        var data = n.data;
+	        paramsUI_1.renderParams(data, this.jqParams);
+	        if (n.data.anode instanceof AudioDestinationNode)
+	            return;
+	        paramsUI_1.addDeleteButton(this.jqParams, function () {
+	            _this.gr.removeNode(n);
+	        });
+	    };
+	    SynthGraphHandler.prototype.getArrowColor = function (src, dst) {
+	        var srcData = src.data;
+	        return srcData.nodeDef.control ? this.ctrlArrowColor : this.arrowColor;
 	    };
 	    return SynthGraphHandler;
 	})();
+	function getCssFromClass(className, propName) {
+	    var tmp = $('<div>').addClass(className);
+	    $('body').append(tmp);
+	    var propValue = tmp.css(propName);
+	    tmp.remove();
+	    return propValue;
+	}
 
 
 /***/ },
 /* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var modern_1 = __webpack_require__(3);
+	/**
+	 * Handles common AudioNode cloning, used by oscillator and buffered data nodes.
+	 */
+	var BaseNoteHandler = (function () {
+	    function BaseNoteHandler(n) {
+	        this.kbTrigger = false;
+	        this.playAfterNoteOff = false;
+	        this.handlers = null;
+	        this.node = n;
+	        this.outTracker = new OutputTracker(n.data.anode);
+	    }
+	    BaseNoteHandler.prototype.noteOn = function (midi, gain, ratio) { };
+	    BaseNoteHandler.prototype.noteOff = function (midi, gain) { };
+	    BaseNoteHandler.prototype.noteEnd = function (midi) { };
+	    BaseNoteHandler.prototype.clone = function () {
+	        var data = this.node.data;
+	        // Create clone
+	        var anode = data.anode.context[data.nodeDef.constructor]();
+	        // Copy parameters
+	        for (var _i = 0, _a = Object.keys(data.nodeDef.params); _i < _a.length; _i++) {
+	            var pname = _a[_i];
+	            var param = data.anode[pname];
+	            if (param instanceof AudioParam)
+	                anode[pname].value = data.anode[pname].value;
+	            else
+	                anode[pname] = data.anode[pname];
+	        }
+	        // Copy output connections
+	        for (var _b = 0, _c = this.outTracker.outputs; _b < _c.length; _b++) {
+	            var out = _c[_b];
+	            anode.connect(out);
+	        }
+	        // Copy control input connections
+	        for (var _d = 0, _e = this.node.inputs; _d < _e.length; _d++) {
+	            var inNode = _e[_d];
+	            var inData = inNode.data;
+	            inNode.data.anode.connect(anode[inData.controlParam]);
+	        }
+	        //TODO should copy snapshot of list of inputs and outputs
+	        //...in case user connects or disconnects during playback
+	        return anode;
+	    };
+	    BaseNoteHandler.prototype.disconnect = function (anode) {
+	        // Disconnect outputs
+	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
+	            var out = _a[_i];
+	            anode.disconnect(out);
+	        }
+	        // Disconnect control inputs
+	        for (var _b = 0, _c = this.node.inputs; _b < _c.length; _b++) {
+	            var inNode = _c[_b];
+	            var inData = inNode.data;
+	            inNode.data.anode.disconnect(anode[inData.controlParam]);
+	        }
+	    };
+	    return BaseNoteHandler;
+	})();
+	/**
+	 * Handles note events for an OscillatorNode
+	 */
+	var OscNoteHandler = (function (_super) {
+	    __extends(OscNoteHandler, _super);
+	    function OscNoteHandler() {
+	        _super.apply(this, arguments);
+	        this.playing = false;
+	    }
+	    OscNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
+	        if (this.playing)
+	            this.noteEnd(midi); // Because this is monophonic
+	        this.playing = true;
+	        this.oscClone = this.clone();
+	        //TODO should also listen to value changes on original osc and apply them to clone
+	        this.oscClone.frequency.value = this.oscClone.frequency.value * ratio;
+	        this.oscClone.start();
+	        this.lastNote = midi;
+	    };
+	    OscNoteHandler.prototype.noteOff = function (midi, gain) {
+	        //TODO if ADSR is present, noteEnd will be generated by ADSR module
+	        if (midi != this.lastNote)
+	            return;
+	        if (!this.playAfterNoteOff)
+	            this.noteEnd(midi);
+	    };
+	    OscNoteHandler.prototype.noteEnd = function (midi) {
+	        // Stop and disconnect
+	        if (!this.playing)
+	            return;
+	        this.playing = false;
+	        this.oscClone.stop();
+	        this.disconnect(this.oscClone);
+	        this.oscClone = null;
+	    };
+	    return OscNoteHandler;
+	})(BaseNoteHandler);
+	/**
+	 * Handles note events for a custom ADSR node
+	 */
+	var ADSRNoteHandler = (function (_super) {
+	    __extends(ADSRNoteHandler, _super);
+	    function ADSRNoteHandler() {
+	        _super.apply(this, arguments);
+	        this.kbTrigger = true;
+	    }
+	    ADSRNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
+	        var _this = this;
+	        this.setupOtherHandlers();
+	        this.lastNote = midi;
+	        var adsr = this.node.data.anode;
+	        var now = adsr.context.currentTime;
+	        this.loopParams(function (out) {
+	            var v = _this.getParamValue(out);
+	            out.cancelScheduledValues(now);
+	            out.linearRampToValueAtTime(0, now);
+	            out.linearRampToValueAtTime(v, now + adsr.attack);
+	            out.linearRampToValueAtTime(v * adsr.sustain, now + adsr.attack + adsr.decay);
+	        });
+	    };
+	    ADSRNoteHandler.prototype.noteOff = function (midi, gain) {
+	        if (midi != this.lastNote)
+	            return;
+	        var adsr = this.node.data.anode;
+	        var now = adsr.context.currentTime;
+	        this.loopParams(function (out) {
+	            var v = out.value; // Get the really current value
+	            out.cancelScheduledValues(now);
+	            out.linearRampToValueAtTime(v, now);
+	            out.linearRampToValueAtTime(0, now + adsr.release);
+	            //setTimeout(_ => this.sendNoteEnd(midi), adsr.release * 2000);
+	        });
+	    };
+	    ADSRNoteHandler.prototype.noteEnd = function (midi) { };
+	    ADSRNoteHandler.prototype.sendNoteEnd = function (midi) {
+	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            nh.noteEnd(midi);
+	        }
+	    };
+	    ADSRNoteHandler.prototype.setupOtherHandlers = function () {
+	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            nh.playAfterNoteOff = true;
+	        }
+	    };
+	    ADSRNoteHandler.prototype.loopParams = function (cb) {
+	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
+	            var out = _a[_i];
+	            if (out instanceof AudioParam)
+	                cb(out);
+	        }
+	    };
+	    ADSRNoteHandler.prototype.getParamValue = function (p) {
+	        if (p['_value'] === undefined)
+	            p['_value'] = p.value;
+	        return p['_value'];
+	    };
+	    return ADSRNoteHandler;
+	})(BaseNoteHandler);
+	/**
+	 * Exports available note handlers so they are used by their respective
+	 * nodes from the palette.
+	 */
+	exports.NoteHandlers = {
+	    'osc': OscNoteHandler,
+	    'ADSR': ADSRNoteHandler
+	};
+	/**
+	 * Tracks a node output connections and disconnections, to be used
+	 * when cloning, removing or controlling nodes.
+	 */
+	var OutputTracker = (function () {
+	    function OutputTracker(anode) {
+	        this.outputs = [];
+	        this.onBefore(anode, 'connect', this.connect);
+	        this.onBefore(anode, 'disconnect', this.disconnect);
+	    }
+	    OutputTracker.prototype.connect = function (np) {
+	        this.outputs.push(np);
+	    };
+	    OutputTracker.prototype.disconnect = function (np) {
+	        modern_1.removeArrayElement(this.outputs, np);
+	    };
+	    OutputTracker.prototype.onBefore = function (obj, fname, funcToCall) {
+	        var oldf = obj[fname];
+	        var self = this;
+	        obj[fname] = function () {
+	            funcToCall.apply(self, arguments);
+	            oldf.apply(obj, arguments);
+	        };
+	    };
+	    return OutputTracker;
+	})();
+
+
+/***/ },
+/* 3 */
 /***/ function(module, exports) {
 
+	/**
+	 * Modernize browser interfaces so that TypeScript does not complain
+	 * when calling new features.
+	 *
+	 * Also provides some basic utility funcitons which should be part of
+	 * the standard JavaScript library.
+	 */
+	function removeArrayElement(a, e) {
+	    var pos = a.indexOf(e);
+	    if (pos < 0)
+	        return false; // not found
+	    a.splice(pos, 1);
+	    return true;
+	}
+	exports.removeArrayElement = removeArrayElement;
+
+
+/***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+	/**
+	 * A generic directed graph editor.
+	 */
 	var Graph = (function () {
 	    function Graph(canvas) {
 	        this.nodes = [];
 	        this.nodeCanvas = $(canvas.parentElement);
+	        this.canvas = canvas;
 	        var gc = canvas.getContext('2d');
-	        this.graphDraw = new GraphDraw(gc, canvas, this.nodes);
+	        this.graphDraw = new GraphDraw(this, gc, canvas);
 	        this.graphInteract = new GraphInteraction(this, gc);
 	        this.handler = new DefaultGraphHandler();
 	    }
-	    Object.defineProperty(Graph.prototype, "arrowColor", {
-	        set: function (color) {
-	            this.graphDraw.arrowColor = color;
-	        },
-	        enumerable: true,
-	        configurable: true
-	    });
 	    Graph.prototype.addNode = function (n, classes) {
 	        n.element = $('<div>')
 	            .addClass('node')
@@ -224,13 +511,47 @@
 	        this.graphInteract.registerNode(n);
 	        this.draw();
 	    };
-	    Graph.prototype.nodeSelected = function (n) { };
+	    Graph.prototype.removeNode = function (n) {
+	        var pos = this.nodes.indexOf(n);
+	        if (pos < 0)
+	            return console.warn("Node '" + n.name + "' is not a member of graph");
+	        for (var _i = 0, _a = this.nodes; _i < _a.length; _i++) {
+	            var nn = _a[_i];
+	            if (n == nn)
+	                continue;
+	            this.disconnect(n, nn);
+	            this.disconnect(nn, n);
+	        }
+	        this.nodes.splice(pos, 1);
+	        n.element.remove();
+	        this.draw();
+	    };
+	    Graph.prototype.selectNode = function (n) {
+	        this.graphInteract.selectNode(n);
+	    };
+	    Graph.prototype.connect = function (srcn, dstn) {
+	        if (!this.handler.canBeSource(srcn) || !this.handler.canConnect(srcn, dstn))
+	            return false;
+	        dstn.addInput(srcn);
+	        this.handler.connected(srcn, dstn);
+	        return true;
+	    };
+	    Graph.prototype.disconnect = function (srcn, dstn) {
+	        if (!dstn.removeInput(srcn))
+	            return false;
+	        this.handler.disconnected(srcn, dstn);
+	        return true;
+	    };
 	    Graph.prototype.draw = function () {
 	        this.graphDraw.draw();
 	    };
 	    return Graph;
 	})();
 	exports.Graph = Graph;
+	/**
+	 * A node in the graph. Application-specific data can be attached
+	 * to its data property.
+	 */
 	var Node = (function () {
 	    function Node(x, y, name) {
 	        this.inputs = [];
@@ -252,6 +573,7 @@
 	})();
 	exports.Node = Node;
 	//------------------------- Privates -------------------------
+	/** Default, do-nothing GraphHandler implementation */
 	var DefaultGraphHandler = (function () {
 	    function DefaultGraphHandler() {
 	    }
@@ -259,11 +581,16 @@
 	    DefaultGraphHandler.prototype.canConnect = function (src, dst) { return true; };
 	    DefaultGraphHandler.prototype.connected = function (src, dst) { };
 	    DefaultGraphHandler.prototype.disconnected = function (src, dst) { };
+	    DefaultGraphHandler.prototype.nodeSelected = function (n) { };
+	    DefaultGraphHandler.prototype.getArrowColor = function (src, dst) { return "black"; };
 	    return DefaultGraphHandler;
 	})();
+	/**
+	 * Handles all UI interaction with graph in order to move, select, connect
+	 * and disconnect nodes.
+	 */
 	var GraphInteraction = (function () {
 	    function GraphInteraction(graph, gc) {
-	        this.connecting = false;
 	        this.dragging = false;
 	        this.graph = graph;
 	        this.gc = gc;
@@ -294,18 +621,22 @@
 	                return;
 	            if (_this.selectedNode == n)
 	                return;
-	            if (_this.selectedNode)
-	                _this.selectedNode.element.removeClass('selected');
-	            n.element.addClass('selected');
-	            _this.selectedNode = n;
-	            _this.graph.nodeSelected(n);
+	            _this.selectNode(n);
 	        });
+	    };
+	    GraphInteraction.prototype.selectNode = function (n) {
+	        if (this.selectedNode)
+	            this.selectedNode.element.removeClass('selected');
+	        n.element.addClass('selected');
+	        this.selectedNode = n;
+	        this.graph.handler.nodeSelected(n);
 	    };
 	    GraphInteraction.prototype.setupConnectHandler = function () {
 	        var _this = this;
 	        var srcn;
+	        var connecting = false;
 	        $('body').keydown(function (evt) {
-	            if (evt.keyCode != 16 || _this.connecting)
+	            if (evt.keyCode != 16 || connecting)
 	                return;
 	            srcn = _this.getNodeFromDOM(_this.getElementUnderMouse());
 	            if (!srcn)
@@ -314,32 +645,26 @@
 	                srcn.element.css('cursor', 'not-allowed');
 	                return;
 	            }
-	            _this.connecting = true;
+	            connecting = true;
 	            _this.registerRubberBanding(srcn);
 	        })
 	            .keyup(function (evt) {
 	            if (evt.keyCode != 16)
 	                return;
-	            _this.connecting = false;
+	            connecting = false;
 	            _this.deregisterRubberBanding();
 	            var dstn = _this.getNodeFromDOM(_this.getElementUnderMouse());
-	            if (!dstn)
+	            if (!dstn || srcn == dstn)
 	                return;
 	            _this.connectOrDisconnect(srcn, dstn);
 	            _this.graph.draw();
 	        });
 	    };
 	    GraphInteraction.prototype.connectOrDisconnect = function (srcn, dstn) {
-	        if (srcn == dstn)
-	            return; // duh!
-	        if (dstn.removeInput(srcn)) {
-	            this.graph.handler.disconnected(srcn, dstn);
-	        }
-	        else if (this.graph.handler.canBeSource(srcn) &&
-	            this.graph.handler.canConnect(srcn, dstn)) {
-	            dstn.addInput(srcn);
-	            this.graph.handler.connected(srcn, dstn);
-	        }
+	        if (this.graph.disconnect(srcn, dstn))
+	            return;
+	        else
+	            this.graph.connect(srcn, dstn);
 	    };
 	    GraphInteraction.prototype.getElementUnderMouse = function () {
 	        var hovered = $(':hover');
@@ -392,13 +717,16 @@
 	    };
 	    return GraphInteraction;
 	})();
+	/**
+	 * Handles graph drawing by rendering arrows in a canvas.
+	 */
 	var GraphDraw = (function () {
-	    function GraphDraw(gc, canvas, nodes) {
-	        this.arrowColor = "black";
+	    function GraphDraw(graph, gc, canvas) {
 	        this.arrowHeadLen = 10;
+	        this.graph = graph;
 	        this.gc = gc;
 	        this.canvas = canvas;
-	        this.nodes = nodes;
+	        this.nodes = graph.nodes;
 	    }
 	    GraphDraw.prototype.draw = function () {
 	        this.clearCanvas();
@@ -417,7 +745,7 @@
 	    GraphDraw.prototype.drawArrow = function (srcNode, dstNode) {
 	        var srcPoint = this.getNodeCenter(srcNode);
 	        var dstPoint = this.getNodeCenter(dstNode);
-	        this.gc.strokeStyle = this.arrowColor;
+	        this.gc.strokeStyle = this.graph.handler.getArrowColor(srcNode, dstNode);
 	        this.gc.beginPath();
 	        this.gc.moveTo(srcPoint.x, srcPoint.y);
 	        this.gc.lineTo(dstPoint.x, dstPoint.y);
@@ -445,21 +773,70 @@
 
 
 /***/ },
-/* 3 */
-/***/ function(module, exports) {
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
 
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var palette_1 = __webpack_require__(6);
+	var modern_1 = __webpack_require__(3);
+	/**
+	 * Performs global operations on all AudioNodes:
+	 * - Manages AudioNode creation and initialization from the palette
+	 * - Distributes MIDI keyboard events to NoteHandlers
+	 */
 	var Synth = (function () {
 	    function Synth() {
+	        this.customNodes = {};
+	        this.noteHandlers = [];
 	        var CtxClass = window.AudioContext || window.webkitAudioContext;
 	        this.ac = new CtxClass();
-	        this.stop();
-	        this.palette = palette;
+	        this.palette = palette_1.palette;
+	        this.registerCustomNode('createADSR', ADSR);
 	    }
 	    Synth.prototype.createAudioNode = function (type) {
-	        var def = palette[type];
-	        if (!def || !this.ac[def.constructor])
+	        var def = palette_1.palette[type];
+	        if (!def)
 	            return null;
-	        var anode = this.ac[def.constructor]();
+	        var factory = def.custom ? this.customNodes : this.ac;
+	        if (!factory[def.constructor])
+	            return null;
+	        var anode = factory[def.constructor]();
+	        if (!anode.context)
+	            anode.context = this.ac;
+	        this.initNodeParams(anode, def, type);
+	        return anode;
+	    };
+	    Synth.prototype.play = function () {
+	        this.ac.resume();
+	    };
+	    Synth.prototype.stop = function () {
+	        this.ac.suspend();
+	    };
+	    Synth.prototype.noteOn = function (midi, gain, ratio) {
+	        for (var _i = 0, _a = this.noteHandlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            if (nh.kbTrigger)
+	                nh.handlers = this.noteHandlers;
+	            nh.noteOn(midi, gain, ratio);
+	        }
+	    };
+	    Synth.prototype.noteOff = function (midi, gain) {
+	        for (var _i = 0, _a = this.noteHandlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            nh.noteOff(midi, gain);
+	        }
+	    };
+	    Synth.prototype.addNoteHandler = function (nh) {
+	        this.noteHandlers.push(nh);
+	    };
+	    Synth.prototype.removeNoteHandler = function (nh) {
+	        modern_1.removeArrayElement(this.noteHandlers, nh);
+	    };
+	    Synth.prototype.initNodeParams = function (anode, def, type) {
 	        for (var _i = 0, _a = Object.keys(def.params || {}); _i < _a.length; _i++) {
 	            var param = _a[_i];
 	            if (!anode[param])
@@ -469,17 +846,52 @@
 	            else
 	                anode[param] = def.params[param].initial;
 	        }
-	        return anode;
 	    };
-	    Synth.prototype.play = function () {
-	        this.ac.resume();
-	    };
-	    Synth.prototype.stop = function () {
-	        this.ac.suspend();
+	    Synth.prototype.registerCustomNode = function (constructorName, nodeClass) {
+	        this.customNodes[constructorName] = function () { return new nodeClass(); };
 	    };
 	    return Synth;
 	})();
 	exports.Synth = Synth;
+	//-------------------- Custom nodes --------------------
+	var CustomNodeBase = (function () {
+	    function CustomNodeBase() {
+	        this.custom = true;
+	        this.channelCount = 2;
+	        this.channelCountMode = 'max';
+	        this.channelInterpretation = 'speakers';
+	        this.numberOfInputs = 0;
+	        this.numberOfOutputs = 1;
+	    }
+	    CustomNodeBase.prototype.connect = function (param) { };
+	    CustomNodeBase.prototype.disconnect = function () { };
+	    // Required for extending EventTarget
+	    CustomNodeBase.prototype.addEventListener = function () { };
+	    CustomNodeBase.prototype.dispatchEvent = function (evt) { return false; };
+	    CustomNodeBase.prototype.removeEventListener = function () { };
+	    return CustomNodeBase;
+	})();
+	/**
+	 * A custom AudioNode providing ADSR envelope control
+	 */
+	var ADSR = (function (_super) {
+	    __extends(ADSR, _super);
+	    function ADSR() {
+	        _super.apply(this, arguments);
+	        this.attack = 0.2;
+	        this.decay = 0.5;
+	        this.sustain = 0.5;
+	        this.release = 1;
+	    }
+	    return ADSR;
+	})(CustomNodeBase);
+	exports.ADSR = ADSR;
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
 	//-------------------- Node palette definition --------------------
 	var OCTAVE_DETUNE = {
 	    initial: 0,
@@ -492,10 +904,15 @@
 	    min: 20,
 	    max: 20000
 	};
-	var palette = {
+	/**
+	 * The set of AudioNodes available to the application, along with
+	 * their configuration.
+	 */
+	exports.palette = {
 	    // Sources
 	    Oscillator: {
 	        constructor: 'createOscillator',
+	        noteHandler: 'osc',
 	        params: {
 	            frequency: FREQUENCY,
 	            detune: OCTAVE_DETUNE,
@@ -509,23 +926,14 @@
 	    Gain: {
 	        constructor: 'createGain',
 	        params: {
-	            gain: {
-	                initial: 1,
-	                min: 0,
-	                max: 10,
-	                linear: true
-	            }
+	            gain: { initial: 1, min: 0, max: 10, linear: true }
 	        }
 	    },
 	    Filter: {
 	        constructor: 'createBiquadFilter',
 	        params: {
 	            frequency: FREQUENCY,
-	            Q: {
-	                initial: 0,
-	                min: 0,
-	                max: 100
-	            },
+	            Q: { initial: 0, min: 0, max: 100 },
 	            //TODO gain
 	            detune: OCTAVE_DETUNE,
 	            type: {
@@ -538,11 +946,7 @@
 	    Delay: {
 	        constructor: 'createDelay',
 	        params: {
-	            delayTime: {
-	                initial: 1,
-	                min: 0,
-	                max: 5
-	            }
+	            delayTime: { initial: 1, min: 0, max: 5 }
 	        }
 	    },
 	    // Controllers
@@ -550,11 +954,7 @@
 	        constructor: 'createOscillator',
 	        control: true,
 	        params: {
-	            frequency: {
-	                initial: 2,
-	                min: 0.01,
-	                max: 200
-	            },
+	            frequency: { initial: 5, min: 0.01, max: 200 },
 	            detune: OCTAVE_DETUNE,
 	            type: {
 	                initial: 'sine',
@@ -566,53 +966,106 @@
 	        constructor: 'createGain',
 	        control: true,
 	        params: {
-	            gain: {
-	                initial: 10,
-	                min: 0,
-	                max: 1000,
-	                linear: true
-	            }
+	            gain: { initial: 10, min: 0, max: 1000, linear: true }
 	        }
 	    },
 	    // Output
 	    Speaker: {
 	        constructor: null,
 	        params: null
+	    },
+	    // Custom
+	    ADSR: {
+	        constructor: 'createADSR',
+	        noteHandler: 'ADSR',
+	        control: true,
+	        custom: true,
+	        params: {
+	            attack: { initial: 0.2, min: 0, max: 10 },
+	            decay: { initial: 0.5, min: 0, max: 10 },
+	            sustain: { initial: 0.5, min: 0, max: 1, linear: true },
+	            release: { initial: 1.0, min: 0, max: 10 },
+	        }
 	    }
 	};
 
 
 /***/ },
-/* 4 */
+/* 7 */
 /***/ function(module, exports) {
 
-	//TODO refactor main so "n" can be typed to NodeData and ndef parameter can be removed
-	function renderParams(n, ndef, panel) {
+	/**
+	 * Renders the UI controls associated with the parameters of a given node
+	 */
+	function renderParams(ndata, panel) {
 	    panel.empty();
-	    if (ndef.control)
-	        renderParamControl(n, panel);
-	    for (var _i = 0, _a = Object.keys(ndef.params || {}); _i < _a.length; _i++) {
+	    if (ndata.nodeDef.control)
+	        renderParamControl(ndata, panel);
+	    for (var _i = 0, _a = Object.keys(ndata.nodeDef.params || {}); _i < _a.length; _i++) {
 	        var param = _a[_i];
-	        if (n.anode[param] instanceof AudioParam)
-	            renderAudioParam(n.anode, ndef, param, panel);
+	        if (ndata.anode[param] instanceof AudioParam)
+	            renderAudioParam(ndata.anode, ndata.nodeDef, param, panel);
 	        else
-	            renderOtherParam(n.anode, ndef, param, panel);
+	            renderOtherParam(ndata.anode, ndata.nodeDef, param, panel);
 	    }
 	}
 	exports.renderParams = renderParams;
+	/**
+	 * Renders a "delete node" button inside the parameters panel
+	 */
+	function addDeleteButton(panel, handler) {
+	    var button = $("\n\t\t<button class=\"btn btn-danger btn-sm del-node-but\" type=\"button\">\n\t\t\t<span class=\"glyphicon glyphicon-trash\" aria-hidden=\"true\"></span>\n\t\t</button>\n\t");
+	    panel.append(button);
+	    button.click(function (_) {
+	        if (confirm('Delete node?'))
+	            handler();
+	    });
+	}
+	exports.addDeleteButton = addDeleteButton;
 	function renderAudioParam(anode, ndef, param, panel) {
 	    var pdef = ndef.params[param];
 	    var aparam = anode[param];
+	    if (aparam['_value'])
+	        aparam.value = aparam['_value'];
+	    renderSlider(panel, pdef, param, aparam.value, function (value) {
+	        aparam.value = value;
+	        aparam['_value'] = value;
+	    });
+	}
+	function renderParamControl(ndata, panel) {
+	    if (!ndata.controlParams)
+	        return;
+	    var combo = renderCombo(panel, ndata.controlParams, ndata.controlParam, 'Controlling');
+	    combo.on('input', function (_) {
+	        if (ndata.controlParam)
+	            ndata.anode.disconnect(ndata.controlTarget[ndata.controlParam]);
+	        ndata.controlParam = combo.val();
+	        ndata.anode.connect(ndata.controlTarget[ndata.controlParam]);
+	    });
+	}
+	function renderOtherParam(anode, ndef, param, panel) {
+	    var pdef = ndef.params[param];
+	    if (pdef.choices) {
+	        var combo = renderCombo(panel, pdef.choices, anode[param], ucfirst(param));
+	        combo.on('input', function (_) {
+	            anode[param] = combo.val();
+	        });
+	    }
+	    else if (pdef.min != undefined) {
+	        renderSlider(panel, pdef, param, anode[param], function (value) { return anode[param] = value; });
+	    }
+	}
+	function renderSlider(panel, pdef, param, value, setValue) {
 	    var sliderBox = $('<div class="slider-box">');
 	    var slider = $('<input type="range" orient="vertical">')
 	        .attr('min', 0)
 	        .attr('max', 1)
 	        .attr('step', 0.001)
-	        .attr('value', param2slider(aparam.value, pdef));
+	        .attr('value', param2slider(value, pdef));
 	    var numInput = $('<input type="number">')
 	        .attr('min', pdef.min)
 	        .attr('max', pdef.max)
-	        .attr('value', aparam.value);
+	        .attr('value', truncateFloat(value, 5));
 	    sliderBox.append(numInput);
 	    sliderBox.append(slider);
 	    sliderBox.append($('<span><br/>' + ucfirst(param) + '</span>'));
@@ -620,31 +1073,14 @@
 	    slider.on('input', function (_) {
 	        var value = slider2param(parseFloat(slider.val()), pdef);
 	        numInput.val(truncateFloat(value, 5));
-	        aparam.setValueAtTime(value, 0); //TODO linear/log ramp at frame rate
+	        setValue(value);
 	    });
 	    numInput.on('input', function (_) {
-	        var value = numInput.val();
-	        if (value.length == 0 || isNaN(value))
+	        var value = parseFloat(numInput.val());
+	        if (isNaN(value))
 	            return;
 	        slider.val(param2slider(value, pdef));
-	        aparam.setValueAtTime(value, 0); //TODO linear/log ramp at frame rate
-	    });
-	}
-	function renderParamControl(n, panel) {
-	    if (!n.controlParams)
-	        return;
-	    var combo = renderCombo(panel, n.controlParams, n.controlParam, 'Controlling');
-	    combo.on('input', function (_) {
-	        if (n.controlParam)
-	            n.anode.disconnect(n.controlTarget[n.controlParam]);
-	        n.controlParam = combo.val();
-	        n.anode.connect(n.controlTarget[n.controlParam]);
-	    });
-	}
-	function renderOtherParam(anode, ndef, param, panel) {
-	    var combo = renderCombo(panel, ndef.params[param].choices, anode[param], ucfirst(param));
-	    combo.on('input', function (_) {
-	        anode[param] = combo.val();
+	        setValue(value);
 	    });
 	}
 	function renderCombo(panel, choices, selected, label) {
@@ -698,6 +1134,59 @@
 	    else
 	        return s;
 	}
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
+	var BASE_NOTE = 36;
+	var SEMITONE = Math.pow(2, 1 / 12);
+	var A4 = 57;
+	/**
+	 * Provides a piano keyboard using the PC keyboard.
+	 * Listens to keyboard events and generates MIDI-style noteOn/noteOff events.
+	 */
+	var Keyboard = (function () {
+	    function Keyboard() {
+	        this.setupHandler();
+	    }
+	    Keyboard.prototype.setupHandler = function () {
+	        var _this = this;
+	        var pressedKeys = {};
+	        $('body')
+	            .on('keydown', function (evt) {
+	            if (pressedKeys[evt.keyCode])
+	                return; // Skip repetitions
+	            pressedKeys[evt.keyCode] = true;
+	            var midi = _this.key2midi(evt.keyCode);
+	            if (midi < 0)
+	                return;
+	            _this.noteOn(midi, _this.midi2freqRatio(midi));
+	        })
+	            .on('keyup', function (evt) {
+	            pressedKeys[evt.keyCode] = false;
+	            var midi = _this.key2midi(evt.keyCode);
+	            if (midi < 0)
+	                return;
+	            _this.noteOff(midi);
+	        });
+	    };
+	    Keyboard.prototype.key2midi = function (keyCode) {
+	        var pos = KB_NOTES.indexOf(String.fromCharCode(keyCode));
+	        if (pos < 0)
+	            return -1;
+	        return BASE_NOTE + pos;
+	    };
+	    Keyboard.prototype.midi2freqRatio = function (midi) {
+	        return Math.pow(SEMITONE, midi - A4);
+	    };
+	    Keyboard.prototype.noteOn = function (midi, ratio) { };
+	    Keyboard.prototype.noteOff = function (midi) { };
+	    return Keyboard;
+	})();
+	exports.Keyboard = Keyboard;
 
 
 /***/ }
