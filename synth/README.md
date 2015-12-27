@@ -14,8 +14,14 @@ Title: "Sound synthesis with Web Audio"
 ##Computer music
 - C64: 1982 - [Uridium](https://youtu.be/N0TfHkNpRNs?t=16)
 - Amiga: 1985 - [ProTracker](https://www.youtube.com/watch?v=thnXzUFJnfQ)
-- PC: [FastTracker 2](https://www.youtube.com/watch?v=iJvKzNQFv1Q?t=15)
+- PC: [FastTracker 2](https://youtu.be/iJvKzNQFv1Q?t=14)
+- VST: lots of commercial & free [synths](https://youtu.be/SMujb2hmv_I?t=5)
 
 ##Web Audio
+- Modular synth: ![Modular synth](http://www.sdiy.org/rfeng/Pics/mod608.jpg)
+- Play simple osc
+- Filter
 
 ##Modulator Demo
+- [Live](http://lcrespom.github.io/synth/)
+- [Repo](https://github.com/lcrespom/Modulator)
