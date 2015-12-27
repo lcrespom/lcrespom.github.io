@@ -19,8 +19,21 @@ Title: "Sound synthesis with Web Audio"
 
 ##Web Audio
 - Modular synth: ![Modular synth](http://www.sdiy.org/rfeng/Pics/mod608.jpg)
-- Play simple osc
-- Filter
+- Web Audio API
+  - AudioContext
+  - Audio Nodes
+    - Audio Sources
+      - Oscillator
+      - AudioBuffer
+    - Effects
+      - Filter
+      - Gain
+      - Delay
+      - Stereo Pan
+      - Dynamics Compressor
+- Live coding:
+  - Play simple osc
+  - Filter
 
 ##Modulator Demo
 - [Live](http://lcrespom.github.io/synth/)
