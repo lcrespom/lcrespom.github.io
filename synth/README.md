@@ -12,9 +12,9 @@ Title: "Sound synthesis with Web Audio"
 - Modulator demo
 
 ##Computer music
-- C64: 1982 - [Uridium](https://www.youtube.com/watch?v=N0TfHkNpRNs)
+- C64: 1982 - [Uridium](https://youtu.be/N0TfHkNpRNs?t=16)
 - Amiga: 1985 - [ProTracker](https://www.youtube.com/watch?v=thnXzUFJnfQ)
-- PC: [FastTracker 2](https://www.youtube.com/watch?v=iJvKzNQFv1Q)
+- PC: [FastTracker 2](https://www.youtube.com/watch?v=iJvKzNQFv1Q?t=15)
 
 ##Web Audio
 
