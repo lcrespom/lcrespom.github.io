@@ -11,6 +11,9 @@ Title: "Sound synthesis with Web Audio"
   - Live coding
 - Modulator demo
 
+##Analog Synthesizer
+![Modular synth](http://www.sdiy.org/rfeng/Pics/mod608.jpg)
+
 ##Computer music
 - C64: 1982 - [Uridium](https://youtu.be/N0TfHkNpRNs?t=16)
 - Amiga: 1985 - [ProTracker](https://www.youtube.com/watch?v=thnXzUFJnfQ)
@@ -18,7 +21,6 @@ Title: "Sound synthesis with Web Audio"
 - VST: lots of commercial & free [synths](https://youtu.be/SMujb2hmv_I?t=5)
 
 ##Web Audio
-- Modular synth: ![Modular synth](http://www.sdiy.org/rfeng/Pics/mod608.jpg)
 - Web Audio API
   - AudioContext
   - Audio Nodes
