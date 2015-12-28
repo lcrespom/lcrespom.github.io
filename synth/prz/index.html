@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Sound Synthesis with Web Audio</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<style type="text/css">
+			@import url(https://fonts.googleapis.com/css?family=Electrolize);
+
+			.outer-pill {
+				background-color: #05A;
+				border-radius: 10px;
+				margin: 0 40px !important;
+				padding-top: 10px !important;
+				padding-bottom: 20px !important;
+			}
+
+			.inner-pill {
+				background-color: #0AA;
+				border-radius: 10px;
+				margin: 20px 40px !important;
+				padding: 5px !important;
+			}
+
+			.modulator-title {
+				font-family: Electrolize, "League Gothic", Impact, sans-serif !important;
+				text-transform: inherit !important;
+			}
+		</style>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+	<section>
+		<h1 class="modulator-title">Sound Synthesis with <b>Web Audio</b></h1>
+		<!--
+		<h3 class="modulator-title">...And my pet project</h3>
+		-->
+	</section>
+
+	<section>
+		<h2>Agenda</h2>
+		<ul>
+			<li>History of computer sound &amp; music
+			<li>Web Audio API
+			<li>Full Web Audio Synth demo
+		</ul>
+	</section>
+
+	<section>
+		<img src="https://camo.githubusercontent.com/385ee943eb1439caec03b72f2b831a17f461e1a0/687474703a2f2f7777772e736469792e6f72672f7266656e672f506963732f6d6f643630382e6a7067">
+	</section>
+
+	<section>
+		<h2>Commodore 64</h2>
+		<iframe width="640" height="480" src="https://www.youtube.com/embed/N0TfHkNpRNs?start=16" frameborder="0" allowfullscreen></iframe>
+	</section>
+
+	<section>
+		<h2>Commodore Amiga</h2>
+		<iframe width="853" height="480" src="https://www.youtube.com/embed/thnXzUFJnfQ?rel=0" frameborder="0" allowfullscreen></iframe>
+	</section>
+
+	<section>
+		<h2>PC - software mixing</h2>
+		<iframe width="640" height="480" src="https://www.youtube.com/embed/iJvKzNQFv1Q?start=14" frameborder="0" allowfullscreen></iframe>
+	</section>
+
+	<section>
+		<h2>VST Plugins</h2>
+		<iframe width="853" height="480" src="https://www.youtube.com/embed/SMujb2hmv_I?start=5" frameborder="0" allowfullscreen></iframe>
+	</section>
+
+	<section>
+		<h2>Web Audio API</h2>
+		<ul>
+			<li>AudioContext</li>
+			<li>AudioNodes</li>
+		</ul>
+	</section>
+
+	<section>
+		<h2>Audio Nodes</h2>
+		<div style="display: inline-block; float: left; width: 50%">
+			<div class="outer-pill">
+				Audio Sources
+				<div class="inner-pill">
+					OscillatorNode
+				</div>
+				<div class="inner-pill">
+					AudioBuffer<br/>SourceNode
+				</div>
+			</div>
+		</div>
+		<div style="display: inline-block; float: right; width: 50%">
+			<div class="outer-pill">
+				Effects
+				<div class="inner-pill">
+					BiquadFilterNode
+				</div>
+				<div class="inner-pill">
+					GainNode
+				</div>
+				<div class="inner-pill">
+					DelayNode
+				</div>
+				<div class="inner-pill">
+					StereoPannerNode
+				</div>
+				<div class="inner-pill">
+					ConvolverNode
+				</div>
+				<div class="inner-pill">
+					Etc...
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section data-background="#084">
+		<p style="font-size: 200%">Live coding!</p>
+		<pre><code class="hljs" data-trim contenteditable>
+var ac = new AudioContext();
+var osc = ac.createOscillator();
+osc.connect(ac.destination);
+osc.start();
+osc.stop();
+osc.disconnect();
+		</code></pre>
+	</section>
+
+	<section>
+		<h1 class="modulator-title">Modulator</h1>
+		<p><a href="http://lcrespom.github.io/synth/">Live Demo</a></p>
+		<p><a href="https://github.com/lcrespom/Modulator">Repo</a></p>
+	</section>
+
+			</div>
+		</div>
+
+
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
