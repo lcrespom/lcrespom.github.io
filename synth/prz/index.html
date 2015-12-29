@@ -65,7 +65,16 @@
 			<!-- Any section element inside of this container is displayed as a slide -->
 			<div class="slides">
 
-	<section>
+
+	<section data-transition="fade">
+		<p>Ready?</p>
+	</section>
+
+	<section data-transition="fade" data-state="ladies-and-gentlemen">
+		<p>Ladies &amp; gentlemen...</p>
+	</section>
+
+	<section data-state="main-title" data-transition="zoom" data-transition-speed="lethargic">
 		<h1 class="modulator-title">Sound Synthesis with <b>Web Audio</b></h1>
 		<!--
 		<h3 class="modulator-title">...And my pet project</h3>
@@ -178,7 +187,6 @@ osc.disconnect();
 		<script src="js/reveal.js"></script>
 
 		<script>
-
 			// Full list of configuration options available at:
 			// https://github.com/hakimel/reveal.js#configuration
 			Reveal.initialize({
@@ -199,7 +207,26 @@ osc.disconnect();
 					{ src: 'plugin/notes/notes.js', async: true }
 				]
 			});
+		</script>
 
+		<script src="js/thx.js"></script>
+		<script>
+			function playTHX() {
+				var CtxClass = window.AudioContext || window.webkitAudioContext;
+				var ac = new CtxClass();
+				var thx = new window.WebAudioThx(ac);
+				thx.connect(ac.destination);
+				thx.start();
+				return thx;
+			}
+
+			Reveal.addEventListener('ladies-and-gentlemen', function() {
+				playTHX();
+				setTimeout(function() {
+					console.log('Navigate to main title slide');
+					document.location.hash = '/2';
+				}, 14000);
+			}, false);
 		</script>
 
 	</body>
