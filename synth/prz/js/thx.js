@@ -8,7 +8,7 @@ window.WebAudioThx = function(audioContext) {
 
 	var oscillators = [];
 	var numberOfOscillators = 30; // 30;
-	var soundLength = 26;
+	var soundLength = 13;
 
 	function getRandomInt(min, max) {
 		return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -119,10 +119,10 @@ window.WebAudioThx = function(audioContext) {
 		outNode.gain.linearRampToValueAtTime(maxGain, when + 2 * soundLength / 3);
 
 		// Set max value before fade
-		outNode.gain.linearRampToValueAtTime(maxGain, when + soundLength - 5);
+		outNode.gain.linearRampToValueAtTime(maxGain, when + soundLength - 3);
 
 		// Fade out
-		outNode.gain.linearRampToValueAtTime(0, when + soundLength - 4);
+		outNode.gain.linearRampToValueAtTime(0, when + soundLength);
 
 		
 
@@ -132,7 +132,7 @@ window.WebAudioThx = function(audioContext) {
 
 	function stopOscillators(timeOffset) {
 		var now = audioContext.currentTime;
-		var fadeOutLength = 0.5;
+		var fadeOutLength = 1;
 		var when = now + timeOffset + fadeOutLength;
 		var thoseOscillators = [];
 
