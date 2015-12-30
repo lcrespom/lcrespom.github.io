@@ -10,10 +10,18 @@ body {
 	margin: auto;
 }
 
+.normal-font {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
 /*----- General -----*/
 
 .graph {
 	padding: 0; margin: 0;
+}
+
+.graph-row {
+	white-space: nowrap;
 }
 
 .graph-box {
@@ -118,6 +126,7 @@ body {
 	overflow-x: auto;
 	display: inline-block;
 	position: static;
+	white-space: normal;
 }
 
 input[type=range][orient=vertical] {
