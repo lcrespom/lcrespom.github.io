@@ -20,7 +20,7 @@
 		<div class="graph-box">
 			<h5 class="bg-primary box-header">Audio Node Graph</h5>
 			<div class="canvas-box">
-				<canvas id="graph-canvas" class="graph" width="700" height="480"></canvas>
+				<canvas id="graph-canvas" class="graph" width="700" height="422"></canvas>
 			</div>
 		</div><!--
 
@@ -42,7 +42,6 @@
 					<div class="node node-ctrl" data-type="LFO">LFO</div>
 					<div class="node node-ctrl" data-type="GainCtrl">Gain Ctrl</div>
 					<div class="node node-ctrl" data-type="ADSR">ADSR</div>
-					<div style="height: 30px"></div>
 				</div>
 			</div>
 		</div>
@@ -84,8 +83,35 @@
 		</div>
 	</div>
 
-	<!--------------- Misc controls --------------->
-	<div class="graph-row">
+	<div class="graph-row" style="margin-top: -5px">
+		<!--------------- Piano keyboard --------------->
+		<div class="graph-box">
+			<h5 class="bg-primary box-header">Piano Keyboard</h5>
+			<div id="piano" class="piano-box"></div>
+			<div id="piano-buttons">
+				<span style="float:left">
+					<button id="prev-octave-but" class="btn btn-primary btn-sm">
+						-
+					</button>
+					<div style="display: inline-block; width: 30px; text-align: center">C3</div>
+					<button id="next-octave-but" class="btn btn-primary btn-sm">
+						+
+					</button>
+				</span>
+				<!--<span style="font-size: 90%; line-height:4em">Portamento</span>-->
+				<button id="poly-but" class="btn btn-primary btn-sm" style="float:right">
+					Poly
+				</button>
+			</div>
+		</div><!--
+		-------------------- Wave analyzers --------------------
+	 --><div class="graph-box" style="margin-left: 10px; vertical-align: top">
+			<h5 class="bg-primary box-header">Graph</h5>
+			<div id="audio-graph-fft" class="audio-graph">
+			</div>
+			<div id="audio-graph-osc" class="audio-graph">
+			</div>
+		</div>
 	</div>
 
 </div><!-- end of main -->

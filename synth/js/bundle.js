@@ -48,8 +48,9 @@
 	 * Main entry point: setup synth editor and keyboard listener.
 	 */
 	var synthUI_1 = __webpack_require__(1);
-	var keyboard_1 = __webpack_require__(8);
-	var presets_1 = __webpack_require__(9);
+	var keyboard_1 = __webpack_require__(9);
+	var presets_1 = __webpack_require__(10);
+	var piano_1 = __webpack_require__(11);
 	setupTheme();
 	setupPalette();
 	var graphCanvas = $('#graph-canvas')[0];
@@ -57,15 +58,22 @@
 	setupKeyboard();
 	new presets_1.Presets(synthUI);
 	function setupKeyboard() {
+	    // Setup piano panel
+	    var piano = new piano_1.PianoKeyboard($('#piano'));
+	    piano.noteOn = function (midi, ratio) { return synthUI.synth.noteOn(midi, 1, ratio); };
+	    piano.noteOff = function (midi) { return synthUI.synth.noteOff(midi, 1); };
+	    // Setup PC keyboard
 	    var kb = new keyboard_1.Keyboard();
 	    kb.noteOn = function (midi, ratio) {
 	        if (document.activeElement.nodeName == 'INPUT' &&
 	            document.activeElement.getAttribute('type') != 'range')
 	            return;
 	        synthUI.synth.noteOn(midi, 1, ratio);
+	        piano.displayKeyDown(midi);
 	    };
 	    kb.noteOff = function (midi) {
 	        synthUI.synth.noteOff(midi, 1);
+	        piano.displayKeyUp(midi);
 	    };
 	}
 	function setupTheme() {
@@ -121,8 +129,11 @@
 	    };
 	    SynthUI.prototype.initOutputNodeData = function (data) {
 	        data.type = 'out';
-	        data.anode = this.synth.ac.destination;
+	        data.anode = this.synth.ac.createGain();
+	        data.anode.connect(this.synth.ac.destination);
 	        data.nodeDef = this.synth.palette['Speaker'];
+	        data.isOut = true;
+	        this.outNode = data.anode;
 	    };
 	    SynthUI.prototype.registerPaletteHandler = function () {
 	        var self = this; // JQuery sets 'this' in event handlers
@@ -207,6 +218,8 @@
 	 */
 	var NodeData = (function () {
 	    function NodeData() {
+	        // Flag to avoid deleting output node
+	        this.isOut = false;
 	    }
 	    return NodeData;
 	})();
@@ -215,6 +228,7 @@
 	var graph_1 = __webpack_require__(4);
 	var synth_1 = __webpack_require__(5);
 	var paramsUI_1 = __webpack_require__(7);
+	var analyzer_1 = __webpack_require__(8);
 	var SynthGraphHandler = (function () {
 	    function SynthGraphHandler(synthUI, jqParams) {
 	        this.synthUI = synthUI;
@@ -222,6 +236,7 @@
 	        this.arrowColor = getCssFromClass('arrow', 'color');
 	        this.ctrlArrowColor = getCssFromClass('arrow-ctrl', 'color');
 	        this.registerNodeDelete();
+	        this.analyzer = new analyzer_1.AudioAnalyzer($('#audio-graph-fft'), $('#audio-graph-osc'));
 	    }
 	    SynthGraphHandler.prototype.registerNodeDelete = function () {
 	        var _this = this;
@@ -231,7 +246,7 @@
 	            var selectedNode = _this.getSelectedNode();
 	            if (!selectedNode)
 	                return;
-	            if (selectedNode.data.anode instanceof AudioDestinationNode)
+	            if (selectedNode.data.isOut)
 	                return;
 	            if (!confirm('Delete node?'))
 	                return;
@@ -329,6 +344,10 @@
 	                data.anode[pname] = jv;
 	        }
 	    };
+	    SynthGraphHandler.prototype.graphLoaded = function () {
+	        this.analyzer.analyze(this.synthUI.outNode);
+	    };
+	    SynthGraphHandler.prototype.graphSaved = function () { };
 	    return SynthGraphHandler;
 	})();
 	function getCssFromClass(className, propName) {
@@ -696,6 +715,7 @@
 	            nodes: jsonNodes,
 	            nodeData: jsonNodeData
 	        };
+	        this.handler.graphSaved();
 	        return jsonGraph;
 	    };
 	    Graph.prototype.fromJSON = function (json) {
@@ -736,6 +756,7 @@
 	        }
 	        // And finally, draw the new graph
 	        this.draw();
+	        this.handler.graphLoaded();
 	    };
 	    Graph.prototype.nodeById = function (id) {
 	        for (var _i = 0, _a = this.nodes; _i < _a.length; _i++) {
@@ -799,6 +820,8 @@
 	    DefaultGraphHandler.prototype.getArrowColor = function (src, dst) { return "black"; };
 	    DefaultGraphHandler.prototype.data2json = function (n) { return {}; };
 	    DefaultGraphHandler.prototype.json2data = function (n, json) { };
+	    DefaultGraphHandler.prototype.graphLoaded = function () { };
+	    DefaultGraphHandler.prototype.graphSaved = function () { };
 	    return DefaultGraphHandler;
 	})();
 	/**
@@ -906,7 +929,7 @@
 	        dstn.h = 0;
 	        $(this.graph.nodeCanvas).on('mousemove', function (evt) {
 	            dstn.x = evt.clientX - ofs.left;
-	            dstn.y = evt.clientY - ofs.top;
+	            dstn.y = evt.clientY - ofs.top + $('body').scrollTop();
 	            _this.graph.draw();
 	            _this.gc.save();
 	            _this.gc.setLineDash([10]);
@@ -1319,18 +1342,6 @@
 	    positionBoxes(panel, boxes);
 	}
 	exports.renderParams = renderParams;
-	/**
-	 * Renders a "delete node" button inside the parameters panel
-	 */
-	function addDeleteButton(panel, handler) {
-	    var button = $("\n\t\t<button class=\"btn btn-danger del-node-but\" type=\"button\">\n\t\t\t<span class=\"glyphicon glyphicon-trash\" aria-hidden=\"true\"></span>\n\t\t</button>\n\t");
-	    panel.append(button);
-	    button.click(function (_) {
-	        if (confirm('Delete node?'))
-	            handler();
-	    });
-	}
-	exports.addDeleteButton = addDeleteButton;
 	function positionBoxes(panel, boxes) {
 	    var pw = panel.width();
 	    var bw = boxes[0].width();
@@ -1489,6 +1500,100 @@
 /* 8 */
 /***/ function(module, exports) {
 
+	var AudioAnalyzer = (function () {
+	    function AudioAnalyzer(jqfft, jqosc) {
+	        this.canvasFFT = this.createCanvas(jqfft);
+	        this.gcFFT = this.canvasFFT.getContext('2d');
+	        this.canvasOsc = this.createCanvas(jqosc);
+	        this.gcOsc = this.canvasOsc.getContext('2d');
+	    }
+	    AudioAnalyzer.prototype.createCanvas = function (panel) {
+	        var jqCanvas = $("<canvas width=\"" + panel.width() + "\" height=\"" + panel.height() + "\">");
+	        panel.append(jqCanvas);
+	        var canvas = jqCanvas[0];
+	        return canvas;
+	    };
+	    AudioAnalyzer.prototype.createAnalyzerNode = function (ac) {
+	        if (this.anode)
+	            return;
+	        this.anode = ac.createAnalyser();
+	        this.fftData = new Uint8Array(this.anode.fftSize);
+	        this.oscData = new Uint8Array(this.anode.fftSize);
+	    };
+	    AudioAnalyzer.prototype.analyze = function (input) {
+	        this.disconnect();
+	        this.createAnalyzerNode(input.context);
+	        this.input = input;
+	        this.input.connect(this.anode);
+	        this.requestAnimationFrame();
+	    };
+	    AudioAnalyzer.prototype.disconnect = function () {
+	        if (!this.input)
+	            return;
+	        this.input.disconnect(this.anode);
+	        this.input = null;
+	    };
+	    AudioAnalyzer.prototype.requestAnimationFrame = function () {
+	        var _this = this;
+	        window.requestAnimationFrame(function (_) { return _this.updateCanvas(); });
+	    };
+	    AudioAnalyzer.prototype.updateCanvas = function () {
+	        if (!this.input)
+	            return;
+	        this.drawFFT(this.gcFFT, this.canvasFFT, this.fftData, '#00FF00');
+	        this.drawOsc(this.gcOsc, this.canvasOsc, this.oscData, '#FFFF00');
+	        this.requestAnimationFrame();
+	    };
+	    AudioAnalyzer.prototype.drawFFT = function (gc, canvas, data, color) {
+	        var _a = this.setupDraw(gc, canvas, data, color), w = _a[0], h = _a[1];
+	        this.anode.getByteFrequencyData(data);
+	        var dx = (data.length / 2) / canvas.width;
+	        var x = 0;
+	        //TODO calculate average of all samples from x to x + dx - 1
+	        for (var i = 0; i < w; i++) {
+	            var y = data[Math.floor(x)];
+	            x += dx;
+	            gc.moveTo(i, h - 1);
+	            gc.lineTo(i, h - 1 - h * y / 256);
+	        }
+	        gc.stroke();
+	        gc.closePath();
+	    };
+	    AudioAnalyzer.prototype.drawOsc = function (gc, canvas, data, color) {
+	        var _a = this.setupDraw(gc, canvas, data, color), w = _a[0], h = _a[1];
+	        this.anode.getByteTimeDomainData(data);
+	        gc.moveTo(0, h / 2);
+	        var x = 0;
+	        while (data[x] > 128 && x < data.length / 4)
+	            x++;
+	        while (data[x] < 128 && x < data.length / 4)
+	            x++;
+	        var dx = (data.length * 0.75) / canvas.width;
+	        for (var i = 0; i < w; i++) {
+	            var y = data[Math.floor(x)];
+	            x += dx;
+	            gc.lineTo(i, h * y / 256);
+	        }
+	        gc.stroke();
+	        gc.closePath();
+	    };
+	    AudioAnalyzer.prototype.setupDraw = function (gc, canvas, data, color) {
+	        var w = canvas.width;
+	        var h = canvas.height;
+	        gc.clearRect(0, 0, w, h);
+	        gc.beginPath();
+	        gc.strokeStyle = color;
+	        return [w, h];
+	    };
+	    return AudioAnalyzer;
+	})();
+	exports.AudioAnalyzer = AudioAnalyzer;
+
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
 	var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
 	var BASE_NOTE = 36;
 	var SEMITONE = Math.pow(2, 1 / 12);
@@ -1512,7 +1617,7 @@
 	            var midi = _this.key2midi(evt.keyCode);
 	            if (midi < 0)
 	                return;
-	            _this.noteOn(midi, _this.midi2freqRatio(midi));
+	            _this.noteOn(midi, midi2freqRatio(midi));
 	        })
 	            .on('keyup', function (evt) {
 	            pressedKeys[evt.keyCode] = false;
@@ -1528,18 +1633,19 @@
 	            return -1;
 	        return BASE_NOTE + pos;
 	    };
-	    Keyboard.prototype.midi2freqRatio = function (midi) {
-	        return Math.pow(SEMITONE, midi - A4);
-	    };
 	    Keyboard.prototype.noteOn = function (midi, ratio) { };
 	    Keyboard.prototype.noteOff = function (midi) { };
 	    return Keyboard;
 	})();
 	exports.Keyboard = Keyboard;
+	function midi2freqRatio(midi) {
+	    return Math.pow(SEMITONE, midi - A4);
+	}
+	exports.midi2freqRatio = midi2freqRatio;
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	var MAX_PRESETS = 20;
@@ -1632,6 +1738,106 @@
 	    return Presets;
 	})();
 	exports.Presets = Presets;
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var keyboard_1 = __webpack_require__(9);
+	var NUM_WHITES = 17;
+	var BASE_NOTE = 36;
+	var PianoKeyboard = (function () {
+	    function PianoKeyboard(panel) {
+	        this.baseNote = BASE_NOTE;
+	        this.poly = false;
+	        this.createKeys(panel);
+	        for (var i = 0; i < this.keys.length; i++)
+	            this.registerKey(this.keys[i], i);
+	        this.registerButtons();
+	    }
+	    PianoKeyboard.prototype.createKeys = function (panel) {
+	        this.keys = [];
+	        var pw = panel.width();
+	        var ph = panel.height();
+	        var kw = pw / NUM_WHITES + 1;
+	        var bw = kw * 2 / 3;
+	        var bh = ph * 2 / 3;
+	        // Create white keys
+	        var knum = 0;
+	        for (var i = 0; i < NUM_WHITES; i++) {
+	            var key = $('<div class="piano-key">').css({
+	                width: '' + kw + 'px',
+	                height: '' + ph + 'px'
+	            });
+	            panel.append(key);
+	            this.keys[knum++] = key;
+	            if (this.hasBlack(i))
+	                knum++;
+	        }
+	        // Create black keys
+	        var knum = 0;
+	        var x = 10 - bw / 2;
+	        for (var i = 0; i < NUM_WHITES - 1; i++) {
+	            x += kw - 1;
+	            knum++;
+	            if (!this.hasBlack(i))
+	                continue;
+	            var key = $('<div class="piano-key piano-black">').css({
+	                width: '' + bw + 'px',
+	                height: '' + bh + 'px',
+	                left: '' + x + 'px',
+	                top: '10px'
+	            });
+	            panel.append(key);
+	            this.keys[knum++] = key;
+	        }
+	    };
+	    PianoKeyboard.prototype.hasBlack = function (num) {
+	        var mod7 = num % 7;
+	        return mod7 != 2 && mod7 != 6;
+	    };
+	    PianoKeyboard.prototype.registerKey = function (key, knum) {
+	        var _this = this;
+	        var midi = knum + this.baseNote;
+	        key.mousedown(function (_) {
+	            _this.displayKeyDown(key);
+	            _this.noteOn(midi, keyboard_1.midi2freqRatio(midi));
+	        });
+	        key.mouseup(function (_) {
+	            _this.displayKeyUp(key);
+	            _this.noteOff(midi);
+	        });
+	    };
+	    PianoKeyboard.prototype.registerButtons = function () {
+	        //TODO
+	        $('#poly-but').click(function (_) { return alert('Sorry, polyphonic mode not available yet'); });
+	    };
+	    PianoKeyboard.prototype.displayKeyDown = function (key) {
+	        if (typeof key == 'number')
+	            key = this.midi2key(key);
+	        if (!key)
+	            return;
+	        key.addClass('piano-key-pressed');
+	        if (!this.poly && this.lastKey)
+	            this.displayKeyUp(this.lastKey);
+	        this.lastKey = key;
+	    };
+	    PianoKeyboard.prototype.displayKeyUp = function (key) {
+	        if (typeof key == 'number')
+	            key = this.midi2key(key);
+	        if (!key)
+	            return;
+	        key.removeClass('piano-key-pressed');
+	    };
+	    PianoKeyboard.prototype.midi2key = function (midi) {
+	        return this.keys[midi - this.baseNote];
+	    };
+	    PianoKeyboard.prototype.noteOn = function (midi, ratio) { };
+	    PianoKeyboard.prototype.noteOff = function (midi) { };
+	    return PianoKeyboard;
+	})();
+	exports.PianoKeyboard = PianoKeyboard;
 
 
 /***/ }
