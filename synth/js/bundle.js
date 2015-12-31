@@ -48,52 +48,16 @@
 	 * Main entry point: setup synth editor and keyboard listener.
 	 */
 	var synthUI_1 = __webpack_require__(1);
-	var keyboard_1 = __webpack_require__(10);
-	var presets_1 = __webpack_require__(11);
-	var piano_1 = __webpack_require__(12);
+	var noteInputs_1 = __webpack_require__(10);
+	var presets_1 = __webpack_require__(14);
 	setupPalette();
 	var graphCanvas = $('#graph-canvas')[0];
-	var synthUI = new synthUI_1.SynthUI(graphCanvas, $('#node-params'));
-	setupKeyboard();
+	var synthUI = new synthUI_1.SynthUI(createAudioContext(), graphCanvas, $('#node-params'), $('#audio-graph-fft'), $('#audio-graph-osc'));
+	new noteInputs_1.NoteInputs(synthUI);
 	new presets_1.Presets(synthUI);
-	function setupKeyboard() {
-	    // Setup piano panel
-	    var piano = new piano_1.PianoKeyboard($('#piano'));
-	    piano.noteOn = function (midi, ratio) { return synthUI.synth.noteOn(midi, 1, ratio); };
-	    piano.noteOff = function (midi) { return synthUI.synth.noteOff(midi, 1); };
-	    // Setup PC keyboard
-	    var kb = new keyboard_1.Keyboard();
-	    kb.noteOn = function (midi, ratio) {
-	        if (document.activeElement.nodeName == 'INPUT' &&
-	            document.activeElement.getAttribute('type') != 'range')
-	            return;
-	        synthUI.synth.noteOn(midi, 1, ratio);
-	        piano.displayKeyDown(midi);
-	    };
-	    kb.noteOff = function (midi) {
-	        synthUI.synth.noteOff(midi, 1);
-	        piano.displayKeyUp(midi);
-	    };
-	    // Bind piano octave with PC keyboard
-	    kb.baseNote = piano.baseNote;
-	    piano.octaveChanged = function (baseNote) { return kb.baseNote = baseNote; };
-	    setupEnvelopeAnimation(piano);
-	}
-	function setupEnvelopeAnimation(piano) {
-	    var loaded = synthUI.gr.handler.graphLoaded;
-	    synthUI.gr.handler.graphLoaded = function () {
-	        loaded.bind(synthUI.gr.handler)();
-	        var adsr = null;
-	        for (var _i = 0, _a = synthUI.gr.nodes; _i < _a.length; _i++) {
-	            var node = _a[_i];
-	            var data = node.data;
-	            if (data.type == 'ADSR') {
-	                adsr = data.anode;
-	                break;
-	            }
-	        }
-	        piano.setEnvelope(adsr || { attack: 0, release: 0 });
-	    };
+	function createAudioContext() {
+	    var CtxClass = window.AudioContext || window.webkitAudioContext;
+	    return new CtxClass();
 	}
 	function setupPalette() {
 	    $(function () {
@@ -113,10 +77,10 @@
 	 * AudioNodes
 	 */
 	var SynthUI = (function () {
-	    function SynthUI(graphCanvas, jqParams) {
+	    function SynthUI(ac, graphCanvas, jqParams, jqFFT, jqOsc) {
 	        this.gr = new graph_1.Graph(graphCanvas);
-	        this.gr.handler = new SynthGraphHandler(this, jqParams);
-	        this.synth = new synth_1.Synth();
+	        this.gr.handler = new SynthGraphHandler(this, jqParams, jqFFT, jqOsc);
+	        this.synth = new synth_1.Synth(ac);
 	        this.registerPaletteHandler();
 	        this.addOutputNode();
 	    }
@@ -231,13 +195,13 @@
 	var paramsUI_1 = __webpack_require__(8);
 	var analyzer_1 = __webpack_require__(9);
 	var SynthGraphHandler = (function () {
-	    function SynthGraphHandler(synthUI, jqParams) {
+	    function SynthGraphHandler(synthUI, jqParams, jqFFT, jqOsc) {
 	        this.synthUI = synthUI;
 	        this.jqParams = jqParams;
 	        this.arrowColor = getCssFromClass('arrow', 'color');
 	        this.ctrlArrowColor = getCssFromClass('arrow-ctrl', 'color');
 	        this.registerNodeDelete();
-	        this.analyzer = new analyzer_1.AudioAnalyzer($('#audio-graph-fft'), $('#audio-graph-osc'));
+	        this.analyzer = new analyzer_1.AudioAnalyzer(jqFFT, jqOsc);
 	    }
 	    SynthGraphHandler.prototype.registerNodeDelete = function () {
 	        var _this = this;
@@ -616,7 +580,7 @@
 
 	/**
 	 * Modernize browser interfaces so that TypeScript does not complain
-	 * when calling new features.
+	 * when using new features.
 	 *
 	 * Also provides some basic utility funcitons which should be part of
 	 * the standard JavaScript library.
@@ -635,7 +599,9 @@
 /* 4 */
 /***/ function(module, exports) {
 
+	/** Informs whether a popup is open or not */
 	exports.isOpen = false;
+	/** Bootstrap-based equivalent of standard alert function */
 	function alert(msg, title) {
 	    popup.find('.popup-message').html(msg);
 	    popup.find('.modal-title').text(title || 'Alert');
@@ -647,6 +613,7 @@
 	    popup.modal();
 	}
 	exports.alert = alert;
+	/** Bootstrap-based equivalent of standard confirm function */
 	function confirm(msg, title, cbClose, cbOpen) {
 	    var result = false;
 	    popup.find('.popup-message').html(msg);
@@ -674,6 +641,7 @@
 	    popup.modal();
 	}
 	exports.confirm = confirm;
+	/** Bootstrap-based equivalent of standard prompt function */
 	function prompt(msg, title, initialValue, cb) {
 	    var input = popup.find('.popup-prompt > input');
 	    confirm(msg, title, function (confirmed) {
@@ -1113,12 +1081,11 @@
 	 * - Distributes MIDI keyboard events to NoteHandlers
 	 */
 	var Synth = (function () {
-	    function Synth() {
+	    function Synth(ac) {
 	        this.customNodes = {};
 	        this.paramHandlers = {};
 	        this.noteHandlers = [];
-	        var CtxClass = window.AudioContext || window.webkitAudioContext;
-	        this.ac = new CtxClass();
+	        this.ac = ac;
 	        this.palette = palette_1.palette;
 	        this.registerCustomNode('createADSR', ADSR);
 	        this.registerCustomNode('createNoise', NoiseGenerator);
@@ -1615,6 +1582,9 @@
 /* 9 */
 /***/ function(module, exports) {
 
+	/**
+	 * Displays FFT and Oscilloscope graphs from the output of a given AudioNode
+	 */
 	var AudioAnalyzer = (function () {
 	    function AudioAnalyzer(jqfft, jqosc) {
 	        this.canvasFFT = this.createCanvas(jqfft);
@@ -1707,6 +1677,97 @@
 
 /***/ },
 /* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var keyboard_1 = __webpack_require__(11);
+	var piano_1 = __webpack_require__(12);
+	var instrument_1 = __webpack_require__(13);
+	var NUM_VOICES = 5;
+	/**
+	 * Manages all note-generation inputs:
+	 * 	- PC Keyboard
+	 * 	- Virtual piano keyboard
+	 *	- Eventually it should also integrate with Web MIDI
+	 * Handles switching to polyphonic mode and back to mono
+	 */
+	var NoteInputs = (function () {
+	    function NoteInputs(synthUI) {
+	        var _this = this;
+	        this.synthUI = synthUI;
+	        this.poly = false;
+	        // Setup piano panel
+	        var piano = new piano_1.PianoKeyboard($('#piano'));
+	        piano.noteOn = function (midi, ratio) { return _this.noteOn(midi, 1, ratio); };
+	        piano.noteOff = function (midi) { return _this.noteOff(midi, 1); };
+	        // Register poly on/off handlers
+	        piano.polyOn = function () { return _this.polyOn(); };
+	        piano.polyOff = function () { return _this.polyOff(); };
+	        // Setup PC keyboard
+	        var kb = new keyboard_1.Keyboard();
+	        kb.noteOn = function (midi, ratio) {
+	            if (document.activeElement.nodeName == 'INPUT' &&
+	                document.activeElement.getAttribute('type') != 'range')
+	                return;
+	            _this.noteOn(midi, 1, ratio);
+	            piano.displayKeyDown(midi);
+	        };
+	        kb.noteOff = function (midi) {
+	            _this.noteOff(midi, 1);
+	            piano.displayKeyUp(midi);
+	        };
+	        // Bind piano octave with PC keyboard
+	        kb.baseNote = piano.baseNote;
+	        piano.octaveChanged = function (baseNote) { return kb.baseNote = baseNote; };
+	        this.setupEnvelopeAnimation(piano);
+	    }
+	    NoteInputs.prototype.setupEnvelopeAnimation = function (piano) {
+	        var loaded = this.synthUI.gr.handler.graphLoaded;
+	        this.synthUI.gr.handler.graphLoaded = function () {
+	            loaded.bind(this.synthUI.gr.handler)();
+	            var adsr = null;
+	            for (var _i = 0, _a = this.synthUI.gr.nodes; _i < _a.length; _i++) {
+	                var node = _a[_i];
+	                var data = node.data;
+	                if (data.type == 'ADSR') {
+	                    adsr = data.anode;
+	                    break;
+	                }
+	            }
+	            piano.setEnvelope(adsr || { attack: 0, release: 0 });
+	        };
+	    };
+	    NoteInputs.prototype.noteOn = function (midi, velocity, ratio) {
+	        this.lastNote = midi;
+	        if (this.poly)
+	            this.instrument.noteOn(midi, velocity, ratio);
+	        else
+	            this.synthUI.synth.noteOn(midi, velocity, ratio);
+	    };
+	    NoteInputs.prototype.noteOff = function (midi, velocity) {
+	        this.lastNote = 0;
+	        if (this.poly)
+	            this.instrument.noteOff(midi, velocity);
+	        else
+	            this.synthUI.synth.noteOff(midi, velocity);
+	    };
+	    NoteInputs.prototype.polyOn = function () {
+	        if (this.lastNote)
+	            this.noteOff(this.lastNote, 1);
+	        this.poly = true;
+	        var json = this.synthUI.gr.toJSON();
+	        this.instrument = new instrument_1.Instrument(this.synthUI.synth.ac, json, NUM_VOICES);
+	    };
+	    NoteInputs.prototype.polyOff = function () {
+	        this.poly = false;
+	        this.instrument.close();
+	    };
+	    return NoteInputs;
+	})();
+	exports.NoteInputs = NoteInputs;
+
+
+/***/ },
+/* 11 */
 /***/ function(module, exports) {
 
 	var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
@@ -1761,7 +1822,234 @@
 
 
 /***/ },
-/* 11 */
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var keyboard_1 = __webpack_require__(11);
+	var popups = __webpack_require__(4);
+	var NUM_WHITES = 17;
+	var BASE_NOTE = 36;
+	/**
+	 * A virtual piano keyboard that:
+	 * 	- Captures mouse input and generates corresponding note events
+	 * 	- Displays note events as CSS-animated colors in the pressed keys
+	 * 	- Supports octave switching
+	 * 	- Provides a poly/mono button
+	 */
+	var PianoKeyboard = (function () {
+	    function PianoKeyboard(panel) {
+	        this.baseNote = BASE_NOTE;
+	        this.octave = 3;
+	        this.poly = false;
+	        this.envelope = { attack: 0, release: 0 };
+	        this.createKeys(panel);
+	        for (var i = 0; i < this.keys.length; i++)
+	            this.registerKey(this.keys[i], i);
+	        this.registerButtons();
+	    }
+	    PianoKeyboard.prototype.createKeys = function (panel) {
+	        this.keys = [];
+	        var pw = panel.width();
+	        var ph = panel.height();
+	        var kw = pw / NUM_WHITES + 1;
+	        var bw = kw * 2 / 3;
+	        var bh = ph * 2 / 3;
+	        // Create white keys
+	        var knum = 0;
+	        for (var i = 0; i < NUM_WHITES; i++) {
+	            var key = $('<div class="piano-key">').css({
+	                width: '' + kw + 'px',
+	                height: '' + ph + 'px'
+	            });
+	            panel.append(key);
+	            this.keys[knum++] = key;
+	            if (this.hasBlack(i))
+	                knum++;
+	        }
+	        // Create black keys
+	        var knum = 0;
+	        var x = 10 - bw / 2;
+	        for (var i = 0; i < NUM_WHITES - 1; i++) {
+	            x += kw - 1;
+	            knum++;
+	            if (!this.hasBlack(i))
+	                continue;
+	            var key = $('<div class="piano-key piano-black">').css({
+	                width: '' + bw + 'px',
+	                height: '' + bh + 'px',
+	                left: '' + x + 'px',
+	                top: '10px'
+	            });
+	            panel.append(key);
+	            this.keys[knum++] = key;
+	        }
+	    };
+	    PianoKeyboard.prototype.hasBlack = function (num) {
+	        var mod7 = num % 7;
+	        return mod7 != 2 && mod7 != 6;
+	    };
+	    PianoKeyboard.prototype.registerKey = function (key, knum) {
+	        var _this = this;
+	        key.mousedown(function (_) {
+	            var midi = knum + _this.baseNote;
+	            _this.displayKeyDown(key);
+	            _this.noteOn(midi, keyboard_1.midi2freqRatio(midi));
+	        });
+	        key.mouseup(function (_) {
+	            var midi = knum + _this.baseNote;
+	            _this.displayKeyUp(key);
+	            _this.noteOff(midi);
+	        });
+	    };
+	    PianoKeyboard.prototype.registerButtons = function () {
+	        var _this = this;
+	        $('#poly-but').click(function (_) { return _this.togglePoly(); });
+	        $('#prev-octave-but').click(function (_) {
+	            _this.octave--;
+	            _this.baseNote -= 12;
+	            _this.updateOctave();
+	        });
+	        $('#next-octave-but').click(function (_) {
+	            _this.octave++;
+	            _this.baseNote += 12;
+	            _this.updateOctave();
+	        });
+	    };
+	    PianoKeyboard.prototype.updateOctave = function () {
+	        $('#prev-octave-but').prop('disabled', this.octave <= 1);
+	        $('#next-octave-but').prop('disabled', this.octave >= 8);
+	        $('#octave-label').text('C' + this.octave);
+	        this.octaveChanged(this.baseNote);
+	    };
+	    PianoKeyboard.prototype.displayKeyDown = function (key) {
+	        if (typeof key == 'number')
+	            key = this.midi2key(key);
+	        if (!key)
+	            return;
+	        if (!this.poly && this.lastKey)
+	            this.displayKeyUp(this.lastKey, true);
+	        key.css('transition', "background-color " + this.envelope.attack + "s linear");
+	        key.addClass('piano-key-pressed');
+	        this.lastKey = key;
+	    };
+	    PianoKeyboard.prototype.displayKeyUp = function (key, immediate) {
+	        if (typeof key == 'number')
+	            key = this.midi2key(key);
+	        if (!key)
+	            return;
+	        var release = immediate ? 0 : this.envelope.release;
+	        key.css('transition', "background-color " + release + "s linear");
+	        key.removeClass('piano-key-pressed');
+	    };
+	    PianoKeyboard.prototype.midi2key = function (midi) {
+	        return this.keys[midi - this.baseNote];
+	    };
+	    PianoKeyboard.prototype.setEnvelope = function (adsr) {
+	        this.envelope = adsr;
+	    };
+	    PianoKeyboard.prototype.togglePoly = function () {
+	        this.poly = !this.poly;
+	        if (this.poly) {
+	            var cover = $('<div>').addClass('editor-cover');
+	            cover.append('<p>Synth editing is disabled in polyphonic mode</p>');
+	            $('body').append(cover);
+	            $('#poly-but').text('Back to mono');
+	            popups.isOpen = true;
+	            this.polyOn();
+	        }
+	        else {
+	            $('.editor-cover').remove();
+	            $('#poly-but').text('Poly');
+	            popups.isOpen = false;
+	            this.polyOff();
+	        }
+	    };
+	    // Simple event handlers
+	    PianoKeyboard.prototype.noteOn = function (midi, ratio) { };
+	    PianoKeyboard.prototype.noteOff = function (midi) { };
+	    PianoKeyboard.prototype.polyOn = function () { };
+	    PianoKeyboard.prototype.polyOff = function () { };
+	    PianoKeyboard.prototype.octaveChanged = function (baseNote) { };
+	    return PianoKeyboard;
+	})();
+	exports.PianoKeyboard = PianoKeyboard;
+
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	//TODO use independent code to build voice
+	var synthUI_1 = __webpack_require__(1);
+	/**
+	 * A polyphonic synth controlling an array of voices
+	 */
+	var Instrument = (function () {
+	    function Instrument(ac, json, numVoices) {
+	        this.voices = [];
+	        for (var i = 0; i < numVoices; i++)
+	            this.voices.push(new Voice(ac, json));
+	        this.voiceNum = 0;
+	    }
+	    Instrument.prototype.close = function () {
+	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
+	            var voice = _a[_i];
+	            voice.close();
+	        }
+	    };
+	    Instrument.prototype.noteOn = function (midi, velocity, ratio) {
+	        var voice = this.voices[this.voiceNum];
+	        voice.noteOn(midi, velocity, ratio);
+	        this.voiceNum = (this.voiceNum + 1) % this.voices.length;
+	    };
+	    Instrument.prototype.noteOff = function (midi, velocity) {
+	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
+	            var voice = _a[_i];
+	            if (voice.lastNote == midi) {
+	                voice.noteOff(midi, velocity);
+	                break;
+	            }
+	        }
+	    };
+	    return Instrument;
+	})();
+	exports.Instrument = Instrument;
+	/**
+	 * An independent monophonic synth
+	 */
+	var Voice = (function () {
+	    function Voice(ac, json) {
+	        //TODO make an "invisible" voice, decoupled form SynthUI, canvas, and Graph editor
+	        var jqCanvas = $('<canvas width="100" height="100" style="display: none">');
+	        var dummyCanvas = jqCanvas[0];
+	        this.synthUI = new synthUI_1.SynthUI(ac, dummyCanvas, null, jqCanvas, jqCanvas);
+	        this.synthUI.gr.fromJSON(json);
+	        this.lastNote = 0;
+	    }
+	    Voice.prototype.noteOn = function (midi, velocity, ratio) {
+	        this.synthUI.synth.noteOn(midi, velocity, ratio);
+	        this.lastNote = midi;
+	    };
+	    Voice.prototype.close = function () {
+	        if (this.lastNote)
+	            this.noteOff(this.lastNote, 1);
+	        var nodes = this.synthUI.gr.nodes.slice();
+	        for (var _i = 0; _i < nodes.length; _i++) {
+	            var node = nodes[_i];
+	            this.synthUI.removeNode(node);
+	        }
+	    };
+	    Voice.prototype.noteOff = function (midi, velocity) {
+	        this.synthUI.synth.noteOff(midi, velocity);
+	        this.lastNote = 0;
+	    };
+	    return Voice;
+	})();
+	exports.Voice = Voice;
+
+
+/***/ },
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var popups = __webpack_require__(4);
@@ -1856,133 +2144,6 @@
 	    return Presets;
 	})();
 	exports.Presets = Presets;
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var keyboard_1 = __webpack_require__(10);
-	var popups = __webpack_require__(4);
-	var NUM_WHITES = 17;
-	var BASE_NOTE = 36;
-	var PianoKeyboard = (function () {
-	    function PianoKeyboard(panel) {
-	        this.baseNote = BASE_NOTE;
-	        this.octave = 3;
-	        this.poly = false;
-	        this.envelope = { attack: 0, release: 0 };
-	        this.createKeys(panel);
-	        for (var i = 0; i < this.keys.length; i++)
-	            this.registerKey(this.keys[i], i);
-	        this.registerButtons();
-	    }
-	    PianoKeyboard.prototype.createKeys = function (panel) {
-	        this.keys = [];
-	        var pw = panel.width();
-	        var ph = panel.height();
-	        var kw = pw / NUM_WHITES + 1;
-	        var bw = kw * 2 / 3;
-	        var bh = ph * 2 / 3;
-	        // Create white keys
-	        var knum = 0;
-	        for (var i = 0; i < NUM_WHITES; i++) {
-	            var key = $('<div class="piano-key">').css({
-	                width: '' + kw + 'px',
-	                height: '' + ph + 'px'
-	            });
-	            panel.append(key);
-	            this.keys[knum++] = key;
-	            if (this.hasBlack(i))
-	                knum++;
-	        }
-	        // Create black keys
-	        var knum = 0;
-	        var x = 10 - bw / 2;
-	        for (var i = 0; i < NUM_WHITES - 1; i++) {
-	            x += kw - 1;
-	            knum++;
-	            if (!this.hasBlack(i))
-	                continue;
-	            var key = $('<div class="piano-key piano-black">').css({
-	                width: '' + bw + 'px',
-	                height: '' + bh + 'px',
-	                left: '' + x + 'px',
-	                top: '10px'
-	            });
-	            panel.append(key);
-	            this.keys[knum++] = key;
-	        }
-	    };
-	    PianoKeyboard.prototype.hasBlack = function (num) {
-	        var mod7 = num % 7;
-	        return mod7 != 2 && mod7 != 6;
-	    };
-	    PianoKeyboard.prototype.registerKey = function (key, knum) {
-	        var _this = this;
-	        key.mousedown(function (_) {
-	            var midi = knum + _this.baseNote;
-	            _this.displayKeyDown(key);
-	            _this.noteOn(midi, keyboard_1.midi2freqRatio(midi));
-	        });
-	        key.mouseup(function (_) {
-	            var midi = knum + _this.baseNote;
-	            _this.displayKeyUp(key);
-	            _this.noteOff(midi);
-	        });
-	    };
-	    PianoKeyboard.prototype.registerButtons = function () {
-	        var _this = this;
-	        $('#poly-but').click(function (_) { return popups.alert('Polyphonic mode not available yet', 'Sorry'); });
-	        $('#prev-octave-but').click(function (_) {
-	            _this.octave--;
-	            _this.baseNote -= 12;
-	            _this.updateOctave();
-	        });
-	        $('#next-octave-but').click(function (_) {
-	            _this.octave++;
-	            _this.baseNote += 12;
-	            _this.updateOctave();
-	        });
-	    };
-	    PianoKeyboard.prototype.updateOctave = function () {
-	        $('#prev-octave-but').prop('disabled', this.octave <= 1);
-	        $('#next-octave-but').prop('disabled', this.octave >= 8);
-	        $('#octave-label').text('C' + this.octave);
-	        this.octaveChanged(this.baseNote);
-	    };
-	    PianoKeyboard.prototype.displayKeyDown = function (key) {
-	        if (typeof key == 'number')
-	            key = this.midi2key(key);
-	        if (!key)
-	            return;
-	        if (!this.poly && this.lastKey)
-	            this.displayKeyUp(this.lastKey, true);
-	        key.css('transition', "background-color " + this.envelope.attack + "s linear");
-	        key.addClass('piano-key-pressed');
-	        this.lastKey = key;
-	    };
-	    PianoKeyboard.prototype.displayKeyUp = function (key, immediate) {
-	        if (typeof key == 'number')
-	            key = this.midi2key(key);
-	        if (!key)
-	            return;
-	        var release = immediate ? 0 : this.envelope.release;
-	        key.css('transition', "background-color " + release + "s linear");
-	        key.removeClass('piano-key-pressed');
-	    };
-	    PianoKeyboard.prototype.midi2key = function (midi) {
-	        return this.keys[midi - this.baseNote];
-	    };
-	    PianoKeyboard.prototype.setEnvelope = function (adsr) {
-	        this.envelope = adsr;
-	    };
-	    PianoKeyboard.prototype.noteOn = function (midi, ratio) { };
-	    PianoKeyboard.prototype.noteOff = function (midi) { };
-	    PianoKeyboard.prototype.octaveChanged = function (baseNote) { };
-	    return PianoKeyboard;
-	})();
-	exports.PianoKeyboard = PianoKeyboard;
 
 
 /***/ }
