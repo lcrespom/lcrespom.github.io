@@ -244,6 +244,8 @@
 	        $('body').keydown(function (evt) {
 	            if (!(evt.keyCode == 46 || (evt.keyCode == 8 && evt.metaKey)))
 	                return;
+	            if (popups.isOpen)
+	                return;
 	            var selectedNode = _this.getSelectedNode();
 	            if (!selectedNode)
 	                return;
@@ -522,7 +524,8 @@
 	        this.loopParams(function (out) {
 	            var v = _this.getParamValue(out);
 	            out.cancelScheduledValues(now);
-	            out.linearRampToValueAtTime(0, now);
+	            var initial = (1 - adsr.depth) * v;
+	            out.linearRampToValueAtTime(initial, now);
 	            out.linearRampToValueAtTime(v, now + adsr.attack);
 	            out.linearRampToValueAtTime(v * adsr.sustain, now + adsr.attack + adsr.decay);
 	        });
@@ -534,9 +537,10 @@
 	        var now = adsr.context.currentTime;
 	        this.loopParams(function (out) {
 	            var v = out.value; // Get the really current value
+	            var finalv = (1 - adsr.depth) * v;
 	            out.cancelScheduledValues(now);
 	            out.linearRampToValueAtTime(v, now);
-	            out.linearRampToValueAtTime(0, now + adsr.release);
+	            out.linearRampToValueAtTime(finalv, now + adsr.release);
 	            //setTimeout(_ => this.sendNoteEnd(midi), adsr.release * 2000);
 	        });
 	    };
@@ -630,12 +634,15 @@
 /* 4 */
 /***/ function(module, exports) {
 
+	exports.isOpen = false;
 	function alert(msg, title) {
 	    popup.find('.popup-message').html(msg);
 	    popup.find('.modal-title').text(title || 'Alert');
 	    popup.find('.popup-ok').hide();
 	    popup.find('.popup-close').html('Close');
 	    popup.find('.popup-prompt > input').hide();
+	    exports.isOpen = true;
+	    popup.one('hidden.bs.modal', function (_) { return exports.isOpen = false; });
 	    popup.modal();
 	}
 	exports.alert = alert;
@@ -659,8 +666,10 @@
 	    });
 	    popup.one('hide.bs.modal', function (_) {
 	        okButton.off('click');
+	        exports.isOpen = false;
 	        cbClose(result);
 	    });
+	    exports.isOpen = true;
 	    popup.modal();
 	}
 	exports.confirm = confirm;
@@ -1206,6 +1215,7 @@
 	        this.decay = 0.5;
 	        this.sustain = 0.5;
 	        this.release = 1;
+	        this.depth = 1;
 	    }
 	    return ADSR;
 	})(CustomNodeBase);
@@ -1415,6 +1425,7 @@
 	            decay: { initial: 0.5, min: 0, max: 10 },
 	            sustain: { initial: 0.5, min: 0, max: 1, linear: true },
 	            release: { initial: 1.0, min: 0, max: 10 },
+	            depth: { initial: 1.0, min: 0, max: 1 }
 	        }
 	    }
 	};
@@ -1813,7 +1824,7 @@
 	        $('#prev-preset-but').click(function (_) { return _this.changePreset(-1); });
 	        $('#next-preset-but').click(function (_) { return _this.changePreset(+1); });
 	        $('body').keydown(function (evt) {
-	            if (evt.target.nodeName == 'INPUT')
+	            if (evt.target.nodeName == 'INPUT' || popups.isOpen)
 	                return;
 	            if (evt.keyCode == 37)
 	                _this.changePreset(-1);
