@@ -48,8 +48,8 @@
 	 * Main entry point: setup synth editor and keyboard listener.
 	 */
 	var synthUI_1 = __webpack_require__(1);
-	var noteInputs_1 = __webpack_require__(10);
-	var presets_1 = __webpack_require__(14);
+	var noteInputs_1 = __webpack_require__(11);
+	var presets_1 = __webpack_require__(15);
 	setupPalette();
 	var graphCanvas = $('#graph-canvas')[0];
 	var synthUI = new synthUI_1.SynthUI(createAudioContext(), graphCanvas, $('#node-params'), $('#audio-graph-fft'), $('#audio-graph-osc'));
@@ -70,8 +70,14 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var notes_1 = __webpack_require__(2);
-	var popups = __webpack_require__(4);
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var graph_1 = __webpack_require__(2);
+	var synth_1 = __webpack_require__(3);
+	var popups = __webpack_require__(8);
 	/**
 	 * Customizes the generic graph editor in order to manipulate and control a graph of
 	 * AudioNodes
@@ -80,25 +86,18 @@
 	    function SynthUI(ac, graphCanvas, jqParams, jqFFT, jqOsc) {
 	        this.gr = new graph_1.Graph(graphCanvas);
 	        this.gr.handler = new SynthGraphHandler(this, jqParams, jqFFT, jqOsc);
-	        this.synth = new synth_1.Synth(ac);
+	        this.synth = new synth_2.Synth(ac);
 	        this.registerPaletteHandler();
 	        this.addOutputNode();
 	    }
 	    SynthUI.prototype.addOutputNode = function () {
 	        //TODO avoid using hardcoded position
 	        var out = new graph_1.Node(500, 210, 'Out');
-	        out.data = new NodeData();
-	        this.initOutputNodeData(out.data);
+	        out.data = new GraphNodeData(out);
+	        this.synth.initOutputNodeData(out.data, this.synth.ac.destination);
+	        this.outNode = out.data.anode;
 	        this.gr.addNode(out, 'node-out');
 	        this.initNodeDimensions(out);
-	    };
-	    SynthUI.prototype.initOutputNodeData = function (data) {
-	        data.type = 'out';
-	        data.anode = this.synth.ac.createGain();
-	        data.anode.connect(this.synth.ac.destination);
-	        data.nodeDef = this.synth.palette['Speaker'];
-	        data.isOut = true;
-	        this.outNode = data.anode;
 	    };
 	    SynthUI.prototype.registerPaletteHandler = function () {
 	        var self = this; // JQuery sets 'this' in event handlers
@@ -123,22 +122,13 @@
 	            this.synth.removeNoteHandler(data.noteHandler);
 	    };
 	    SynthUI.prototype.createNodeData = function (n, type) {
-	        var data = new NodeData();
-	        n.data = data;
-	        if (type == 'out')
-	            return this.initOutputNodeData(n.data);
-	        data.type = type;
-	        data.anode = this.synth.createAudioNode(type);
-	        if (!data.anode)
-	            return console.error("No AudioNode found for '" + type + "'");
-	        data.nodeDef = this.synth.palette[type];
-	        var nh = data.nodeDef.noteHandler;
-	        if (nh) {
-	            data.noteHandler = new notes_1.NoteHandlers[nh](n);
-	            this.synth.addNoteHandler(data.noteHandler);
+	        n.data = new GraphNodeData(n);
+	        if (type == 'out') {
+	            this.synth.initOutputNodeData(n.data, this.synth.ac.destination);
+	            this.outNode = n.data.anode;
 	        }
-	        else if (data.anode['start'])
-	            data.anode['start']();
+	        else
+	            this.synth.initNodeData(n.data, type);
 	    };
 	    //----- Rest of methods are used to find a free spot in the canvas -----
 	    SynthUI.prototype.findFreeSpot = function () {
@@ -178,22 +168,26 @@
 	    return SynthUI;
 	})();
 	exports.SynthUI = SynthUI;
-	/**
-	 * Holds all data associated with an AudioNode in the graph
-	 */
-	var NodeData = (function () {
-	    function NodeData() {
-	        // Flag to avoid deleting output node
-	        this.isOut = false;
-	    }
-	    return NodeData;
-	})();
-	exports.NodeData = NodeData;
 	//-------------------- Privates --------------------
-	var graph_1 = __webpack_require__(5);
-	var synth_1 = __webpack_require__(6);
-	var paramsUI_1 = __webpack_require__(8);
-	var analyzer_1 = __webpack_require__(9);
+	var synth_2 = __webpack_require__(3);
+	var paramsUI_1 = __webpack_require__(9);
+	var analyzer_1 = __webpack_require__(10);
+	var GraphNodeData = (function (_super) {
+	    __extends(GraphNodeData, _super);
+	    function GraphNodeData(node) {
+	        _super.call(this);
+	        this.node = node;
+	    }
+	    GraphNodeData.prototype.getInputs = function () {
+	        var result = [];
+	        for (var _i = 0, _a = this.node.inputs; _i < _a.length; _i++) {
+	            var nin = _a[_i];
+	            result.push(nin.data);
+	        }
+	        return result;
+	    };
+	    return GraphNodeData;
+	})(synth_1.NodeData);
 	var SynthGraphHandler = (function () {
 	    function SynthGraphHandler(synthUI, jqParams, jqFFT, jqOsc) {
 	        this.synthUI = synthUI;
@@ -244,27 +238,11 @@
 	        return dstData.anode.numberOfInputs > 0;
 	    };
 	    SynthGraphHandler.prototype.connected = function (src, dst) {
-	        var srcData = src.data;
-	        var dstData = dst.data;
-	        if (srcData.nodeDef.control && !dstData.nodeDef.control) {
-	            srcData.controlParams = Object.keys(dstData.nodeDef.params)
-	                .filter(function (pname) { return dstData.anode[pname] instanceof AudioParam; });
-	            srcData.controlParam = srcData.controlParams[0];
-	            srcData.controlTarget = dstData.anode;
-	            srcData.anode.connect(dstData.anode[srcData.controlParam]);
-	        }
-	        else
-	            srcData.anode.connect(dstData.anode);
+	        this.synthUI.synth.connectNodes(src.data, dst.data);
+	        //TODO update paramsUI in case selected node is src
 	    };
 	    SynthGraphHandler.prototype.disconnected = function (src, dst) {
-	        var srcData = src.data;
-	        var dstData = dst.data;
-	        if (srcData.nodeDef.control && !dstData.nodeDef.control) {
-	            srcData.controlParams = null;
-	            srcData.anode.disconnect(dstData.anode[srcData.controlParam]);
-	        }
-	        else
-	            srcData.anode.disconnect(dstData.anode);
+	        this.synthUI.synth.disconnectNodes(src.data, dst.data);
 	    };
 	    SynthGraphHandler.prototype.nodeSelected = function (n) {
 	        var data = n.data;
@@ -278,48 +256,11 @@
 	        return srcData.nodeDef.control ? this.ctrlArrowColor : this.arrowColor;
 	    };
 	    SynthGraphHandler.prototype.data2json = function (n) {
-	        var data = n.data;
-	        var params = {};
-	        for (var _i = 0, _a = Object.keys(data.nodeDef.params); _i < _a.length; _i++) {
-	            var pname = _a[_i];
-	            var pvalue = data.anode[pname];
-	            if (data.nodeDef.params[pname].handler)
-	                params[pname] = this.synthUI.synth
-	                    .paramHandlers[data.nodeDef.params[pname].handler]
-	                    .param2json(data.anode);
-	            else if (pvalue instanceof AudioParam)
-	                if (pvalue['_value'] === undefined)
-	                    params[pname] = pvalue.value;
-	                else
-	                    params[pname] = pvalue['_value'];
-	            else
-	                params[pname] = pvalue;
-	        }
-	        return {
-	            type: data.type,
-	            params: params,
-	            controlParam: data.controlParam,
-	            controlParams: data.controlParams
-	        };
+	        return this.synthUI.synth.nodeData2json(n.data);
 	    };
 	    SynthGraphHandler.prototype.json2data = function (n, json) {
 	        this.synthUI.createNodeData(n, json.type);
-	        var data = n.data;
-	        for (var _i = 0, _a = Object.keys(json.params); _i < _a.length; _i++) {
-	            var pname = _a[_i];
-	            var pvalue = data.anode[pname];
-	            var jv = json.params[pname];
-	            if (data.nodeDef.params[pname].handler)
-	                this.synthUI.synth
-	                    .paramHandlers[data.nodeDef.params[pname].handler]
-	                    .json2param(data.anode, jv);
-	            else if (pvalue instanceof AudioParam) {
-	                pvalue.value = jv;
-	                pvalue['_value'] = jv;
-	            }
-	            else
-	                data.anode[pname] = jv;
-	        }
+	        this.synthUI.synth.json2NodeData(json, n.data);
 	    };
 	    SynthGraphHandler.prototype.graphLoaded = function () {
 	        this.analyzer.analyze(this.synthUI.outNode);
@@ -338,404 +279,6 @@
 
 /***/ },
 /* 2 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __extends = (this && this.__extends) || function (d, b) {
-	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-	    function __() { this.constructor = d; }
-	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-	};
-	var modern_1 = __webpack_require__(3);
-	/**
-	 * Handles common AudioNode cloning, used by oscillator and buffered data nodes.
-	 */
-	var BaseNoteHandler = (function () {
-	    function BaseNoteHandler(n) {
-	        this.kbTrigger = false;
-	        this.playAfterNoteOff = false;
-	        this.handlers = null;
-	        this.node = n;
-	        this.outTracker = new OutputTracker(n.data.anode);
-	    }
-	    BaseNoteHandler.prototype.noteOn = function (midi, gain, ratio) { };
-	    BaseNoteHandler.prototype.noteOff = function (midi, gain) { };
-	    BaseNoteHandler.prototype.noteEnd = function (midi) { };
-	    BaseNoteHandler.prototype.clone = function () {
-	        var data = this.node.data;
-	        // Create clone
-	        var anode = data.anode.context[data.nodeDef.constructor]();
-	        // Copy parameters
-	        for (var _i = 0, _a = Object.keys(data.nodeDef.params); _i < _a.length; _i++) {
-	            var pname = _a[_i];
-	            var param = data.anode[pname];
-	            if (param instanceof AudioParam)
-	                anode[pname].value = param.value;
-	            else if (param !== null && param !== undefined)
-	                anode[pname] = param;
-	        }
-	        // Copy output connections
-	        for (var _b = 0, _c = this.outTracker.outputs; _b < _c.length; _b++) {
-	            var out = _c[_b];
-	            var o2 = out;
-	            if (o2.custom && o2.anode)
-	                o2 = o2.anode;
-	            anode.connect(o2);
-	        }
-	        // Copy control input connections
-	        for (var _d = 0, _e = this.node.inputs; _d < _e.length; _d++) {
-	            var inNode = _e[_d];
-	            var inData = inNode.data;
-	            inNode.data.anode.connect(anode[inData.controlParam]);
-	        }
-	        //TODO should copy snapshot of list of inputs and outputs
-	        //...in case user connects or disconnects during playback
-	        return anode;
-	    };
-	    BaseNoteHandler.prototype.disconnect = function (anode) {
-	        // Disconnect outputs
-	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
-	            var out = _a[_i];
-	            anode.disconnect(out);
-	        }
-	        // Disconnect control inputs
-	        for (var _b = 0, _c = this.node.inputs; _b < _c.length; _b++) {
-	            var inNode = _c[_b];
-	            var inData = inNode.data;
-	            inNode.data.anode.disconnect(anode[inData.controlParam]);
-	        }
-	    };
-	    return BaseNoteHandler;
-	})();
-	/**
-	 * Handles note events for an OscillatorNode
-	 */
-	var OscNoteHandler = (function (_super) {
-	    __extends(OscNoteHandler, _super);
-	    function OscNoteHandler() {
-	        _super.apply(this, arguments);
-	        this.playing = false;
-	    }
-	    OscNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
-	        if (this.playing)
-	            this.noteEnd(midi); // Because this is monophonic
-	        this.playing = true;
-	        this.oscClone = this.clone();
-	        //TODO should also listen to value changes on original osc and apply them to clone
-	        this.oscClone.frequency.value = this.oscClone.frequency.value * ratio;
-	        this.oscClone.start();
-	        this.lastNote = midi;
-	    };
-	    OscNoteHandler.prototype.noteOff = function (midi, gain) {
-	        if (midi != this.lastNote)
-	            return;
-	        if (!this.playAfterNoteOff)
-	            this.noteEnd(midi);
-	    };
-	    OscNoteHandler.prototype.noteEnd = function (midi) {
-	        // Stop and disconnect
-	        if (!this.playing)
-	            return;
-	        this.playing = false;
-	        this.oscClone.stop();
-	        this.disconnect(this.oscClone);
-	        this.oscClone = null;
-	    };
-	    return OscNoteHandler;
-	})(BaseNoteHandler);
-	/**
-	 * Handles note events for an AudioBufferSourceNode
-	 */
-	var BufferNoteHandler = (function (_super) {
-	    __extends(BufferNoteHandler, _super);
-	    function BufferNoteHandler() {
-	        _super.apply(this, arguments);
-	        this.playing = false;
-	    }
-	    BufferNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
-	        if (this.playing)
-	            this.noteEnd(midi);
-	        var buf = this.node.data.anode._buffer;
-	        if (!buf)
-	            return; // Buffer still loading or failed
-	        this.playing = true;
-	        this.absn = this.clone();
-	        this.absn.buffer = buf;
-	        this.absn.playbackRate.value = this.absn.playbackRate.value * ratio;
-	        this.absn.start();
-	        this.lastNote = midi;
-	    };
-	    BufferNoteHandler.prototype.noteOff = function (midi, gain) {
-	        if (midi != this.lastNote)
-	            return;
-	        if (!this.playAfterNoteOff)
-	            this.noteEnd(midi);
-	    };
-	    BufferNoteHandler.prototype.noteEnd = function (midi) {
-	        // Stop and disconnect
-	        if (!this.playing)
-	            return;
-	        this.playing = false;
-	        this.absn.stop();
-	        this.disconnect(this.absn);
-	        this.absn = null;
-	    };
-	    return BufferNoteHandler;
-	})(BaseNoteHandler);
-	/**
-	 * Handles note events for a custom ADSR node
-	 */
-	var ADSRNoteHandler = (function (_super) {
-	    __extends(ADSRNoteHandler, _super);
-	    function ADSRNoteHandler() {
-	        _super.apply(this, arguments);
-	        this.kbTrigger = true;
-	    }
-	    ADSRNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
-	        var _this = this;
-	        this.setupOtherHandlers();
-	        this.lastNote = midi;
-	        var adsr = this.node.data.anode;
-	        var now = adsr.context.currentTime;
-	        this.loopParams(function (out) {
-	            var v = _this.getParamValue(out);
-	            out.cancelScheduledValues(now);
-	            var initial = (1 - adsr.depth) * v;
-	            out.linearRampToValueAtTime(initial, now);
-	            out.linearRampToValueAtTime(v, now + adsr.attack);
-	            var target = v * adsr.sustain + initial * (1 - adsr.sustain);
-	            out.linearRampToValueAtTime(target, now + adsr.attack + adsr.decay);
-	        });
-	    };
-	    ADSRNoteHandler.prototype.noteOff = function (midi, gain) {
-	        if (midi != this.lastNote)
-	            return;
-	        var adsr = this.node.data.anode;
-	        var now = adsr.context.currentTime;
-	        this.loopParams(function (out) {
-	            var v = out.value; // Get the really current value
-	            var finalv = (1 - adsr.depth) * v;
-	            out.cancelScheduledValues(now);
-	            out.linearRampToValueAtTime(v, now);
-	            out.linearRampToValueAtTime(finalv, now + adsr.release);
-	            //setTimeout(_ => this.sendNoteEnd(midi), adsr.release * 2000);
-	        });
-	    };
-	    ADSRNoteHandler.prototype.noteEnd = function (midi) { };
-	    ADSRNoteHandler.prototype.sendNoteEnd = function (midi) {
-	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
-	            var nh = _a[_i];
-	            nh.noteEnd(midi);
-	        }
-	    };
-	    ADSRNoteHandler.prototype.setupOtherHandlers = function () {
-	        //TODO should set to false when ADSR node is removed
-	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
-	            var nh = _a[_i];
-	            nh.playAfterNoteOff = true;
-	        }
-	    };
-	    ADSRNoteHandler.prototype.loopParams = function (cb) {
-	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
-	            var out = _a[_i];
-	            if (out instanceof AudioParam)
-	                cb(out);
-	        }
-	    };
-	    ADSRNoteHandler.prototype.getParamValue = function (p) {
-	        if (p['_value'] === undefined)
-	            p['_value'] = p.value;
-	        return p['_value'];
-	    };
-	    return ADSRNoteHandler;
-	})(BaseNoteHandler);
-	/**
-	 * Handles note events for any node that allows calling start() after stop(),
-	 * such as custom nodes.
-	 */
-	var RestartableNoteHandler = (function (_super) {
-	    __extends(RestartableNoteHandler, _super);
-	    function RestartableNoteHandler() {
-	        _super.apply(this, arguments);
-	        this.playing = false;
-	    }
-	    RestartableNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
-	        if (this.playing)
-	            this.noteEnd(midi);
-	        this.playing = true;
-	        this.node.data.anode.start();
-	        this.lastNote = midi;
-	    };
-	    RestartableNoteHandler.prototype.noteOff = function (midi, gain) {
-	        if (midi != this.lastNote)
-	            return;
-	        if (!this.playAfterNoteOff)
-	            this.noteEnd(midi);
-	    };
-	    RestartableNoteHandler.prototype.noteEnd = function (midi) {
-	        // Stop and disconnect
-	        if (!this.playing)
-	            return;
-	        this.playing = false;
-	        this.node.data.anode.stop();
-	    };
-	    return RestartableNoteHandler;
-	})(BaseNoteHandler);
-	/**
-	 * Exports available note handlers so they are used by their respective
-	 * nodes from the palette.
-	 */
-	exports.NoteHandlers = {
-	    'osc': OscNoteHandler,
-	    'buffer': BufferNoteHandler,
-	    'ADSR': ADSRNoteHandler,
-	    'restartable': RestartableNoteHandler
-	};
-	/**
-	 * Tracks a node output connections and disconnections, to be used
-	 * when cloning, removing or controlling nodes.
-	 */
-	var OutputTracker = (function () {
-	    function OutputTracker(anode) {
-	        this.outputs = [];
-	        this.onBefore(anode, 'connect', this.connect, function (oldf, obj, args) {
-	            if (args[0].custom && args[0].anode)
-	                args[0] = args[0].anode;
-	            oldf.apply(obj, args);
-	        });
-	        this.onBefore(anode, 'disconnect', this.disconnect);
-	    }
-	    OutputTracker.prototype.connect = function (np) {
-	        this.outputs.push(np);
-	    };
-	    OutputTracker.prototype.disconnect = function (np) {
-	        modern_1.removeArrayElement(this.outputs, np);
-	    };
-	    OutputTracker.prototype.onBefore = function (obj, fname, funcToCall, cb) {
-	        var oldf = obj[fname];
-	        var self = this;
-	        obj[fname] = function () {
-	            funcToCall.apply(self, arguments);
-	            if (cb)
-	                cb(oldf, obj, arguments);
-	            else
-	                oldf.apply(obj, arguments);
-	        };
-	    };
-	    return OutputTracker;
-	})();
-
-
-/***/ },
-/* 3 */
-/***/ function(module, exports) {
-
-	/**
-	 * Modernize browser interfaces so that TypeScript does not complain
-	 * when using new features.
-	 *
-	 * Also provides some basic utility funcitons which should be part of
-	 * the standard JavaScript library.
-	 */
-	function removeArrayElement(a, e) {
-	    var pos = a.indexOf(e);
-	    if (pos < 0)
-	        return false; // not found
-	    a.splice(pos, 1);
-	    return true;
-	}
-	exports.removeArrayElement = removeArrayElement;
-
-
-/***/ },
-/* 4 */
-/***/ function(module, exports) {
-
-	/** Informs whether a popup is open or not */
-	exports.isOpen = false;
-	/** Bootstrap-based equivalent of standard alert function */
-	function alert(msg, title, hideClose, options) {
-	    popup.find('.popup-message').html(msg);
-	    popup.find('.modal-title').text(title || 'Alert');
-	    popup.find('.popup-ok').hide();
-	    if (hideClose)
-	        popup.find('.popup-close').hide();
-	    else
-	        popup.find('.popup-close').html('Close');
-	    popup.find('.popup-prompt > input').hide();
-	    exports.isOpen = true;
-	    popup.one('hidden.bs.modal', function (_) { return exports.isOpen = false; });
-	    popup.modal(options);
-	}
-	exports.alert = alert;
-	/** Like an alert, but without a close button */
-	function progress(msg, title) {
-	    alert(msg, title, true, { keyboard: false });
-	}
-	exports.progress = progress;
-	/** Closes a popup in case it is open */
-	function close() {
-	    if (!exports.isOpen)
-	        return;
-	    popup.find('.popup-ok').click();
-	}
-	exports.close = close;
-	/** Bootstrap-based equivalent of standard confirm function */
-	function confirm(msg, title, cbClose, cbOpen) {
-	    var result = false;
-	    popup.find('.popup-message').html(msg);
-	    popup.find('.modal-title').text(title || 'Please confirm');
-	    var okButton = popup.find('.popup-ok');
-	    okButton.show().click(function (_) { return result = true; });
-	    popup.find('.popup-prompt > input').hide();
-	    popup.find('.popup-close').text('Cancel');
-	    popup.one('shown.bs.modal', function (_) {
-	        okButton.focus();
-	        if (cbOpen)
-	            cbOpen();
-	    });
-	    popup.find('form').one('submit', function (_) {
-	        result = true;
-	        okButton.click();
-	        return false;
-	    });
-	    popup.one('hide.bs.modal', function (_) {
-	        okButton.off('click');
-	        exports.isOpen = false;
-	        cbClose(result);
-	    });
-	    exports.isOpen = true;
-	    popup.modal();
-	}
-	exports.confirm = confirm;
-	/** Bootstrap-based equivalent of standard prompt function */
-	function prompt(msg, title, initialValue, cb) {
-	    var input = popup.find('.popup-prompt > input');
-	    confirm(msg, title, function (confirmed) {
-	        if (!cb)
-	            return;
-	        if (!confirmed)
-	            cb(null);
-	        else
-	            cb(input.val());
-	    }, function () {
-	        input.show();
-	        input.focus();
-	        if (initialValue) {
-	            input.val(initialValue);
-	            var hinput = input[0];
-	            hinput.select();
-	        }
-	        else
-	            input.val('');
-	    });
-	}
-	exports.prompt = prompt;
-	var popup = $("\n\t<div class=\"normal-font modal fade\" id=\"myModal\" tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"myModalLabel\">\n\t<div class=\"modal-dialog\" role=\"document\">\n\t\t<div class=\"modal-content\">\n\t\t<div class=\"modal-header\">\n\t\t\t<button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>\n\t\t\t<h4 class=\"modal-title\" id=\"myModalLabel\"></h4>\n\t\t</div>\n\t\t<div class=\"modal-body\">\n\t\t\t<div class=\"popup-message\"></div>\n\t\t\t<form class=\"popup-prompt\">\n\t\t\t\t<input type=\"text\" style=\"width: 100%\">\n\t\t\t</form>\n\t\t</div>\n\t\t<div class=\"modal-footer\">\n\t\t\t<button type=\"button\" class=\"btn btn-default popup-close\" data-dismiss=\"modal\"></button>\n\t\t\t<button type=\"button\" class=\"btn btn-primary popup-ok\" data-dismiss=\"modal\">OK</button>\n\t\t</div>\n\t\t</div>\n\t</div>\n\t</div>\n");
-	$('body').append(popup);
-
-
-/***/ },
-/* 5 */
 /***/ function(module, exports) {
 
 	var SHIFT_KEY = 16;
@@ -1132,16 +675,31 @@
 
 
 /***/ },
-/* 6 */
+/* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var palette_1 = __webpack_require__(7);
-	var modern_1 = __webpack_require__(3);
-	var popups = __webpack_require__(4);
-	var custom = __webpack_require__(15);
+	var notes_1 = __webpack_require__(4);
+	var palette_1 = __webpack_require__(6);
+	var modern_1 = __webpack_require__(5);
+	var custom = __webpack_require__(7);
+	/**
+	 * Holds all data associated with an AudioNode
+	 */
+	var NodeData = (function () {
+	    function NodeData() {
+	        // Flag to avoid deleting output node
+	        this.isOut = false;
+	    }
+	    // To be implemented by user code
+	    NodeData.prototype.getInputs = function () {
+	        throw 'Error: getInputs() function should be implemented by user';
+	    };
+	    return NodeData;
+	})();
+	exports.NodeData = NodeData;
 	/**
 	 * Performs global operations on all AudioNodes:
-	 * - Manages AudioNode creation and initialization from the palette
+	 * - Manages AudioNode creation, initialization and connection
 	 * - Distributes MIDI keyboard events to NoteHandlers
 	 */
 	var Synth = (function () {
@@ -1171,11 +729,84 @@
 	        this.initNodeParams(anode, def, type);
 	        return anode;
 	    };
-	    Synth.prototype.play = function () {
-	        this.ac.resume();
+	    Synth.prototype.initNodeData = function (ndata, type) {
+	        ndata.type = type;
+	        ndata.anode = this.createAudioNode(type);
+	        if (!ndata.anode)
+	            return console.error("No AudioNode found for '" + type + "'");
+	        ndata.nodeDef = this.palette[type];
+	        var nh = ndata.nodeDef.noteHandler;
+	        if (nh) {
+	            ndata.noteHandler = new notes_1.NoteHandlers[nh](ndata);
+	            this.addNoteHandler(ndata.noteHandler);
+	        }
+	        else if (ndata.anode['start'])
+	            ndata.anode['start']();
 	    };
-	    Synth.prototype.stop = function () {
-	        this.ac.suspend();
+	    Synth.prototype.initOutputNodeData = function (data, dst) {
+	        data.type = 'out';
+	        data.anode = this.ac.createGain();
+	        data.anode.connect(dst);
+	        data.nodeDef = this.palette['Speaker'];
+	        data.isOut = true;
+	    };
+	    Synth.prototype.connectNodes = function (srcData, dstData) {
+	        if (srcData.nodeDef.control && !dstData.nodeDef.control) {
+	            srcData.controlParams = Object.keys(dstData.nodeDef.params)
+	                .filter(function (pname) { return dstData.anode[pname] instanceof AudioParam; });
+	            srcData.controlParam = srcData.controlParams[0];
+	            srcData.controlTarget = dstData.anode;
+	            srcData.anode.connect(dstData.anode[srcData.controlParam]);
+	        }
+	        else
+	            srcData.anode.connect(dstData.anode);
+	    };
+	    Synth.prototype.disconnectNodes = function (srcData, dstData) {
+	        if (srcData.nodeDef.control && !dstData.nodeDef.control) {
+	            srcData.controlParams = null;
+	            srcData.anode.disconnect(dstData.anode[srcData.controlParam]);
+	        }
+	        else
+	            srcData.anode.disconnect(dstData.anode);
+	    };
+	    Synth.prototype.json2NodeData = function (json, data) {
+	        for (var _i = 0, _a = Object.keys(json.params); _i < _a.length; _i++) {
+	            var pname = _a[_i];
+	            var pvalue = data.anode[pname];
+	            var jv = json.params[pname];
+	            if (data.nodeDef.params[pname].handler)
+	                this.paramHandlers[data.nodeDef.params[pname].handler]
+	                    .json2param(data.anode, jv);
+	            else if (pvalue instanceof AudioParam) {
+	                pvalue.value = jv;
+	                pvalue['_value'] = jv;
+	            }
+	            else
+	                data.anode[pname] = jv;
+	        }
+	    };
+	    Synth.prototype.nodeData2json = function (data) {
+	        var params = {};
+	        for (var _i = 0, _a = Object.keys(data.nodeDef.params); _i < _a.length; _i++) {
+	            var pname = _a[_i];
+	            var pvalue = data.anode[pname];
+	            if (data.nodeDef.params[pname].handler)
+	                params[pname] = this.paramHandlers[data.nodeDef.params[pname].handler]
+	                    .param2json(data.anode);
+	            else if (pvalue instanceof AudioParam)
+	                if (pvalue['_value'] === undefined)
+	                    params[pname] = pvalue.value;
+	                else
+	                    params[pname] = pvalue['_value'];
+	            else
+	                params[pname] = pvalue;
+	        }
+	        return {
+	            type: data.type,
+	            params: params,
+	            controlParam: data.controlParam,
+	            controlParams: data.controlParams
+	        };
 	    };
 	    Synth.prototype.noteOn = function (midi, gain, ratio) {
 	        for (var _i = 0, _a = this.noteHandlers; _i < _a.length; _i++) {
@@ -1223,6 +854,7 @@
 	})();
 	exports.Synth = Synth;
 	//-------------------- Parameter handlers --------------------
+	var popups = __webpack_require__(8);
 	var BufferURL = (function () {
 	    function BufferURL() {
 	    }
@@ -1288,7 +920,316 @@
 
 
 /***/ },
-/* 7 */
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __extends = (this && this.__extends) || function (d, b) {
+	    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+	    function __() { this.constructor = d; }
+	    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+	};
+	var modern_1 = __webpack_require__(5);
+	/**
+	 * Handles common AudioNode cloning, used by oscillator and buffered data nodes.
+	 */
+	var BaseNoteHandler = (function () {
+	    function BaseNoteHandler(ndata) {
+	        this.kbTrigger = false;
+	        this.playAfterNoteOff = false;
+	        this.handlers = null;
+	        this.ndata = ndata;
+	        this.outTracker = new OutputTracker(ndata.anode);
+	    }
+	    BaseNoteHandler.prototype.noteOn = function (midi, gain, ratio) { };
+	    BaseNoteHandler.prototype.noteOff = function (midi, gain) { };
+	    BaseNoteHandler.prototype.noteEnd = function (midi) { };
+	    BaseNoteHandler.prototype.clone = function () {
+	        // Create clone
+	        var anode = this.ndata.anode.context[this.ndata.nodeDef.constructor]();
+	        // Copy parameters
+	        for (var _i = 0, _a = Object.keys(this.ndata.nodeDef.params); _i < _a.length; _i++) {
+	            var pname = _a[_i];
+	            var param = this.ndata.anode[pname];
+	            if (param instanceof AudioParam)
+	                anode[pname].value = param.value;
+	            else if (param !== null && param !== undefined)
+	                anode[pname] = param;
+	        }
+	        // Copy output connections
+	        for (var _b = 0, _c = this.outTracker.outputs; _b < _c.length; _b++) {
+	            var out = _c[_b];
+	            var o2 = out;
+	            if (o2.custom && o2.anode)
+	                o2 = o2.anode;
+	            anode.connect(o2);
+	        }
+	        // Copy control input connections
+	        for (var _d = 0, _e = this.ndata.getInputs(); _d < _e.length; _d++) {
+	            var inData = _e[_d];
+	            inData.anode.connect(anode[inData.controlParam]);
+	        }
+	        //TODO should copy snapshot of list of inputs and outputs
+	        //...in case user connects or disconnects during playback
+	        return anode;
+	    };
+	    BaseNoteHandler.prototype.disconnect = function (anode) {
+	        // Disconnect outputs
+	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
+	            var out = _a[_i];
+	            anode.disconnect(out);
+	        }
+	        // Disconnect control inputs
+	        for (var _b = 0, _c = this.ndata.getInputs(); _b < _c.length; _b++) {
+	            var inData = _c[_b];
+	            inData.anode.disconnect(anode[inData.controlParam]);
+	        }
+	    };
+	    return BaseNoteHandler;
+	})();
+	/**
+	 * Handles note events for an OscillatorNode
+	 */
+	var OscNoteHandler = (function (_super) {
+	    __extends(OscNoteHandler, _super);
+	    function OscNoteHandler() {
+	        _super.apply(this, arguments);
+	        this.playing = false;
+	    }
+	    OscNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
+	        if (this.playing)
+	            this.noteEnd(midi); // Because this is monophonic
+	        this.playing = true;
+	        this.oscClone = this.clone();
+	        //TODO should also listen to value changes on original osc and apply them to clone
+	        this.oscClone.frequency.value = this.oscClone.frequency.value * ratio;
+	        this.oscClone.start();
+	        this.lastNote = midi;
+	    };
+	    OscNoteHandler.prototype.noteOff = function (midi, gain) {
+	        if (midi != this.lastNote)
+	            return;
+	        if (!this.playAfterNoteOff)
+	            this.noteEnd(midi);
+	    };
+	    OscNoteHandler.prototype.noteEnd = function (midi) {
+	        // Stop and disconnect
+	        if (!this.playing)
+	            return;
+	        this.playing = false;
+	        this.oscClone.stop();
+	        this.disconnect(this.oscClone);
+	        this.oscClone = null;
+	    };
+	    return OscNoteHandler;
+	})(BaseNoteHandler);
+	/**
+	 * Handles note events for an AudioBufferSourceNode
+	 */
+	var BufferNoteHandler = (function (_super) {
+	    __extends(BufferNoteHandler, _super);
+	    function BufferNoteHandler() {
+	        _super.apply(this, arguments);
+	        this.playing = false;
+	    }
+	    BufferNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
+	        if (this.playing)
+	            this.noteEnd(midi);
+	        var buf = this.ndata.anode['_buffer'];
+	        if (!buf)
+	            return; // Buffer still loading or failed
+	        this.playing = true;
+	        this.absn = this.clone();
+	        this.absn.buffer = buf;
+	        this.absn.playbackRate.value = this.absn.playbackRate.value * ratio;
+	        this.absn.start();
+	        this.lastNote = midi;
+	    };
+	    BufferNoteHandler.prototype.noteOff = function (midi, gain) {
+	        if (midi != this.lastNote)
+	            return;
+	        if (!this.playAfterNoteOff)
+	            this.noteEnd(midi);
+	    };
+	    BufferNoteHandler.prototype.noteEnd = function (midi) {
+	        // Stop and disconnect
+	        if (!this.playing)
+	            return;
+	        this.playing = false;
+	        this.absn.stop();
+	        this.disconnect(this.absn);
+	        this.absn = null;
+	    };
+	    return BufferNoteHandler;
+	})(BaseNoteHandler);
+	/**
+	 * Handles note events for a custom ADSR node
+	 */
+	var ADSRNoteHandler = (function (_super) {
+	    __extends(ADSRNoteHandler, _super);
+	    function ADSRNoteHandler() {
+	        _super.apply(this, arguments);
+	        this.kbTrigger = true;
+	    }
+	    ADSRNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
+	        var _this = this;
+	        this.setupOtherHandlers();
+	        this.lastNote = midi;
+	        var adsr = this.ndata.anode;
+	        var now = adsr.context.currentTime;
+	        this.loopParams(function (out) {
+	            var v = _this.getParamValue(out);
+	            out.cancelScheduledValues(now);
+	            var initial = (1 - adsr.depth) * v;
+	            out.linearRampToValueAtTime(initial, now);
+	            out.linearRampToValueAtTime(v, now + adsr.attack);
+	            var target = v * adsr.sustain + initial * (1 - adsr.sustain);
+	            out.linearRampToValueAtTime(target, now + adsr.attack + adsr.decay);
+	        });
+	    };
+	    ADSRNoteHandler.prototype.noteOff = function (midi, gain) {
+	        if (midi != this.lastNote)
+	            return;
+	        var adsr = this.ndata.anode;
+	        var now = adsr.context.currentTime;
+	        this.loopParams(function (out) {
+	            var v = out.value; // Get the really current value
+	            var finalv = (1 - adsr.depth) * v;
+	            out.cancelScheduledValues(now);
+	            out.linearRampToValueAtTime(v, now);
+	            out.linearRampToValueAtTime(finalv, now + adsr.release);
+	            //setTimeout(_ => this.sendNoteEnd(midi), adsr.release * 2000);
+	        });
+	    };
+	    ADSRNoteHandler.prototype.noteEnd = function (midi) { };
+	    ADSRNoteHandler.prototype.sendNoteEnd = function (midi) {
+	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            nh.noteEnd(midi);
+	        }
+	    };
+	    ADSRNoteHandler.prototype.setupOtherHandlers = function () {
+	        //TODO should set to false when ADSR node is removed
+	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            nh.playAfterNoteOff = true;
+	        }
+	    };
+	    ADSRNoteHandler.prototype.loopParams = function (cb) {
+	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
+	            var out = _a[_i];
+	            if (out instanceof AudioParam)
+	                cb(out);
+	        }
+	    };
+	    ADSRNoteHandler.prototype.getParamValue = function (p) {
+	        if (p['_value'] === undefined)
+	            p['_value'] = p.value;
+	        return p['_value'];
+	    };
+	    return ADSRNoteHandler;
+	})(BaseNoteHandler);
+	/**
+	 * Handles note events for any node that allows calling start() after stop(),
+	 * such as custom nodes.
+	 */
+	var RestartableNoteHandler = (function (_super) {
+	    __extends(RestartableNoteHandler, _super);
+	    function RestartableNoteHandler() {
+	        _super.apply(this, arguments);
+	        this.playing = false;
+	    }
+	    RestartableNoteHandler.prototype.noteOn = function (midi, gain, ratio) {
+	        if (this.playing)
+	            this.noteEnd(midi);
+	        this.playing = true;
+	        var anode = this.ndata.anode;
+	        anode.start();
+	        this.lastNote = midi;
+	    };
+	    RestartableNoteHandler.prototype.noteOff = function (midi, gain) {
+	        if (midi != this.lastNote)
+	            return;
+	        if (!this.playAfterNoteOff)
+	            this.noteEnd(midi);
+	    };
+	    RestartableNoteHandler.prototype.noteEnd = function (midi) {
+	        // Stop and disconnect
+	        if (!this.playing)
+	            return;
+	        this.playing = false;
+	        var anode = this.ndata.anode;
+	        anode.stop();
+	    };
+	    return RestartableNoteHandler;
+	})(BaseNoteHandler);
+	/**
+	 * Exports available note handlers so they are used by their respective
+	 * nodes from the palette.
+	 */
+	exports.NoteHandlers = {
+	    'osc': OscNoteHandler,
+	    'buffer': BufferNoteHandler,
+	    'ADSR': ADSRNoteHandler,
+	    'restartable': RestartableNoteHandler
+	};
+	/**
+	 * Tracks a node output connections and disconnections, to be used
+	 * when cloning, removing or controlling nodes.
+	 */
+	var OutputTracker = (function () {
+	    function OutputTracker(anode) {
+	        this.outputs = [];
+	        this.onBefore(anode, 'connect', this.connect, function (oldf, obj, args) {
+	            if (args[0].custom && args[0].anode)
+	                args[0] = args[0].anode;
+	            oldf.apply(obj, args);
+	        });
+	        this.onBefore(anode, 'disconnect', this.disconnect);
+	    }
+	    OutputTracker.prototype.connect = function (np) {
+	        this.outputs.push(np);
+	    };
+	    OutputTracker.prototype.disconnect = function (np) {
+	        modern_1.removeArrayElement(this.outputs, np);
+	    };
+	    OutputTracker.prototype.onBefore = function (obj, fname, funcToCall, cb) {
+	        var oldf = obj[fname];
+	        var self = this;
+	        obj[fname] = function () {
+	            funcToCall.apply(self, arguments);
+	            if (cb)
+	                cb(oldf, obj, arguments);
+	            else
+	                oldf.apply(obj, arguments);
+	        };
+	    };
+	    return OutputTracker;
+	})();
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	/**
+	 * Modernize browser interfaces so that TypeScript does not complain
+	 * when using new features.
+	 *
+	 * Also provides some basic utility funcitons which should be part of
+	 * the standard JavaScript library.
+	 */
+	function removeArrayElement(a, e) {
+	    var pos = a.indexOf(e);
+	    if (pos < 0)
+	        return false; // not found
+	    a.splice(pos, 1);
+	    return true;
+	}
+	exports.removeArrayElement = removeArrayElement;
+
+
+/***/ },
+/* 6 */
 /***/ function(module, exports) {
 
 	//-------------------- Node palette definition --------------------
@@ -1446,755 +1387,7 @@
 
 
 /***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	/**
-	 * Renders the UI controls associated with the parameters of a given node
-	 */
-	function renderParams(ndata, panel) {
-	    panel.empty();
-	    var boxes = [];
-	    if (ndata.nodeDef.control && ndata.controlParams)
-	        boxes.push(renderParamControl(ndata, panel));
-	    var params = Object.keys(ndata.nodeDef.params || {});
-	    if (params.length <= 0)
-	        return;
-	    for (var _i = 0; _i < params.length; _i++) {
-	        var param = params[_i];
-	        if (ndata.anode[param] instanceof AudioParam)
-	            boxes.push(renderAudioParam(ndata.anode, ndata.nodeDef, param, panel));
-	        else
-	            boxes.push(renderOtherParam(ndata.anode, ndata.nodeDef, param, panel));
-	    }
-	    positionBoxes(panel, boxes);
-	}
-	exports.renderParams = renderParams;
-	function positionBoxes(panel, boxes) {
-	    var pw = panel.width();
-	    var bw = boxes[0].width();
-	    var sep = (pw - boxes.length * bw) / (boxes.length + 1);
-	    var x = sep;
-	    for (var _i = 0; _i < boxes.length; _i++) {
-	        var box = boxes[_i];
-	        box.css({
-	            position: 'relative',
-	            left: x
-	        });
-	        x += sep;
-	    }
-	}
-	function renderAudioParam(anode, ndef, param, panel) {
-	    var pdef = ndef.params[param];
-	    var aparam = anode[param];
-	    if (aparam['_value'])
-	        aparam.value = aparam['_value'];
-	    return renderSlider(panel, pdef, param, aparam.value, function (value) {
-	        aparam.value = value;
-	        aparam['_value'] = value;
-	    });
-	}
-	function renderParamControl(ndata, panel) {
-	    if (!ndata.controlParams)
-	        return;
-	    var combo = renderCombo(panel, ndata.controlParams, ndata.controlParam, 'Controlling');
-	    combo.change(function (_) {
-	        if (ndata.controlParam)
-	            ndata.anode.disconnect(ndata.controlTarget[ndata.controlParam]);
-	        ndata.controlParam = combo.val();
-	        ndata.anode.connect(ndata.controlTarget[ndata.controlParam]);
-	    });
-	    return combo.parent();
-	}
-	function renderOtherParam(anode, ndef, param, panel) {
-	    var pdef = ndef.params[param];
-	    if (pdef.choices) {
-	        var combo = renderCombo(panel, pdef.choices, anode[param], ucfirst(param));
-	        combo.change(function (_) {
-	            anode[param] = combo.val();
-	        });
-	        return combo.parent();
-	    }
-	    else if (pdef.min != undefined)
-	        return renderSlider(panel, pdef, param, anode[param], function (value) { return anode[param] = value; });
-	    else if (typeof pdef.initial == 'boolean')
-	        return renderBoolean(panel, pdef, param, anode, ucfirst(param));
-	    else if (pdef.phandler)
-	        return pdef.phandler.renderParam(panel, pdef, anode, param, ucfirst(param));
-	}
-	function renderSlider(panel, pdef, param, value, setValue) {
-	    var sliderBox = $('<div class="slider-box">');
-	    var slider = $('<input type="range" orient="vertical">')
-	        .attr('min', 0)
-	        .attr('max', 1)
-	        .attr('step', 0.001)
-	        .attr('value', param2slider(value, pdef));
-	    var numInput = $('<input type="number">')
-	        .attr('min', pdef.min)
-	        .attr('max', pdef.max)
-	        .attr('value', truncateFloat(value, 5));
-	    sliderBox.append(numInput);
-	    sliderBox.append(slider);
-	    sliderBox.append($('<span><br/>' + ucfirst(param) + '</span>'));
-	    panel.append(sliderBox);
-	    slider.on('input', function (_) {
-	        var value = slider2param(parseFloat(slider.val()), pdef);
-	        numInput.val(truncateFloat(value, 5));
-	        setValue(value);
-	    });
-	    numInput.on('input', function (_) {
-	        var value = parseFloat(numInput.val());
-	        if (isNaN(value))
-	            return;
-	        slider.val(param2slider(value, pdef));
-	        setValue(value);
-	    });
-	    return sliderBox;
-	}
-	function renderCombo(panel, choices, selected, label) {
-	    var choiceBox = $('<div class="choice-box">');
-	    var combo = $('<select>').attr('size', choices.length);
-	    for (var _i = 0; _i < choices.length; _i++) {
-	        var choice = choices[_i];
-	        var option = $('<option>').text(choice);
-	        if (choice == selected)
-	            option.attr('selected', 'selected');
-	        combo.append(option);
-	    }
-	    choiceBox.append(combo);
-	    combo.after('<br/><br/>' + label);
-	    panel.append(choiceBox);
-	    return combo;
-	}
-	function renderBoolean(panel, pdef, param, anode, label) {
-	    var box = $('<div class="choice-box">');
-	    var button = $('<button class="btn btn-info" data-toggle="button" aria-pressed="false">');
-	    box.append(button);
-	    button.after('<br/><br/>' + label);
-	    panel.append(box);
-	    if (anode[param]) {
-	        button.text('Enabled');
-	        button.addClass('active');
-	        button.attr('aria-pressed', 'true');
-	    }
-	    else {
-	        button.text('Disabled');
-	        button.removeClass('active');
-	        button.attr('aria-pressed', 'false');
-	    }
-	    button.click(function (_) {
-	        anode[param] = !anode[param];
-	        button.text(anode[param] ? 'Enabled' : 'Disabled');
-	    });
-	    return box;
-	}
-	var LOG_BASE = 2;
-	function logarithm(base, x) {
-	    return Math.log(x) / Math.log(base);
-	}
-	function param2slider(paramValue, pdef) {
-	    if (pdef.linear) {
-	        return (paramValue - pdef.min) / (pdef.max - pdef.min);
-	    }
-	    else {
-	        var logRange = logarithm(LOG_BASE, pdef.max + 1 - pdef.min);
-	        return logarithm(LOG_BASE, paramValue + 1 - pdef.min) / logRange;
-	    }
-	}
-	function slider2param(sliderValue, pdef) {
-	    if (pdef.linear) {
-	        return pdef.min + sliderValue * (pdef.max - pdef.min);
-	    }
-	    else {
-	        var logRange = logarithm(LOG_BASE, pdef.max + 1 - pdef.min);
-	        return pdef.min + Math.pow(LOG_BASE, sliderValue * logRange) - 1;
-	    }
-	}
-	//-------------------- Misc utilities --------------------
-	function ucfirst(str) {
-	    return str[0].toUpperCase() + str.substring(1);
-	}
-	function truncateFloat(f, len) {
-	    var s = '' + f;
-	    s = s.substr(0, len);
-	    if (s[s.length - 1] == '.')
-	        return s.substr(0, len - 1);
-	    else
-	        return s;
-	}
-
-
-/***/ },
-/* 9 */
-/***/ function(module, exports) {
-
-	/**
-	 * Displays FFT and Oscilloscope graphs from the output of a given AudioNode
-	 */
-	var AudioAnalyzer = (function () {
-	    function AudioAnalyzer(jqfft, jqosc) {
-	        this.canvasFFT = this.createCanvas(jqfft);
-	        this.gcFFT = this.canvasFFT.getContext('2d');
-	        this.canvasOsc = this.createCanvas(jqosc);
-	        this.gcOsc = this.canvasOsc.getContext('2d');
-	    }
-	    AudioAnalyzer.prototype.createCanvas = function (panel) {
-	        var jqCanvas = $("<canvas width=\"" + panel.width() + "\" height=\"" + panel.height() + "\">");
-	        panel.append(jqCanvas);
-	        var canvas = jqCanvas[0];
-	        return canvas;
-	    };
-	    AudioAnalyzer.prototype.createAnalyzerNode = function (ac) {
-	        if (this.anode)
-	            return;
-	        this.anode = ac.createAnalyser();
-	        this.fftData = new Uint8Array(this.anode.fftSize);
-	        this.oscData = new Uint8Array(this.anode.fftSize);
-	    };
-	    AudioAnalyzer.prototype.analyze = function (input) {
-	        this.disconnect();
-	        this.createAnalyzerNode(input.context);
-	        this.input = input;
-	        this.input.connect(this.anode);
-	        this.requestAnimationFrame();
-	    };
-	    AudioAnalyzer.prototype.disconnect = function () {
-	        if (!this.input)
-	            return;
-	        this.input.disconnect(this.anode);
-	        this.input = null;
-	    };
-	    AudioAnalyzer.prototype.requestAnimationFrame = function () {
-	        var _this = this;
-	        window.requestAnimationFrame(function (_) { return _this.updateCanvas(); });
-	    };
-	    AudioAnalyzer.prototype.updateCanvas = function () {
-	        if (!this.input)
-	            return;
-	        this.drawFFT(this.gcFFT, this.canvasFFT, this.fftData, '#00FF00');
-	        this.drawOsc(this.gcOsc, this.canvasOsc, this.oscData, '#FFFF00');
-	        this.requestAnimationFrame();
-	    };
-	    AudioAnalyzer.prototype.drawFFT = function (gc, canvas, data, color) {
-	        var _a = this.setupDraw(gc, canvas, data, color), w = _a[0], h = _a[1];
-	        this.anode.getByteFrequencyData(data);
-	        var dx = (data.length / 2) / canvas.width;
-	        var x = 0;
-	        //TODO calculate average of all samples from x to x + dx - 1
-	        for (var i = 0; i < w; i++) {
-	            var y = data[Math.floor(x)];
-	            x += dx;
-	            gc.moveTo(i, h - 1);
-	            gc.lineTo(i, h - 1 - h * y / 256);
-	        }
-	        gc.stroke();
-	        gc.closePath();
-	    };
-	    AudioAnalyzer.prototype.drawOsc = function (gc, canvas, data, color) {
-	        var _a = this.setupDraw(gc, canvas, data, color), w = _a[0], h = _a[1];
-	        this.anode.getByteTimeDomainData(data);
-	        gc.moveTo(0, h / 2);
-	        var x = 0;
-	        while (data[x] > 128 && x < data.length / 4)
-	            x++;
-	        while (data[x] < 128 && x < data.length / 4)
-	            x++;
-	        var dx = (data.length * 0.75) / canvas.width;
-	        for (var i = 0; i < w; i++) {
-	            var y = data[Math.floor(x)];
-	            x += dx;
-	            gc.lineTo(i, h * y / 256);
-	        }
-	        gc.stroke();
-	        gc.closePath();
-	    };
-	    AudioAnalyzer.prototype.setupDraw = function (gc, canvas, data, color) {
-	        var w = canvas.width;
-	        var h = canvas.height;
-	        gc.clearRect(0, 0, w, h);
-	        gc.beginPath();
-	        gc.strokeStyle = color;
-	        return [w, h];
-	    };
-	    return AudioAnalyzer;
-	})();
-	exports.AudioAnalyzer = AudioAnalyzer;
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var keyboard_1 = __webpack_require__(11);
-	var piano_1 = __webpack_require__(12);
-	var instrument_1 = __webpack_require__(13);
-	var NUM_VOICES = 5;
-	/**
-	 * Manages all note-generation inputs:
-	 * 	- PC Keyboard
-	 * 	- Virtual piano keyboard
-	 *	- Eventually it should also integrate with Web MIDI
-	 * Handles switching to polyphonic mode and back to mono
-	 */
-	var NoteInputs = (function () {
-	    function NoteInputs(synthUI) {
-	        var _this = this;
-	        this.synthUI = synthUI;
-	        this.poly = false;
-	        // Setup piano panel
-	        var piano = new piano_1.PianoKeyboard($('#piano'));
-	        piano.noteOn = function (midi, ratio) { return _this.noteOn(midi, 1, ratio); };
-	        piano.noteOff = function (midi) { return _this.noteOff(midi, 1); };
-	        // Register poly on/off handlers
-	        piano.polyOn = function () { return _this.polyOn(); };
-	        piano.polyOff = function () { return _this.polyOff(); };
-	        // Setup PC keyboard
-	        var kb = new keyboard_1.Keyboard();
-	        kb.noteOn = function (midi, ratio) {
-	            if (document.activeElement.nodeName == 'INPUT' &&
-	                document.activeElement.getAttribute('type') != 'range')
-	                return;
-	            _this.noteOn(midi, 1, ratio);
-	            piano.displayKeyDown(midi);
-	        };
-	        kb.noteOff = function (midi) {
-	            _this.noteOff(midi, 1);
-	            piano.displayKeyUp(midi);
-	        };
-	        // Bind piano octave with PC keyboard
-	        kb.baseNote = piano.baseNote;
-	        piano.octaveChanged = function (baseNote) { return kb.baseNote = baseNote; };
-	        this.setupEnvelopeAnimation(piano);
-	    }
-	    NoteInputs.prototype.setupEnvelopeAnimation = function (piano) {
-	        var loaded = this.synthUI.gr.handler.graphLoaded;
-	        this.synthUI.gr.handler.graphLoaded = function () {
-	            loaded.bind(this.synthUI.gr.handler)();
-	            var adsr = null;
-	            for (var _i = 0, _a = this.synthUI.gr.nodes; _i < _a.length; _i++) {
-	                var node = _a[_i];
-	                var data = node.data;
-	                if (data.type == 'ADSR') {
-	                    adsr = data.anode;
-	                    break;
-	                }
-	            }
-	            piano.setEnvelope(adsr || { attack: 0, release: 0 });
-	        };
-	    };
-	    NoteInputs.prototype.noteOn = function (midi, velocity, ratio) {
-	        this.lastNote = midi;
-	        if (this.poly)
-	            this.instrument.noteOn(midi, velocity, ratio);
-	        else
-	            this.synthUI.synth.noteOn(midi, velocity, ratio);
-	    };
-	    NoteInputs.prototype.noteOff = function (midi, velocity) {
-	        this.lastNote = 0;
-	        if (this.poly)
-	            this.instrument.noteOff(midi, velocity);
-	        else
-	            this.synthUI.synth.noteOff(midi, velocity);
-	    };
-	    NoteInputs.prototype.polyOn = function () {
-	        if (this.lastNote)
-	            this.noteOff(this.lastNote, 1);
-	        this.poly = true;
-	        var json = this.synthUI.gr.toJSON();
-	        this.instrument = new instrument_1.Instrument(this.synthUI.synth.ac, json, NUM_VOICES);
-	    };
-	    NoteInputs.prototype.polyOff = function () {
-	        this.poly = false;
-	        this.instrument.close();
-	    };
-	    return NoteInputs;
-	})();
-	exports.NoteInputs = NoteInputs;
-
-
-/***/ },
-/* 11 */
-/***/ function(module, exports) {
-
-	var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
-	var BASE_NOTE = 36;
-	var SEMITONE = Math.pow(2, 1 / 12);
-	var A4 = 57;
-	/**
-	 * Provides a piano keyboard using the PC keyboard.
-	 * Listens to keyboard events and generates MIDI-style noteOn/noteOff events.
-	 */
-	var Keyboard = (function () {
-	    function Keyboard() {
-	        this.setupHandler();
-	        this.baseNote = BASE_NOTE;
-	    }
-	    Keyboard.prototype.setupHandler = function () {
-	        var _this = this;
-	        var pressedKeys = {};
-	        $('body')
-	            .on('keydown', function (evt) {
-	            if (pressedKeys[evt.keyCode])
-	                return; // Skip repetitions
-	            if (evt.metaKey || evt.altKey)
-	                return; // Skip browser shortcuts
-	            pressedKeys[evt.keyCode] = true;
-	            var midi = _this.key2midi(evt.keyCode);
-	            if (midi < 0)
-	                return;
-	            _this.noteOn(midi, midi2freqRatio(midi));
-	        })
-	            .on('keyup', function (evt) {
-	            pressedKeys[evt.keyCode] = false;
-	            var midi = _this.key2midi(evt.keyCode);
-	            if (midi < 0)
-	                return;
-	            _this.noteOff(midi);
-	        });
-	    };
-	    Keyboard.prototype.key2midi = function (keyCode) {
-	        var pos = KB_NOTES.indexOf(String.fromCharCode(keyCode));
-	        if (pos < 0)
-	            return -1;
-	        return this.baseNote + pos;
-	    };
-	    Keyboard.prototype.noteOn = function (midi, ratio) { };
-	    Keyboard.prototype.noteOff = function (midi) { };
-	    return Keyboard;
-	})();
-	exports.Keyboard = Keyboard;
-	function midi2freqRatio(midi) {
-	    return Math.pow(SEMITONE, midi - A4);
-	}
-	exports.midi2freqRatio = midi2freqRatio;
-
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var keyboard_1 = __webpack_require__(11);
-	var popups = __webpack_require__(4);
-	var NUM_WHITES = 17;
-	var BASE_NOTE = 36;
-	/**
-	 * A virtual piano keyboard that:
-	 * 	- Captures mouse input and generates corresponding note events
-	 * 	- Displays note events as CSS-animated colors in the pressed keys
-	 * 	- Supports octave switching
-	 * 	- Provides a poly/mono button
-	 */
-	var PianoKeyboard = (function () {
-	    function PianoKeyboard(panel) {
-	        this.baseNote = BASE_NOTE;
-	        this.octave = 3;
-	        this.poly = false;
-	        this.envelope = { attack: 0, release: 0 };
-	        this.createKeys(panel);
-	        for (var i = 0; i < this.keys.length; i++)
-	            this.registerKey(this.keys[i], i);
-	        this.registerButtons();
-	    }
-	    PianoKeyboard.prototype.createKeys = function (panel) {
-	        this.keys = [];
-	        var pw = panel.width();
-	        var ph = panel.height();
-	        var kw = pw / NUM_WHITES + 1;
-	        var bw = kw * 2 / 3;
-	        var bh = ph * 2 / 3;
-	        // Create white keys
-	        var knum = 0;
-	        for (var i = 0; i < NUM_WHITES; i++) {
-	            var key = $('<div class="piano-key">').css({
-	                width: '' + kw + 'px',
-	                height: '' + ph + 'px'
-	            });
-	            panel.append(key);
-	            this.keys[knum++] = key;
-	            if (this.hasBlack(i))
-	                knum++;
-	        }
-	        // Create black keys
-	        var knum = 0;
-	        var x = 10 - bw / 2;
-	        for (var i = 0; i < NUM_WHITES - 1; i++) {
-	            x += kw - 1;
-	            knum++;
-	            if (!this.hasBlack(i))
-	                continue;
-	            var key = $('<div class="piano-key piano-black">').css({
-	                width: '' + bw + 'px',
-	                height: '' + bh + 'px',
-	                left: '' + x + 'px',
-	                top: '10px'
-	            });
-	            panel.append(key);
-	            this.keys[knum++] = key;
-	        }
-	    };
-	    PianoKeyboard.prototype.hasBlack = function (num) {
-	        var mod7 = num % 7;
-	        return mod7 != 2 && mod7 != 6;
-	    };
-	    PianoKeyboard.prototype.registerKey = function (key, knum) {
-	        var _this = this;
-	        key.mousedown(function (_) {
-	            var midi = knum + _this.baseNote;
-	            _this.displayKeyDown(key);
-	            _this.noteOn(midi, keyboard_1.midi2freqRatio(midi));
-	        });
-	        key.mouseup(function (_) {
-	            var midi = knum + _this.baseNote;
-	            _this.displayKeyUp(key);
-	            _this.noteOff(midi);
-	        });
-	    };
-	    PianoKeyboard.prototype.registerButtons = function () {
-	        var _this = this;
-	        $('#poly-but').click(function (_) { return _this.togglePoly(); });
-	        $('#prev-octave-but').click(function (_) {
-	            _this.octave--;
-	            _this.baseNote -= 12;
-	            _this.updateOctave();
-	        });
-	        $('#next-octave-but').click(function (_) {
-	            _this.octave++;
-	            _this.baseNote += 12;
-	            _this.updateOctave();
-	        });
-	    };
-	    PianoKeyboard.prototype.updateOctave = function () {
-	        $('#prev-octave-but').prop('disabled', this.octave <= 1);
-	        $('#next-octave-but').prop('disabled', this.octave >= 8);
-	        $('#octave-label').text('C' + this.octave);
-	        this.octaveChanged(this.baseNote);
-	    };
-	    PianoKeyboard.prototype.displayKeyDown = function (key) {
-	        if (typeof key == 'number')
-	            key = this.midi2key(key);
-	        if (!key)
-	            return;
-	        if (!this.poly && this.lastKey)
-	            this.displayKeyUp(this.lastKey, true);
-	        key.css('transition', "background-color " + this.envelope.attack + "s linear");
-	        key.addClass('piano-key-pressed');
-	        this.lastKey = key;
-	    };
-	    PianoKeyboard.prototype.displayKeyUp = function (key, immediate) {
-	        if (typeof key == 'number')
-	            key = this.midi2key(key);
-	        if (!key)
-	            return;
-	        var release = immediate ? 0 : this.envelope.release;
-	        key.css('transition', "background-color " + release + "s linear");
-	        key.removeClass('piano-key-pressed');
-	    };
-	    PianoKeyboard.prototype.midi2key = function (midi) {
-	        return this.keys[midi - this.baseNote];
-	    };
-	    PianoKeyboard.prototype.setEnvelope = function (adsr) {
-	        this.envelope = adsr;
-	    };
-	    PianoKeyboard.prototype.togglePoly = function () {
-	        this.poly = !this.poly;
-	        if (this.poly) {
-	            var cover = $('<div>').addClass('editor-cover');
-	            cover.append('<p>Synth editing is disabled in polyphonic mode</p>');
-	            $('body').append(cover);
-	            $('#poly-but').text('Back to mono');
-	            popups.isOpen = true;
-	            this.polyOn();
-	        }
-	        else {
-	            $('.editor-cover').remove();
-	            $('#poly-but').text('Poly');
-	            popups.isOpen = false;
-	            this.polyOff();
-	        }
-	    };
-	    // Simple event handlers
-	    PianoKeyboard.prototype.noteOn = function (midi, ratio) { };
-	    PianoKeyboard.prototype.noteOff = function (midi) { };
-	    PianoKeyboard.prototype.polyOn = function () { };
-	    PianoKeyboard.prototype.polyOff = function () { };
-	    PianoKeyboard.prototype.octaveChanged = function (baseNote) { };
-	    return PianoKeyboard;
-	})();
-	exports.PianoKeyboard = PianoKeyboard;
-
-
-/***/ },
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var synthUI_1 = __webpack_require__(1);
-	/**
-	 * A polyphonic synth controlling an array of voices
-	 */
-	var Instrument = (function () {
-	    function Instrument(ac, json, numVoices) {
-	        this.voices = [];
-	        for (var i = 0; i < numVoices; i++)
-	            this.voices.push(new Voice(ac, json));
-	        this.voiceNum = 0;
-	    }
-	    Instrument.prototype.close = function () {
-	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
-	            var voice = _a[_i];
-	            voice.close();
-	        }
-	    };
-	    Instrument.prototype.noteOn = function (midi, velocity, ratio) {
-	        var voice = this.voices[this.voiceNum];
-	        voice.noteOn(midi, velocity, ratio);
-	        this.voiceNum = (this.voiceNum + 1) % this.voices.length;
-	    };
-	    Instrument.prototype.noteOff = function (midi, velocity) {
-	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
-	            var voice = _a[_i];
-	            if (voice.lastNote == midi) {
-	                voice.noteOff(midi, velocity);
-	                break;
-	            }
-	        }
-	    };
-	    return Instrument;
-	})();
-	exports.Instrument = Instrument;
-	/**
-	 * An independent monophonic synth
-	 */
-	var Voice = (function () {
-	    function Voice(ac, json) {
-	        //TODO make an "invisible" voice, decoupled form SynthUI, canvas, and Graph editor
-	        var jqCanvas = $('<canvas width="100" height="100" style="display: none">');
-	        var dummyCanvas = jqCanvas[0];
-	        this.synthUI = new synthUI_1.SynthUI(ac, dummyCanvas, null, jqCanvas, jqCanvas);
-	        this.synthUI.gr.fromJSON(json);
-	        this.lastNote = 0;
-	    }
-	    Voice.prototype.noteOn = function (midi, velocity, ratio) {
-	        this.synthUI.synth.noteOn(midi, velocity, ratio);
-	        this.lastNote = midi;
-	    };
-	    Voice.prototype.close = function () {
-	        if (this.lastNote)
-	            this.noteOff(this.lastNote, 1);
-	        var nodes = this.synthUI.gr.nodes.slice();
-	        for (var _i = 0; _i < nodes.length; _i++) {
-	            var node = nodes[_i];
-	            this.synthUI.removeNode(node);
-	        }
-	    };
-	    Voice.prototype.noteOff = function (midi, velocity) {
-	        this.synthUI.synth.noteOff(midi, velocity);
-	        this.lastNote = 0;
-	    };
-	    return Voice;
-	})();
-	exports.Voice = Voice;
-
-
-/***/ },
-/* 14 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var popups = __webpack_require__(4);
-	var MAX_PRESETS = 20;
-	/**
-	 * Manages the presets box:
-	 * - Handles navigation through presets
-	 * - Handles preset loading & saving
-	 */
-	var Presets = (function () {
-	    function Presets(synthUI) {
-	        this.presetNum = 0;
-	        this.synthUI = synthUI;
-	        this.registerListeners();
-	        this.loadPresets();
-	    }
-	    Presets.prototype.loadPresets = function () {
-	        var _this = this;
-	        this.presets = new Array(MAX_PRESETS);
-	        for (var i = 0; i < MAX_PRESETS; i++)
-	            this.presets[i] = this.getEmptyPreset();
-	        $.get('js/presets.json', function (data) {
-	            if (!(data instanceof Array))
-	                return;
-	            for (var i = 0; i < MAX_PRESETS; i++)
-	                if (data[i])
-	                    _this.presets[i] = data[i];
-	            _this.preset2synth();
-	        });
-	    };
-	    Presets.prototype.getEmptyPreset = function () {
-	        return {
-	            name: '',
-	            nodes: [
-	                { id: 0, x: 500, y: 180, name: 'Out', inputs: [], classes: 'node node-out' }
-	            ],
-	            nodeData: [
-	                { type: 'out', params: {} }
-	            ]
-	        };
-	    };
-	    Presets.prototype.checkButtons = function () {
-	        $('#prev-preset-but').prop('disabled', this.presetNum <= 0);
-	        $('#next-preset-but').prop('disabled', this.presetNum >= MAX_PRESETS - 1);
-	    };
-	    Presets.prototype.registerListeners = function () {
-	        var _this = this;
-	        $('#save-but').click(function (_) {
-	            var json = _this.synthUI.gr.toJSON();
-	            json.name = $('#preset-name').val();
-	            popups.prompt('Copy the text below to the clipboard and save it to a local text file', 'Save preset', JSON.stringify(json), null);
-	        });
-	        $('#load-but').click(function (_) {
-	            popups.prompt('Paste below the contents of a previously saved synth', 'Load preset', null, function (json) {
-	                if (!json)
-	                    return;
-	                _this.presets[_this.presetNum] = JSON.parse(json);
-	                _this.preset2synth();
-	            });
-	        });
-	        $('#prev-preset-but').click(function (_) { return _this.changePreset(-1); });
-	        $('#next-preset-but').click(function (_) { return _this.changePreset(+1); });
-	        $('body').keydown(function (evt) {
-	            if (evt.target.nodeName == 'INPUT' || popups.isOpen)
-	                return;
-	            if (evt.keyCode == 37)
-	                _this.changePreset(-1);
-	            if (evt.keyCode == 39)
-	                _this.changePreset(+1);
-	        });
-	    };
-	    Presets.prototype.changePreset = function (increment) {
-	        var newNum = this.presetNum + increment;
-	        if (newNum < 0 || newNum >= MAX_PRESETS)
-	            return;
-	        this.synth2preset();
-	        this.presetNum = newNum;
-	        this.preset2synth();
-	    };
-	    Presets.prototype.synth2preset = function () {
-	        this.presets[this.presetNum] = this.synthUI.gr.toJSON();
-	        this.presets[this.presetNum].name = $('#preset-name').val();
-	    };
-	    Presets.prototype.preset2synth = function () {
-	        var preset = this.presets[this.presetNum];
-	        $('#preset-num').text(this.presetNum + 1);
-	        $('#preset-name').val(preset.name);
-	        $('#node-params').empty();
-	        this.checkButtons();
-	        this.synthUI.gr.fromJSON(preset);
-	    };
-	    return Presets;
-	})();
-	exports.Presets = Presets;
-
-
-/***/ },
-/* 15 */
+/* 7 */
 /***/ function(module, exports) {
 
 	var __extends = (this && this.__extends) || function (d, b) {
@@ -2385,6 +1578,842 @@
 	    return LineInNode;
 	})(CustomNodeBase);
 	exports.LineInNode = LineInNode;
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	/** Informs whether a popup is open or not */
+	exports.isOpen = false;
+	/** Bootstrap-based equivalent of standard alert function */
+	function alert(msg, title, hideClose, options) {
+	    popup.find('.popup-message').html(msg);
+	    popup.find('.modal-title').text(title || 'Alert');
+	    popup.find('.popup-ok').hide();
+	    if (hideClose)
+	        popup.find('.popup-close').hide();
+	    else
+	        popup.find('.popup-close').html('Close');
+	    popup.find('.popup-prompt > input').hide();
+	    exports.isOpen = true;
+	    popup.one('hidden.bs.modal', function (_) { return exports.isOpen = false; });
+	    popup.modal(options);
+	}
+	exports.alert = alert;
+	/** Like an alert, but without a close button */
+	function progress(msg, title) {
+	    alert(msg, title, true, { keyboard: false });
+	}
+	exports.progress = progress;
+	/** Closes a popup in case it is open */
+	function close() {
+	    if (!exports.isOpen)
+	        return;
+	    popup.find('.popup-ok').click();
+	}
+	exports.close = close;
+	/** Bootstrap-based equivalent of standard confirm function */
+	function confirm(msg, title, cbClose, cbOpen) {
+	    var result = false;
+	    popup.find('.popup-message').html(msg);
+	    popup.find('.modal-title').text(title || 'Please confirm');
+	    var okButton = popup.find('.popup-ok');
+	    okButton.show().click(function (_) { return result = true; });
+	    popup.find('.popup-prompt > input').hide();
+	    popup.find('.popup-close').text('Cancel');
+	    popup.one('shown.bs.modal', function (_) {
+	        okButton.focus();
+	        if (cbOpen)
+	            cbOpen();
+	    });
+	    popup.find('form').one('submit', function (_) {
+	        result = true;
+	        okButton.click();
+	        return false;
+	    });
+	    popup.one('hide.bs.modal', function (_) {
+	        okButton.off('click');
+	        exports.isOpen = false;
+	        cbClose(result);
+	    });
+	    exports.isOpen = true;
+	    popup.modal();
+	}
+	exports.confirm = confirm;
+	/** Bootstrap-based equivalent of standard prompt function */
+	function prompt(msg, title, initialValue, cb) {
+	    var input = popup.find('.popup-prompt > input');
+	    confirm(msg, title, function (confirmed) {
+	        if (!cb)
+	            return;
+	        if (!confirmed)
+	            cb(null);
+	        else
+	            cb(input.val());
+	    }, function () {
+	        input.show();
+	        input.focus();
+	        if (initialValue) {
+	            input.val(initialValue);
+	            var hinput = input[0];
+	            hinput.select();
+	        }
+	        else
+	            input.val('');
+	    });
+	}
+	exports.prompt = prompt;
+	var popup = $("\n\t<div class=\"normal-font modal fade\" id=\"myModal\" tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"myModalLabel\">\n\t<div class=\"modal-dialog\" role=\"document\">\n\t\t<div class=\"modal-content\">\n\t\t<div class=\"modal-header\">\n\t\t\t<button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>\n\t\t\t<h4 class=\"modal-title\" id=\"myModalLabel\"></h4>\n\t\t</div>\n\t\t<div class=\"modal-body\">\n\t\t\t<div class=\"popup-message\"></div>\n\t\t\t<form class=\"popup-prompt\">\n\t\t\t\t<input type=\"text\" style=\"width: 100%\">\n\t\t\t</form>\n\t\t</div>\n\t\t<div class=\"modal-footer\">\n\t\t\t<button type=\"button\" class=\"btn btn-default popup-close\" data-dismiss=\"modal\"></button>\n\t\t\t<button type=\"button\" class=\"btn btn-primary popup-ok\" data-dismiss=\"modal\">OK</button>\n\t\t</div>\n\t\t</div>\n\t</div>\n\t</div>\n");
+	$('body').append(popup);
+
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+	/**
+	 * Renders the UI controls associated with the parameters of a given node
+	 */
+	function renderParams(ndata, panel) {
+	    panel.empty();
+	    var boxes = [];
+	    if (ndata.nodeDef.control && ndata.controlParams)
+	        boxes.push(renderParamControl(ndata, panel));
+	    var params = Object.keys(ndata.nodeDef.params || {});
+	    if (params.length <= 0)
+	        return;
+	    for (var _i = 0; _i < params.length; _i++) {
+	        var param = params[_i];
+	        if (ndata.anode[param] instanceof AudioParam)
+	            boxes.push(renderAudioParam(ndata.anode, ndata.nodeDef, param, panel));
+	        else
+	            boxes.push(renderOtherParam(ndata.anode, ndata.nodeDef, param, panel));
+	    }
+	    positionBoxes(panel, boxes);
+	}
+	exports.renderParams = renderParams;
+	function positionBoxes(panel, boxes) {
+	    var pw = panel.width();
+	    var bw = boxes[0].width();
+	    var sep = (pw - boxes.length * bw) / (boxes.length + 1);
+	    var x = sep;
+	    for (var _i = 0; _i < boxes.length; _i++) {
+	        var box = boxes[_i];
+	        box.css({
+	            position: 'relative',
+	            left: x
+	        });
+	        x += sep;
+	    }
+	}
+	function renderAudioParam(anode, ndef, param, panel) {
+	    var pdef = ndef.params[param];
+	    var aparam = anode[param];
+	    if (aparam['_value'])
+	        aparam.value = aparam['_value'];
+	    return renderSlider(panel, pdef, param, aparam.value, function (value) {
+	        aparam.value = value;
+	        aparam['_value'] = value;
+	    });
+	}
+	function renderParamControl(ndata, panel) {
+	    if (!ndata.controlParams)
+	        return;
+	    var combo = renderCombo(panel, ndata.controlParams, ndata.controlParam, 'Controlling');
+	    combo.change(function (_) {
+	        if (ndata.controlParam)
+	            ndata.anode.disconnect(ndata.controlTarget[ndata.controlParam]);
+	        ndata.controlParam = combo.val();
+	        ndata.anode.connect(ndata.controlTarget[ndata.controlParam]);
+	    });
+	    return combo.parent();
+	}
+	function renderOtherParam(anode, ndef, param, panel) {
+	    var pdef = ndef.params[param];
+	    if (pdef.choices) {
+	        var combo = renderCombo(panel, pdef.choices, anode[param], ucfirst(param));
+	        combo.change(function (_) {
+	            anode[param] = combo.val();
+	        });
+	        return combo.parent();
+	    }
+	    else if (pdef.min != undefined)
+	        return renderSlider(panel, pdef, param, anode[param], function (value) { return anode[param] = value; });
+	    else if (typeof pdef.initial == 'boolean')
+	        return renderBoolean(panel, pdef, param, anode, ucfirst(param));
+	    else if (pdef.phandler)
+	        return pdef.phandler.renderParam(panel, pdef, anode, param, ucfirst(param));
+	}
+	function renderSlider(panel, pdef, param, value, setValue) {
+	    var sliderBox = $('<div class="slider-box">');
+	    var slider = $('<input type="range" orient="vertical">')
+	        .attr('min', 0)
+	        .attr('max', 1)
+	        .attr('step', 0.001)
+	        .attr('value', param2slider(value, pdef));
+	    var numInput = $('<input type="number">')
+	        .attr('min', pdef.min)
+	        .attr('max', pdef.max)
+	        .attr('value', truncateFloat(value, 5));
+	    sliderBox.append(numInput);
+	    sliderBox.append(slider);
+	    sliderBox.append($('<span><br/>' + ucfirst(param) + '</span>'));
+	    panel.append(sliderBox);
+	    slider.on('input', function (_) {
+	        var value = slider2param(parseFloat(slider.val()), pdef);
+	        numInput.val(truncateFloat(value, 5));
+	        setValue(value);
+	    });
+	    numInput.on('input', function (_) {
+	        var value = parseFloat(numInput.val());
+	        if (isNaN(value))
+	            return;
+	        slider.val(param2slider(value, pdef));
+	        setValue(value);
+	    });
+	    return sliderBox;
+	}
+	function renderCombo(panel, choices, selected, label) {
+	    var choiceBox = $('<div class="choice-box">');
+	    var combo = $('<select>').attr('size', choices.length);
+	    for (var _i = 0; _i < choices.length; _i++) {
+	        var choice = choices[_i];
+	        var option = $('<option>').text(choice);
+	        if (choice == selected)
+	            option.attr('selected', 'selected');
+	        combo.append(option);
+	    }
+	    choiceBox.append(combo);
+	    combo.after('<br/><br/>' + label);
+	    panel.append(choiceBox);
+	    return combo;
+	}
+	function renderBoolean(panel, pdef, param, anode, label) {
+	    var box = $('<div class="choice-box">');
+	    var button = $('<button class="btn btn-info" data-toggle="button" aria-pressed="false">');
+	    box.append(button);
+	    button.after('<br/><br/>' + label);
+	    panel.append(box);
+	    if (anode[param]) {
+	        button.text('Enabled');
+	        button.addClass('active');
+	        button.attr('aria-pressed', 'true');
+	    }
+	    else {
+	        button.text('Disabled');
+	        button.removeClass('active');
+	        button.attr('aria-pressed', 'false');
+	    }
+	    button.click(function (_) {
+	        anode[param] = !anode[param];
+	        button.text(anode[param] ? 'Enabled' : 'Disabled');
+	    });
+	    return box;
+	}
+	var LOG_BASE = 2;
+	function logarithm(base, x) {
+	    return Math.log(x) / Math.log(base);
+	}
+	function param2slider(paramValue, pdef) {
+	    if (pdef.linear) {
+	        return (paramValue - pdef.min) / (pdef.max - pdef.min);
+	    }
+	    else {
+	        var logRange = logarithm(LOG_BASE, pdef.max + 1 - pdef.min);
+	        return logarithm(LOG_BASE, paramValue + 1 - pdef.min) / logRange;
+	    }
+	}
+	function slider2param(sliderValue, pdef) {
+	    if (pdef.linear) {
+	        return pdef.min + sliderValue * (pdef.max - pdef.min);
+	    }
+	    else {
+	        var logRange = logarithm(LOG_BASE, pdef.max + 1 - pdef.min);
+	        return pdef.min + Math.pow(LOG_BASE, sliderValue * logRange) - 1;
+	    }
+	}
+	//-------------------- Misc utilities --------------------
+	function ucfirst(str) {
+	    return str[0].toUpperCase() + str.substring(1);
+	}
+	function truncateFloat(f, len) {
+	    var s = '' + f;
+	    s = s.substr(0, len);
+	    if (s[s.length - 1] == '.')
+	        return s.substr(0, len - 1);
+	    else
+	        return s;
+	}
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	/**
+	 * Displays FFT and Oscilloscope graphs from the output of a given AudioNode
+	 */
+	var AudioAnalyzer = (function () {
+	    function AudioAnalyzer(jqfft, jqosc) {
+	        this.canvasFFT = this.createCanvas(jqfft);
+	        this.gcFFT = this.canvasFFT.getContext('2d');
+	        this.canvasOsc = this.createCanvas(jqosc);
+	        this.gcOsc = this.canvasOsc.getContext('2d');
+	    }
+	    AudioAnalyzer.prototype.createCanvas = function (panel) {
+	        var jqCanvas = $("<canvas width=\"" + panel.width() + "\" height=\"" + panel.height() + "\">");
+	        panel.append(jqCanvas);
+	        var canvas = jqCanvas[0];
+	        return canvas;
+	    };
+	    AudioAnalyzer.prototype.createAnalyzerNode = function (ac) {
+	        if (this.anode)
+	            return;
+	        this.anode = ac.createAnalyser();
+	        this.fftData = new Uint8Array(this.anode.fftSize);
+	        this.oscData = new Uint8Array(this.anode.fftSize);
+	    };
+	    AudioAnalyzer.prototype.analyze = function (input) {
+	        this.disconnect();
+	        this.createAnalyzerNode(input.context);
+	        this.input = input;
+	        this.input.connect(this.anode);
+	        this.requestAnimationFrame();
+	    };
+	    AudioAnalyzer.prototype.disconnect = function () {
+	        if (!this.input)
+	            return;
+	        this.input.disconnect(this.anode);
+	        this.input = null;
+	    };
+	    AudioAnalyzer.prototype.requestAnimationFrame = function () {
+	        var _this = this;
+	        window.requestAnimationFrame(function (_) { return _this.updateCanvas(); });
+	    };
+	    AudioAnalyzer.prototype.updateCanvas = function () {
+	        if (!this.input)
+	            return;
+	        this.drawFFT(this.gcFFT, this.canvasFFT, this.fftData, '#00FF00');
+	        this.drawOsc(this.gcOsc, this.canvasOsc, this.oscData, '#FFFF00');
+	        this.requestAnimationFrame();
+	    };
+	    AudioAnalyzer.prototype.drawFFT = function (gc, canvas, data, color) {
+	        var _a = this.setupDraw(gc, canvas, data, color), w = _a[0], h = _a[1];
+	        this.anode.getByteFrequencyData(data);
+	        var dx = (data.length / 2) / canvas.width;
+	        var x = 0;
+	        //TODO calculate average of all samples from x to x + dx - 1
+	        for (var i = 0; i < w; i++) {
+	            var y = data[Math.floor(x)];
+	            x += dx;
+	            gc.moveTo(i, h - 1);
+	            gc.lineTo(i, h - 1 - h * y / 256);
+	        }
+	        gc.stroke();
+	        gc.closePath();
+	    };
+	    AudioAnalyzer.prototype.drawOsc = function (gc, canvas, data, color) {
+	        var _a = this.setupDraw(gc, canvas, data, color), w = _a[0], h = _a[1];
+	        this.anode.getByteTimeDomainData(data);
+	        gc.moveTo(0, h / 2);
+	        var x = 0;
+	        while (data[x] > 128 && x < data.length / 4)
+	            x++;
+	        while (data[x] < 128 && x < data.length / 4)
+	            x++;
+	        var dx = (data.length * 0.75) / canvas.width;
+	        for (var i = 0; i < w; i++) {
+	            var y = data[Math.floor(x)];
+	            x += dx;
+	            gc.lineTo(i, h * y / 256);
+	        }
+	        gc.stroke();
+	        gc.closePath();
+	    };
+	    AudioAnalyzer.prototype.setupDraw = function (gc, canvas, data, color) {
+	        var w = canvas.width;
+	        var h = canvas.height;
+	        gc.clearRect(0, 0, w, h);
+	        gc.beginPath();
+	        gc.strokeStyle = color;
+	        return [w, h];
+	    };
+	    return AudioAnalyzer;
+	})();
+	exports.AudioAnalyzer = AudioAnalyzer;
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var keyboard_1 = __webpack_require__(12);
+	var piano_1 = __webpack_require__(13);
+	var instrument_1 = __webpack_require__(14);
+	var NUM_VOICES = 5;
+	/**
+	 * Manages all note-generation inputs:
+	 * 	- PC Keyboard
+	 * 	- Virtual piano keyboard
+	 *	- Eventually it should also integrate with Web MIDI
+	 * Handles switching to polyphonic mode and back to mono
+	 */
+	var NoteInputs = (function () {
+	    function NoteInputs(synthUI) {
+	        var _this = this;
+	        this.synthUI = synthUI;
+	        this.poly = false;
+	        // Setup piano panel
+	        var piano = new piano_1.PianoKeyboard($('#piano'));
+	        piano.noteOn = function (midi, ratio) { return _this.noteOn(midi, 1, ratio); };
+	        piano.noteOff = function (midi) { return _this.noteOff(midi, 1); };
+	        // Register poly on/off handlers
+	        piano.polyOn = function () { return _this.polyOn(); };
+	        piano.polyOff = function () { return _this.polyOff(); };
+	        // Setup PC keyboard
+	        var kb = new keyboard_1.Keyboard();
+	        kb.noteOn = function (midi, ratio) {
+	            if (document.activeElement.nodeName == 'INPUT' &&
+	                document.activeElement.getAttribute('type') != 'range')
+	                return;
+	            _this.noteOn(midi, 1, ratio);
+	            piano.displayKeyDown(midi);
+	        };
+	        kb.noteOff = function (midi) {
+	            _this.noteOff(midi, 1);
+	            piano.displayKeyUp(midi);
+	        };
+	        // Bind piano octave with PC keyboard
+	        kb.baseNote = piano.baseNote;
+	        piano.octaveChanged = function (baseNote) { return kb.baseNote = baseNote; };
+	        this.setupEnvelopeAnimation(piano);
+	    }
+	    NoteInputs.prototype.setupEnvelopeAnimation = function (piano) {
+	        var loaded = this.synthUI.gr.handler.graphLoaded;
+	        this.synthUI.gr.handler.graphLoaded = function () {
+	            loaded.bind(this.synthUI.gr.handler)();
+	            var adsr = null;
+	            for (var _i = 0, _a = this.synthUI.gr.nodes; _i < _a.length; _i++) {
+	                var node = _a[_i];
+	                var data = node.data;
+	                if (data.type == 'ADSR') {
+	                    adsr = data.anode;
+	                    break;
+	                }
+	            }
+	            piano.setEnvelope(adsr || { attack: 0, release: 0 });
+	        };
+	    };
+	    NoteInputs.prototype.noteOn = function (midi, velocity, ratio) {
+	        this.lastNote = midi;
+	        if (this.poly)
+	            this.instrument.noteOn(midi, velocity, ratio);
+	        else
+	            this.synthUI.synth.noteOn(midi, velocity, ratio);
+	    };
+	    NoteInputs.prototype.noteOff = function (midi, velocity) {
+	        this.lastNote = 0;
+	        if (this.poly)
+	            this.instrument.noteOff(midi, velocity);
+	        else
+	            this.synthUI.synth.noteOff(midi, velocity);
+	    };
+	    NoteInputs.prototype.polyOn = function () {
+	        if (this.lastNote)
+	            this.noteOff(this.lastNote, 1);
+	        this.poly = true;
+	        var json = this.synthUI.gr.toJSON();
+	        this.instrument = new instrument_1.Instrument(this.synthUI.synth.ac, json, NUM_VOICES);
+	    };
+	    NoteInputs.prototype.polyOff = function () {
+	        this.poly = false;
+	        this.instrument.close();
+	    };
+	    return NoteInputs;
+	})();
+	exports.NoteInputs = NoteInputs;
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports) {
+
+	var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
+	var BASE_NOTE = 36;
+	var SEMITONE = Math.pow(2, 1 / 12);
+	var A4 = 57;
+	/**
+	 * Provides a piano keyboard using the PC keyboard.
+	 * Listens to keyboard events and generates MIDI-style noteOn/noteOff events.
+	 */
+	var Keyboard = (function () {
+	    function Keyboard() {
+	        this.setupHandler();
+	        this.baseNote = BASE_NOTE;
+	    }
+	    Keyboard.prototype.setupHandler = function () {
+	        var _this = this;
+	        var pressedKeys = {};
+	        $('body')
+	            .on('keydown', function (evt) {
+	            if (pressedKeys[evt.keyCode])
+	                return; // Skip repetitions
+	            if (evt.metaKey || evt.altKey)
+	                return; // Skip browser shortcuts
+	            pressedKeys[evt.keyCode] = true;
+	            var midi = _this.key2midi(evt.keyCode);
+	            if (midi < 0)
+	                return;
+	            _this.noteOn(midi, midi2freqRatio(midi));
+	        })
+	            .on('keyup', function (evt) {
+	            pressedKeys[evt.keyCode] = false;
+	            var midi = _this.key2midi(evt.keyCode);
+	            if (midi < 0)
+	                return;
+	            _this.noteOff(midi);
+	        });
+	    };
+	    Keyboard.prototype.key2midi = function (keyCode) {
+	        var pos = KB_NOTES.indexOf(String.fromCharCode(keyCode));
+	        if (pos < 0)
+	            return -1;
+	        return this.baseNote + pos;
+	    };
+	    Keyboard.prototype.noteOn = function (midi, ratio) { };
+	    Keyboard.prototype.noteOff = function (midi) { };
+	    return Keyboard;
+	})();
+	exports.Keyboard = Keyboard;
+	function midi2freqRatio(midi) {
+	    return Math.pow(SEMITONE, midi - A4);
+	}
+	exports.midi2freqRatio = midi2freqRatio;
+
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var keyboard_1 = __webpack_require__(12);
+	var popups = __webpack_require__(8);
+	var NUM_WHITES = 17;
+	var BASE_NOTE = 36;
+	/**
+	 * A virtual piano keyboard that:
+	 * 	- Captures mouse input and generates corresponding note events
+	 * 	- Displays note events as CSS-animated colors in the pressed keys
+	 * 	- Supports octave switching
+	 * 	- Provides a poly/mono button
+	 */
+	var PianoKeyboard = (function () {
+	    function PianoKeyboard(panel) {
+	        this.baseNote = BASE_NOTE;
+	        this.octave = 3;
+	        this.poly = false;
+	        this.envelope = { attack: 0, release: 0 };
+	        this.createKeys(panel);
+	        for (var i = 0; i < this.keys.length; i++)
+	            this.registerKey(this.keys[i], i);
+	        this.registerButtons();
+	    }
+	    PianoKeyboard.prototype.createKeys = function (panel) {
+	        this.keys = [];
+	        var pw = panel.width();
+	        var ph = panel.height();
+	        var kw = pw / NUM_WHITES + 1;
+	        var bw = kw * 2 / 3;
+	        var bh = ph * 2 / 3;
+	        // Create white keys
+	        var knum = 0;
+	        for (var i = 0; i < NUM_WHITES; i++) {
+	            var key = $('<div class="piano-key">').css({
+	                width: '' + kw + 'px',
+	                height: '' + ph + 'px'
+	            });
+	            panel.append(key);
+	            this.keys[knum++] = key;
+	            if (this.hasBlack(i))
+	                knum++;
+	        }
+	        // Create black keys
+	        var knum = 0;
+	        var x = 10 - bw / 2;
+	        for (var i = 0; i < NUM_WHITES - 1; i++) {
+	            x += kw - 1;
+	            knum++;
+	            if (!this.hasBlack(i))
+	                continue;
+	            var key = $('<div class="piano-key piano-black">').css({
+	                width: '' + bw + 'px',
+	                height: '' + bh + 'px',
+	                left: '' + x + 'px',
+	                top: '10px'
+	            });
+	            panel.append(key);
+	            this.keys[knum++] = key;
+	        }
+	    };
+	    PianoKeyboard.prototype.hasBlack = function (num) {
+	        var mod7 = num % 7;
+	        return mod7 != 2 && mod7 != 6;
+	    };
+	    PianoKeyboard.prototype.registerKey = function (key, knum) {
+	        var _this = this;
+	        key.mousedown(function (_) {
+	            var midi = knum + _this.baseNote;
+	            _this.displayKeyDown(key);
+	            _this.noteOn(midi, keyboard_1.midi2freqRatio(midi));
+	        });
+	        key.mouseup(function (_) {
+	            var midi = knum + _this.baseNote;
+	            _this.displayKeyUp(key);
+	            _this.noteOff(midi);
+	        });
+	    };
+	    PianoKeyboard.prototype.registerButtons = function () {
+	        var _this = this;
+	        $('#poly-but').click(function (_) { return _this.togglePoly(); });
+	        $('#prev-octave-but').click(function (_) {
+	            _this.octave--;
+	            _this.baseNote -= 12;
+	            _this.updateOctave();
+	        });
+	        $('#next-octave-but').click(function (_) {
+	            _this.octave++;
+	            _this.baseNote += 12;
+	            _this.updateOctave();
+	        });
+	    };
+	    PianoKeyboard.prototype.updateOctave = function () {
+	        $('#prev-octave-but').prop('disabled', this.octave <= 1);
+	        $('#next-octave-but').prop('disabled', this.octave >= 8);
+	        $('#octave-label').text('C' + this.octave);
+	        this.octaveChanged(this.baseNote);
+	    };
+	    PianoKeyboard.prototype.displayKeyDown = function (key) {
+	        if (typeof key == 'number')
+	            key = this.midi2key(key);
+	        if (!key)
+	            return;
+	        if (!this.poly && this.lastKey)
+	            this.displayKeyUp(this.lastKey, true);
+	        key.css('transition', "background-color " + this.envelope.attack + "s linear");
+	        key.addClass('piano-key-pressed');
+	        this.lastKey = key;
+	    };
+	    PianoKeyboard.prototype.displayKeyUp = function (key, immediate) {
+	        if (typeof key == 'number')
+	            key = this.midi2key(key);
+	        if (!key)
+	            return;
+	        var release = immediate ? 0 : this.envelope.release;
+	        key.css('transition', "background-color " + release + "s linear");
+	        key.removeClass('piano-key-pressed');
+	    };
+	    PianoKeyboard.prototype.midi2key = function (midi) {
+	        return this.keys[midi - this.baseNote];
+	    };
+	    PianoKeyboard.prototype.setEnvelope = function (adsr) {
+	        this.envelope = adsr;
+	    };
+	    PianoKeyboard.prototype.togglePoly = function () {
+	        this.poly = !this.poly;
+	        if (this.poly) {
+	            var cover = $('<div>').addClass('editor-cover');
+	            cover.append('<p>Synth editing is disabled in polyphonic mode</p>');
+	            $('body').append(cover);
+	            $('#poly-but').text('Back to mono');
+	            popups.isOpen = true;
+	            this.polyOn();
+	        }
+	        else {
+	            $('.editor-cover').remove();
+	            $('#poly-but').text('Poly');
+	            popups.isOpen = false;
+	            this.polyOff();
+	        }
+	    };
+	    // Simple event handlers
+	    PianoKeyboard.prototype.noteOn = function (midi, ratio) { };
+	    PianoKeyboard.prototype.noteOff = function (midi) { };
+	    PianoKeyboard.prototype.polyOn = function () { };
+	    PianoKeyboard.prototype.polyOff = function () { };
+	    PianoKeyboard.prototype.octaveChanged = function (baseNote) { };
+	    return PianoKeyboard;
+	})();
+	exports.PianoKeyboard = PianoKeyboard;
+
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var synthUI_1 = __webpack_require__(1);
+	/**
+	 * A polyphonic synth controlling an array of voices
+	 */
+	var Instrument = (function () {
+	    function Instrument(ac, json, numVoices) {
+	        this.voices = [];
+	        for (var i = 0; i < numVoices; i++)
+	            this.voices.push(new Voice(ac, json));
+	        this.voiceNum = 0;
+	    }
+	    Instrument.prototype.close = function () {
+	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
+	            var voice = _a[_i];
+	            voice.close();
+	        }
+	    };
+	    Instrument.prototype.noteOn = function (midi, velocity, ratio) {
+	        var voice = this.voices[this.voiceNum];
+	        voice.noteOn(midi, velocity, ratio);
+	        this.voiceNum = (this.voiceNum + 1) % this.voices.length;
+	    };
+	    Instrument.prototype.noteOff = function (midi, velocity) {
+	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
+	            var voice = _a[_i];
+	            if (voice.lastNote == midi) {
+	                voice.noteOff(midi, velocity);
+	                break;
+	            }
+	        }
+	    };
+	    return Instrument;
+	})();
+	exports.Instrument = Instrument;
+	/**
+	 * An independent monophonic synth
+	 */
+	var Voice = (function () {
+	    function Voice(ac, json) {
+	        //TODO make an "invisible" voice, decoupled form SynthUI, canvas, and Graph editor
+	        var jqCanvas = $('<canvas width="100" height="100" style="display: none">');
+	        var dummyCanvas = jqCanvas[0];
+	        this.synthUI = new synthUI_1.SynthUI(ac, dummyCanvas, null, jqCanvas, jqCanvas);
+	        this.synthUI.gr.fromJSON(json);
+	        this.lastNote = 0;
+	    }
+	    Voice.prototype.noteOn = function (midi, velocity, ratio) {
+	        this.synthUI.synth.noteOn(midi, velocity, ratio);
+	        this.lastNote = midi;
+	    };
+	    Voice.prototype.close = function () {
+	        if (this.lastNote)
+	            this.noteOff(this.lastNote, 1);
+	        var nodes = this.synthUI.gr.nodes.slice();
+	        for (var _i = 0; _i < nodes.length; _i++) {
+	            var node = nodes[_i];
+	            this.synthUI.removeNode(node);
+	        }
+	    };
+	    Voice.prototype.noteOff = function (midi, velocity) {
+	        this.synthUI.synth.noteOff(midi, velocity);
+	        this.lastNote = 0;
+	    };
+	    return Voice;
+	})();
+	exports.Voice = Voice;
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var popups = __webpack_require__(8);
+	var MAX_PRESETS = 20;
+	/**
+	 * Manages the presets box:
+	 * - Handles navigation through presets
+	 * - Handles preset loading & saving
+	 */
+	var Presets = (function () {
+	    function Presets(synthUI) {
+	        this.presetNum = 0;
+	        this.synthUI = synthUI;
+	        this.registerListeners();
+	        this.loadPresets();
+	    }
+	    Presets.prototype.loadPresets = function () {
+	        var _this = this;
+	        this.presets = new Array(MAX_PRESETS);
+	        for (var i = 0; i < MAX_PRESETS; i++)
+	            this.presets[i] = this.getEmptyPreset();
+	        $.get('js/presets.json', function (data) {
+	            if (!(data instanceof Array))
+	                return;
+	            for (var i = 0; i < MAX_PRESETS; i++)
+	                if (data[i])
+	                    _this.presets[i] = data[i];
+	            _this.preset2synth();
+	        });
+	    };
+	    Presets.prototype.getEmptyPreset = function () {
+	        return {
+	            name: '',
+	            nodes: [
+	                { id: 0, x: 500, y: 180, name: 'Out', inputs: [], classes: 'node node-out' }
+	            ],
+	            nodeData: [
+	                { type: 'out', params: {} }
+	            ]
+	        };
+	    };
+	    Presets.prototype.checkButtons = function () {
+	        $('#prev-preset-but').prop('disabled', this.presetNum <= 0);
+	        $('#next-preset-but').prop('disabled', this.presetNum >= MAX_PRESETS - 1);
+	    };
+	    Presets.prototype.registerListeners = function () {
+	        var _this = this;
+	        $('#save-but').click(function (_) {
+	            var json = _this.synthUI.gr.toJSON();
+	            json.name = $('#preset-name').val();
+	            popups.prompt('Copy the text below to the clipboard and save it to a local text file', 'Save preset', JSON.stringify(json), null);
+	        });
+	        $('#load-but').click(function (_) {
+	            popups.prompt('Paste below the contents of a previously saved synth', 'Load preset', null, function (json) {
+	                if (!json)
+	                    return;
+	                _this.presets[_this.presetNum] = JSON.parse(json);
+	                _this.preset2synth();
+	            });
+	        });
+	        $('#prev-preset-but').click(function (_) { return _this.changePreset(-1); });
+	        $('#next-preset-but').click(function (_) { return _this.changePreset(+1); });
+	        $('body').keydown(function (evt) {
+	            if (evt.target.nodeName == 'INPUT' || popups.isOpen)
+	                return;
+	            if (evt.keyCode == 37)
+	                _this.changePreset(-1);
+	            if (evt.keyCode == 39)
+	                _this.changePreset(+1);
+	        });
+	    };
+	    Presets.prototype.changePreset = function (increment) {
+	        var newNum = this.presetNum + increment;
+	        if (newNum < 0 || newNum >= MAX_PRESETS)
+	            return;
+	        this.synth2preset();
+	        this.presetNum = newNum;
+	        this.preset2synth();
+	    };
+	    Presets.prototype.synth2preset = function () {
+	        this.presets[this.presetNum] = this.synthUI.gr.toJSON();
+	        this.presets[this.presetNum].name = $('#preset-name').val();
+	    };
+	    Presets.prototype.preset2synth = function () {
+	        var preset = this.presets[this.presetNum];
+	        $('#preset-num').text(this.presetNum + 1);
+	        $('#preset-name').val(preset.name);
+	        $('#node-params').empty();
+	        this.checkButtons();
+	        this.synthUI.gr.fromJSON(preset);
+	    };
+	    return Presets;
+	})();
+	exports.Presets = Presets;
 
 
 /***/ }
