@@ -51,6 +51,36 @@
 				font-family: Electrolize, "League Gothic", Impact, sans-serif !important;
 				text-transform: inherit !important;
 			}
+
+			.audio-node {				
+				background-color: #05A;
+				border-radius: 10px;
+				margin: 20px 20px !important;
+				padding: 20px !important;
+				display: inline-block;
+			}
+			.audio-node-src {
+				background-color: #2F9F51;
+			}
+			.audio-node-dst {
+				background-color: #378EC0;
+			}
+
+			.arrows {
+				font-size: 250% !important;
+				top: 20px;
+				position: relative;
+			}
+
+			section.light {
+				color: #808;
+			}
+			section.light a {
+				color: blue;
+			}
+			section.light a: hover {
+				color: navy-blue !important;
+			}
 		</style>
 
 		<!--[if lt IE 9]>
@@ -127,6 +157,45 @@
 		</ul>
 	</section>
 
+	<section data-transition="fade">
+		<h2>Audio routing graph</h2>
+		<div class="audio-node audio-node-src">
+			Sources
+		</div>
+		<span class="arrows">&#8594;</span>
+		<div class="audio-node">
+			Effects
+		</div>
+		<span class="arrows">&#8594;</span>
+		<div class="audio-node audio-node-dst">
+			Destination
+		</div>
+	</section>
+
+	<section data-transition="fade">
+		<h2>Example</h2>
+		<div style="display: inline-block">
+			<div class="audio-node audio-node-src">
+				Oscillator 1
+			</div>
+			<span class="arrows" style="top: 50px">&#8600;</span>
+			<br><br>
+			<div class="audio-node audio-node-src">
+				Oscillator 2
+			</div>
+			<span class="arrows" style="top: -10px">&#8599;</span>
+		</div>
+		<div style="display: inline-block; position: relative; bottom: 100px">
+			<div class="audio-node">
+				Filter
+			</div>
+			<span class="arrows">&#8594;</span>
+			<div class="audio-node audio-node-dst">
+				Destination
+			</div>
+		</div>
+	</section>
+
 	<section>
 		<h2>Audio Nodes</h2>
 		<div style="display: inline-block; float: left; width: 50%">
@@ -137,6 +206,9 @@
 				</div>
 				<div class="inner-pill">
 					AudioBuffer<br/>SourceNode
+				</div>
+				<div class="inner-pill">
+					MediaStream<br/>AudioSourceNode
 				</div>
 			</div>
 		</div>
@@ -177,8 +249,9 @@ osc.disconnect();
 		</code></pre>
 	</section>
 
-	<section>
-		<h1 class="modulator-title">Modulator</h1>
+	<section data-background="#D4FFBB" class="light">
+		<img src="img/modulator.png"
+			style="border: none; background-color: inherit; box-shadow: none">
 		<p><a href="http://lcrespom.github.io/synth/">Live Demo</a></p>
 		<p>Repo at <a href="https://github.com/lcrespom/Modulator">https://github.com/lcrespom/Modulator</a></p>
 	</section>
