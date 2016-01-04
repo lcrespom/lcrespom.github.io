@@ -10,6 +10,12 @@ body {
 	margin: auto;
 }
 
+.app-navbar {
+	width: 810px;
+	margin: -3px auto 5px;
+	position: relative;
+}
+
 .normal-font {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -58,7 +64,8 @@ body {
 	position: absolute;
 	background-color: green;
 	border-radius: 4px;
-	width: 80px; height: 60px;
+	width: 80px;
+	height: 50px;
 	text-align: center;
 	display: table;
 	/*line-height: 60px;*/
@@ -247,9 +254,9 @@ input[type=range][orient=vertical] {
 
 .editor-cover {
 	position: absolute;
-	top: 0px;
+	top: 46px;
 	width: 99%;
-	height: 685px;
+	height: 674px;
 	z-index: 1000;
 	opacity: 0.85;
 	background-color: white;
