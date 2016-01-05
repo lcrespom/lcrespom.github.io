@@ -2472,19 +2472,8 @@
 	    };
 	    Presets.prototype.registerListeners = function () {
 	        var _this = this;
-	        $('#save-but').click(function (_) {
-	            var json = _this.synthUI.gr.toJSON();
-	            json.name = $('#preset-name').val();
-	            popups.prompt('Copy the text below to the clipboard and save it to a local text file', 'Save preset', JSON.stringify(json), null);
-	        });
-	        $('#load-but').click(function (_) {
-	            popups.prompt('Paste below the contents of a previously saved synth', 'Load preset', null, function (json) {
-	                if (!json)
-	                    return;
-	                _this.presets[_this.presetNum] = JSON.parse(json);
-	                _this.preset2synth();
-	            });
-	        });
+	        $('#save-but').click(function (_) { return _this.savePreset(); });
+	        $('#load-file').on('change', function (evt) { return _this.loadPreset(evt); });
 	        $('#prev-preset-but').click(function (_) { return _this.changePreset(-1); });
 	        $('#next-preset-but').click(function (_) { return _this.changePreset(+1); });
 	        $('body').keydown(function (evt) {
@@ -2516,6 +2505,39 @@
 	        $('#preset-name').val(preset.name);
 	        $('#node-params').empty();
 	        this.synthUI.gr.fromJSON(preset);
+	    };
+	    Presets.prototype.loadPreset = function (evt) {
+	        var _this = this;
+	        if (!evt.target.files || evt.target.files.length <= 0)
+	            return;
+	        var file = evt.target.files[0];
+	        var reader = new FileReader();
+	        reader.onload = function (loadEvt) {
+	            _this.presets[_this.presetNum] = JSON.parse(loadEvt.target.result);
+	            _this.preset2synth();
+	        };
+	        reader.readAsText(file);
+	    };
+	    Presets.prototype.savePreset = function () {
+	        var json = this.synthUI.gr.toJSON();
+	        json.name = $('#preset-name').val().trim();
+	        var jsonData = JSON.stringify(json);
+	        if (this.browserSupportsDownload()) {
+	            //TODO: open popup to ask for file name before saving
+	            if (json.name.length == 0)
+	                json.name = '' + this.presetNum;
+	            var a = $('<a>');
+	            a.attr('download', json.name + '.json');
+	            a.attr('href', 'data:application/octet-stream;base64,' + btoa(jsonData));
+	            var clickEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: false });
+	            a[0].dispatchEvent(clickEvent);
+	        }
+	        else {
+	            popups.prompt('Copy the text below to the clipboard and save it to a local text file', 'Save preset', jsonData, null);
+	        }
+	    };
+	    Presets.prototype.browserSupportsDownload = function () {
+	        return !window.externalHost && 'download' in $('<a>')[0];
 	    };
 	    return Presets;
 	})();
