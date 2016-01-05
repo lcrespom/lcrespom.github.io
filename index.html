@@ -13,47 +13,101 @@
 			margin-bottom: 1em;
 			max-width: 850px;
 		}
+		h1, h2 {
+			margin-bottom: 1px solid #CCC;
+		}
 	</style>
 </head>
 <body>
 	<div class="content">
 		<h1>My projects</h1>
+
 		<h2>Modulator</h2>
-		<p>
-			Modulator lets you graphically build a modular software synthesizer.
-			The <a href="https://webaudio.github.io/web-audio-api/">Web Audio API</a>
-			is used for generating the sound.
-			<p>Here is a sample screenshot:
-				<div style="text-align: center"><img src="img/synth.png" width="826"></div>
-			</p>
+		<p>A graphical modular synthesizer, using the
+			<a href="https://webaudio.github.io/web-audio-api/">Web Audio API</a>
+		</p>
+		<p>Modulator is a totally static HTML/JS app. It requires a modern browser
+			such as Chrome, FireFox or Safari, but has no server-side code.
 		</p>
 		<p>
-			<b>Using synth</b>:
+			Modulator can be used live <a href="synth/">here</a>.
+		</p>
+		<p>
+			You can check its <a href="synth/help.html">documentation</a>, and 
+			get the source code from the
+			<a href="https://github.com/lcrespom/Modulator">GitHub repository</a>.
+		</p>
+		<p>Contributions are welcome. Please read the ToDo list in README.md from the
+			repository for suggestions.
+		</p>
+
+		<h2>Minion</h2>
+		<p>Minion is a tiny WebComponent-oriented UI framework. It can be learned
+			very fast and is good enough for small to medium single-page applications.
+		</p>
+		<p>Minion does not make use of the WebComponent standard for building the UI,
+			but still the development approach is based on breaking the Web App into
+			independent and reusable web components. Each component is defined as:
 			<ul>
-				<li>Click any synth node from the palette at the right to add
-					it to the canvas</li>
-				<li>Use regular drag & drop to move audio nodes around in the canvas</li>
-				<li>To connect two nodes:
-					<ul>
-						<li>Place the mouse pointer over the source node</li>
-						<li>Press the shift key</li>
-						<li>Move the mouse pointer to the destination node
-							(but don't press the mouse button or you will start
-							dragging the node)
-						</li>
-						<li>Release the shift key to make the connection</li>
-					</ul>
+				<li>An HTML template, containing plain HTML and Mustache template expressions.
 				</li>
-				<li>To disconnect two nodes, simply make the same connection again, and
-					this time it will be removed</li>
+				<li>An optional JavaScript Object or class. If present, several of its methods
+					will be invoked during the application lifecycle: when the component is
+					created, after it is rendered and before it is removed. Also, components
+					hold data accessible to the template and can handle events triggered from
+					elements it contains.
+				</li>
 			</ul>
 		</p>
-		<p>
-			You can try it <a href="synth/">here</a>.
+		<p>For more information and a working demo, check out its
+			<a href="https://github.com/lcrespom/minion">GitHub repository</a>.
 		</p>
-		<p>
-			Synth repo is <a href="https://github.com/lcrespom/Modulator">here</a>. Please
-			read the ToDo list in README.md before sending any bug report of suggestions.
+
+
+		<h2>ng-crud</h2>
+		<p>An Angular-based library that provides generic CRUD functions to
+			any data data structure.
+			The developer defines the data as a simple JSON schema, then
+			the library takes charge of accessing the data from the backend and
+			rendering it for Create / Read / Update / Delete operations. 
+		</p>
+		<p>For more information and a working demo, check out its
+			<a href="https://github.com/lcrespom/minion">GitHub repository</a>.
+		</p>
+
+
+		<h2>jsonfmt</h2>
+		<p>A simple JSON formatting command-line tool, which can be used to pack or nicely format
+			JSON files. Typical usages are:
+			<ul>
+				<li>Packing a nicely formatted JSON file in to a single line, as a build
+					step to reduce the size of the target file.
+				</li>
+				<li>Formatting a JSON string into a more readable version of itself, so
+					it is easy to read and edit by human beings.
+				</li>
+			</ul>
+		</p>
+		<p>Check out its
+			<a href="https://github.com/lcrespom/jsonfmt">GitHub repository</a>
+			for more detailed documentation.
+		</p>
+
+
+		<h2>Genetic TSP</h2>
+		<p>A genetic engine that solves the Travelling Salesman Problem (TSP):
+			finding the shortest path for visiting a given set of locations.
+			<ul>
+				<li>Server performs computation. Implemented in Java, running with Jetty.
+				</li>
+				<li>Client simply displays computation status. Implemented in HTML5
+					canvas + JavaScript.
+				</li>
+			</ul>	
+		</p>
+
+		<p>Check out its
+			<a href="https://github.com/lcrespom/genetic_tsp_java">GitHub repository</a>
 		</p>
 	</div>
 </body>
