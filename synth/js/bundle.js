@@ -49,7 +49,7 @@
 	 */
 	var synthUI_1 = __webpack_require__(1);
 	var noteInputs_1 = __webpack_require__(11);
-	var presets_1 = __webpack_require__(15);
+	var presets_1 = __webpack_require__(16);
 	setupPalette();
 	var graphCanvas = $('#graph-canvas')[0];
 	var synthUI = new synthUI_1.SynthUI(createAudioContext(), graphCanvas, $('#node-params'), $('#audio-graph-fft'), $('#audio-graph-osc'));
@@ -685,6 +685,8 @@
 	var palette_1 = __webpack_require__(6);
 	var modern_1 = __webpack_require__(5);
 	var custom = __webpack_require__(7);
+	var SEMITONE = Math.pow(2, 1 / 12);
+	var A4 = 57;
 	/**
 	 * Holds all data associated with an AudioNode
 	 */
@@ -827,7 +829,11 @@
 	            controlParams: data.controlParams
 	        };
 	    };
-	    Synth.prototype.noteOn = function (midi, gain, ratio) {
+	    Synth.prototype.midi2freqRatio = function (midi) {
+	        return Math.pow(SEMITONE, midi - A4);
+	    };
+	    Synth.prototype.noteOn = function (midi, gain) {
+	        var ratio = this.midi2freqRatio(midi);
 	        for (var _i = 0, _a = this.noteHandlers; _i < _a.length; _i++) {
 	            var nh = _a[_i];
 	            if (nh.kbTrigger)
@@ -2010,7 +2016,8 @@
 
 	var keyboard_1 = __webpack_require__(12);
 	var piano_1 = __webpack_require__(13);
-	var instrument_1 = __webpack_require__(14);
+	var arpeggiator_1 = __webpack_require__(14);
+	var instrument_1 = __webpack_require__(15);
 	var NUM_VOICES = 5;
 	/**
 	 * Manages all note-generation inputs:
@@ -2027,28 +2034,30 @@
 	        // Setup piano panel
 	        var piano = new piano_1.PianoKeyboard($('#piano'));
 	        this.piano = piano;
-	        piano.noteOn = function (midi, ratio) { return _this.noteOn(midi, 1, ratio); };
-	        piano.noteOff = function (midi) { return _this.noteOff(midi, 1); };
+	        piano.noteOn = function (midi) { return _this.arpeggiator.sendNoteOn(midi, 1); };
+	        piano.noteOff = function (midi) { return _this.arpeggiator.sendNoteOff(midi, 1); };
 	        // Register poly on/off handlers
 	        piano.polyOn = function () { return _this.polyOn(); };
 	        piano.polyOff = function () { return _this.polyOff(); };
 	        // Setup PC keyboard
 	        var kb = new keyboard_1.Keyboard();
-	        kb.noteOn = function (midi, ratio) {
+	        kb.noteOn = function (midi) {
 	            if (document.activeElement.nodeName == 'INPUT' &&
 	                document.activeElement.getAttribute('type') != 'range')
 	                return;
-	            _this.noteOn(midi, 1, ratio);
+	            _this.arpeggiator.sendNoteOn(midi, 1);
 	            piano.displayKeyDown(midi);
 	        };
 	        kb.noteOff = function (midi) {
-	            _this.noteOff(midi, 1);
+	            _this.arpeggiator.sendNoteOff(midi, 1);
 	            piano.displayKeyUp(midi);
 	        };
 	        // Bind piano octave with PC keyboard
 	        kb.baseNote = piano.baseNote;
 	        piano.octaveChanged = function (baseNote) { return kb.baseNote = baseNote; };
 	        this.setupEnvelopeAnimation(piano);
+	        // Setup arpeggiator
+	        this.setupArpeggiator(piano);
 	    }
 	    NoteInputs.prototype.setupEnvelopeAnimation = function (piano) {
 	        var loaded = this.synthUI.gr.handler.graphLoaded;
@@ -2066,16 +2075,29 @@
 	            piano.setEnvelope(adsr || { attack: 0, release: 0 });
 	        };
 	    };
-	    NoteInputs.prototype.noteOn = function (midi, velocity, ratio) {
+	    NoteInputs.prototype.setupArpeggiator = function (piano) {
+	        var _this = this;
+	        this.arpeggiator = new arpeggiator_1.Arpeggiator();
+	        piano.arpeggioChanged = function (time, mode, octaves) {
+	            _this.arpeggiator.mode = mode;
+	            _this.arpeggiator.octaves = octaves;
+	            _this.arpeggiator.time = time;
+	        };
+	        this.arpeggiator.noteOn =
+	            function (midi, velocity) { return _this.noteOn(midi, velocity); };
+	        this.arpeggiator.noteOff =
+	            function (midi, velocity) { return _this.noteOff(midi, velocity); };
+	    };
+	    NoteInputs.prototype.noteOn = function (midi, velocity) {
 	        this.lastNote = midi;
 	        var portamento = this.piano.getPortamento();
 	        if (this.poly) {
 	            this.instrument.portamento.time = portamento;
-	            this.instrument.noteOn(midi, velocity, ratio);
+	            this.instrument.noteOn(midi, velocity);
 	        }
 	        else {
 	            this.synthUI.synth.portamento.time = portamento;
-	            this.synthUI.synth.noteOn(midi, velocity, ratio);
+	            this.synthUI.synth.noteOn(midi, velocity);
 	        }
 	    };
 	    NoteInputs.prototype.noteOff = function (midi, velocity) {
@@ -2107,8 +2129,6 @@
 
 	var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
 	var BASE_NOTE = 36;
-	var SEMITONE = Math.pow(2, 1 / 12);
-	var A4 = 57;
 	/**
 	 * Provides a piano keyboard using the PC keyboard.
 	 * Listens to keyboard events and generates MIDI-style noteOn/noteOff events.
@@ -2131,7 +2151,7 @@
 	            var midi = _this.key2midi(evt.keyCode);
 	            if (midi < 0)
 	                return;
-	            _this.noteOn(midi, midi2freqRatio(midi));
+	            _this.noteOn(midi);
 	        })
 	            .on('keyup', function (evt) {
 	            pressedKeys[evt.keyCode] = false;
@@ -2147,25 +2167,23 @@
 	            return -1;
 	        return this.baseNote + pos;
 	    };
-	    Keyboard.prototype.noteOn = function (midi, ratio) { };
+	    Keyboard.prototype.noteOn = function (midi) { };
 	    Keyboard.prototype.noteOff = function (midi) { };
 	    return Keyboard;
 	})();
 	exports.Keyboard = Keyboard;
-	function midi2freqRatio(midi) {
-	    return Math.pow(SEMITONE, midi - A4);
-	}
-	exports.midi2freqRatio = midi2freqRatio;
 
 
 /***/ },
 /* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var keyboard_1 = __webpack_require__(12);
 	var popups = __webpack_require__(8);
 	var NUM_WHITES = 17;
 	var BASE_NOTE = 36;
+	var ARPEGGIO_MODES = ['', 'u', 'd', 'ud'];
+	var ARPEGGIO_LABELS = ['-', '&uarr;', '&darr;', '&uarr;&darr;'];
+	var MAX_ARPEGGIO_OCT = 3;
 	/**
 	 * A virtual piano keyboard that:
 	 * 	- Captures mouse input and generates corresponding note events
@@ -2175,6 +2193,11 @@
 	 */
 	var PianoKeyboard = (function () {
 	    function PianoKeyboard(panel) {
+	        this.arpeggio = {
+	            mode: 0,
+	            octave: 1,
+	            time: 0.5
+	        };
 	        this.baseNote = BASE_NOTE;
 	        this.octave = 3;
 	        this.poly = false;
@@ -2182,8 +2205,8 @@
 	        this.createKeys(panel);
 	        for (var i = 0; i < this.keys.length; i++)
 	            this.registerKey(this.keys[i], i);
-	        this.registerButtons();
-	        this.portaSlider = panel.parent().find('.porta-slider input');
+	        this.registerButtons(panel.parent());
+	        this.portaSlider = panel.parent().find('.portamento-box input');
 	    }
 	    PianoKeyboard.prototype.createKeys = function (panel) {
 	        this.keys = [];
@@ -2231,7 +2254,7 @@
 	        key.mousedown(function (_) {
 	            var midi = knum + _this.baseNote;
 	            _this.displayKeyDown(key);
-	            _this.noteOn(midi, keyboard_1.midi2freqRatio(midi));
+	            _this.noteOn(midi);
 	        });
 	        key.mouseup(function (_) {
 	            var midi = knum + _this.baseNote;
@@ -2239,9 +2262,9 @@
 	            _this.noteOff(midi);
 	        });
 	    };
-	    PianoKeyboard.prototype.registerButtons = function () {
+	    PianoKeyboard.prototype.registerButtons = function (panel) {
 	        var _this = this;
-	        $('#poly-but').click(function (_) { return _this.togglePoly(); });
+	        // Octave navigation
 	        $('#prev-octave-but').click(function (_) {
 	            _this.octave--;
 	            _this.baseNote -= 12;
@@ -2252,6 +2275,18 @@
 	            _this.baseNote += 12;
 	            _this.updateOctave();
 	        });
+	        // Arpeggio
+	        var arpeggioSlider = panel.find('.arpeggio-box input');
+	        arpeggioSlider.on('input', function (_) {
+	            _this.arpeggio.time = parseFloat(arpeggioSlider.val());
+	            _this.triggerArpeggioChange();
+	        });
+	        var butArpMode = panel.find('.btn-arpeggio-ud');
+	        butArpMode.click(function (_) { return _this.changeArpeggioMode(butArpMode); });
+	        var butArpOct = panel.find('.btn-arpeggio-oct');
+	        butArpOct.click(function (_) { return _this.changeArpeggioOctave(butArpOct); });
+	        // Monophonic / polyphonic mode
+	        $('#poly-but').click(function (_) { return _this.togglePoly(); });
 	    };
 	    PianoKeyboard.prototype.updateOctave = function () {
 	        $('#prev-octave-but').prop('disabled', this.octave <= 1);
@@ -2292,28 +2327,44 @@
 	            cover.append('<p>You can use the PC keyboard to play notes<br><br>' +
 	                'Synth editing is disabled in polyphonic mode</p>');
 	            $('body').append(cover);
-	            $('#poly-but').text('Back to mono');
+	            $('#poly-but').text('Poly');
 	            popups.isOpen = true;
-	            this.portaSlider.parent().hide();
 	            this.polyOn();
 	        }
 	        else {
 	            $('.editor-cover').remove();
-	            $('#poly-but').text('Poly');
+	            $('#poly-but').text('Mono');
 	            popups.isOpen = false;
-	            this.portaSlider.parent().show();
 	            this.polyOff();
 	        }
 	    };
 	    PianoKeyboard.prototype.getPortamento = function () {
 	        return parseFloat(this.portaSlider.val());
 	    };
+	    PianoKeyboard.prototype.changeArpeggioMode = function (button) {
+	        this.arpeggio.mode++;
+	        if (this.arpeggio.mode >= ARPEGGIO_MODES.length)
+	            this.arpeggio.mode = 0;
+	        button.html(ARPEGGIO_LABELS[this.arpeggio.mode]);
+	        this.triggerArpeggioChange();
+	    };
+	    PianoKeyboard.prototype.changeArpeggioOctave = function (button) {
+	        this.arpeggio.octave++;
+	        if (this.arpeggio.octave > MAX_ARPEGGIO_OCT)
+	            this.arpeggio.octave = 1;
+	        button.text(this.arpeggio.octave);
+	        this.triggerArpeggioChange();
+	    };
+	    PianoKeyboard.prototype.triggerArpeggioChange = function () {
+	        this.arpeggioChanged(this.arpeggio.time, ARPEGGIO_MODES[this.arpeggio.mode], this.arpeggio.octave);
+	    };
 	    // Simple event handlers
-	    PianoKeyboard.prototype.noteOn = function (midi, ratio) { };
+	    PianoKeyboard.prototype.noteOn = function (midi) { };
 	    PianoKeyboard.prototype.noteOff = function (midi) { };
 	    PianoKeyboard.prototype.polyOn = function () { };
 	    PianoKeyboard.prototype.polyOff = function () { };
 	    PianoKeyboard.prototype.octaveChanged = function (baseNote) { };
+	    PianoKeyboard.prototype.arpeggioChanged = function (time, mode, octaves) { };
 	    return PianoKeyboard;
 	})();
 	exports.PianoKeyboard = PianoKeyboard;
@@ -2321,6 +2372,121 @@
 
 /***/ },
 /* 14 */
+/***/ function(module, exports) {
+
+	var Arpeggiator = (function () {
+	    function Arpeggiator() {
+	        this.backward = false;
+	        this.mode = '';
+	        this.octaves = 1;
+	        this.time = 0.25;
+	        this.notect = 0;
+	        this.notes = new NoteTable();
+	        this.timer();
+	    }
+	    Arpeggiator.prototype.timer = function () {
+	        //TODO improve accuracy, read article
+	        setTimeout(this.timer.bind(this), this.time * 1000);
+	        // Release previous note
+	        if (this.lastNote) {
+	            this.noteOff(this.lastNote.noteToPlay, this.lastNote.velocity);
+	            this.lastNote = null;
+	        }
+	        // Return if disabled or no notes
+	        if (this.mode.length == 0)
+	            return;
+	        var len = this.notes.length();
+	        if (len == 0)
+	            return;
+	        // Check note counter
+	        this.wrapCounter(len);
+	        // Get current note and play it
+	        var ndata = this.notes.get(this.notect);
+	        this.noteOn(ndata.noteToPlay, ndata.velocity);
+	        this.lastNote = ndata;
+	        // Update note counter
+	        if (this.mode == 'u')
+	            this.notect++;
+	        else if (this.mode == 'd')
+	            this.notect--;
+	        else if (this.mode == 'ud') {
+	            if (this.backward)
+	                this.notect--;
+	            else
+	                this.notect++;
+	        }
+	    };
+	    Arpeggiator.prototype.wrapCounter = function (len) {
+	        if (this.notect >= len) {
+	            if (this.mode != 'ud')
+	                this.notect = 0;
+	            else {
+	                this.backward = true;
+	                this.notect = len < 2 ? 0 : len - 2;
+	            }
+	        }
+	        else if (this.notect < 0) {
+	            if (this.mode != 'ud')
+	                this.notect = len - 1;
+	            else {
+	                this.backward = false;
+	                this.notect = len < 2 ? 0 : 1;
+	            }
+	        }
+	    };
+	    Arpeggiator.prototype.sendNoteOn = function (midi, velocity) {
+	        if (this.mode.length == 0)
+	            return this.noteOn(midi, velocity);
+	        this.notes.add(midi, midi, velocity);
+	        if (this.octaves > 1)
+	            this.notes.add(midi, midi + 12, velocity);
+	        if (this.octaves > 2)
+	            this.notes.add(midi, midi + 24, velocity);
+	    };
+	    Arpeggiator.prototype.sendNoteOff = function (midi, velocity) {
+	        if (this.mode.length == 0)
+	            this.noteOff(midi, velocity);
+	        this.notes.remove(midi);
+	    };
+	    // Event handlers
+	    Arpeggiator.prototype.noteOn = function (midi, velocity) { };
+	    Arpeggiator.prototype.noteOff = function (midi, velocity) { };
+	    return Arpeggiator;
+	})();
+	exports.Arpeggiator = Arpeggiator;
+	var NoteData = (function () {
+	    function NoteData(note, noteToPlay, velocity) {
+	        this.note = note;
+	        this.noteToPlay = noteToPlay;
+	        this.velocity = velocity;
+	    }
+	    return NoteData;
+	})();
+	var NoteTable = (function () {
+	    function NoteTable() {
+	        this.notes = [];
+	    }
+	    NoteTable.prototype.length = function () { return this.notes.length; };
+	    NoteTable.prototype.get = function (i) { return this.notes[i]; };
+	    NoteTable.prototype.add = function (note, noteToPlay, velocity) {
+	        var ndata = new NoteData(note, noteToPlay, velocity);
+	        for (var i = 0; i < this.notes.length; i++) {
+	            if (noteToPlay < this.notes[i].noteToPlay) {
+	                this.notes.splice(i, 0, ndata);
+	                return;
+	            }
+	        }
+	        this.notes.push(ndata);
+	    };
+	    NoteTable.prototype.remove = function (note) {
+	        this.notes = this.notes.filter(function (ndata) { return ndata.note != note; });
+	    };
+	    return NoteTable;
+	})();
+
+
+/***/ },
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __extends = (this && this.__extends) || function (d, b) {
@@ -2344,9 +2510,9 @@
 	        for (var i = 1; i < numVoices; i++)
 	            this.voices[i].synth.portamento = this.portamento;
 	    }
-	    Instrument.prototype.noteOn = function (midi, velocity, ratio) {
+	    Instrument.prototype.noteOn = function (midi, velocity) {
 	        var voice = this.voices[this.voiceNum];
-	        voice.noteOn(midi, velocity, ratio);
+	        voice.noteOn(midi, velocity);
 	        this.voiceNum = (this.voiceNum + 1) % this.voices.length;
 	    };
 	    Instrument.prototype.noteOff = function (midi, velocity) {
@@ -2376,8 +2542,8 @@
 	        this.synth = this.loader.load(ac, json, dest || ac.destination);
 	        this.lastNote = 0;
 	    }
-	    Voice.prototype.noteOn = function (midi, velocity, ratio) {
-	        this.synth.noteOn(midi, velocity, ratio);
+	    Voice.prototype.noteOn = function (midi, velocity) {
+	        this.synth.noteOn(midi, velocity);
 	        this.lastNote = midi;
 	    };
 	    Voice.prototype.noteOff = function (midi, velocity) {
@@ -2459,7 +2625,7 @@
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var popups = __webpack_require__(8);
