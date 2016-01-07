@@ -263,7 +263,7 @@ osc.disconnect();
 	</section>
 
 	<section data-state="synthlib-demo">
-		<h2>SynthLib</h2>
+		<h2 onclick="playSynthDemo()">SynthLib</h2>
 		<pre><code class="hljs" data-trim contenteditable style="max-height: 600px">
 var ac = new AudioContext();
 var json = { /* Instrument JSON... */ };
@@ -278,11 +278,11 @@ var notes = score.split('').map(function(k) {
 
 function tick() {
     if (lastNote) instrument.noteOff(lastNote, 1);
-    if (ct++ > 100) return;
+    if (ct++ > 104) return;
     var note = notes[ct % notes.length];
     if (note > 0) instrument.noteOn(note, 1);
     lastNote = note;
-    setTimeout(tick, 200);
+    setTimeout(tick, 180);
 }
 
 tick();
@@ -370,13 +370,6 @@ tick();
 
 		<script src="js/synthlib.js"></script>
 		<script src="js/synthdemo.js"></script>
-		<script>
-			Reveal.addEventListener('synthlib-demo', function() {
-				playSynthDemo();
-			}, false);
-		</script>
-
-
 
 	</body>
 </html>
