@@ -262,6 +262,33 @@ osc.disconnect();
 		<p>Repo at <a href="https://github.com/lcrespom/Modulator">https://github.com/lcrespom/Modulator</a></p>
 	</section>
 
+	<section data-state="synthlib-demo">
+		<h2>SynthLib</h2>
+		<pre><code class="hljs" data-trim contenteditable style="max-height: 600px">
+var ac = new AudioContext();
+var json = { /* Instrument JSON... */ };
+var instrument = new Modulator.Instrument(ac, json, 8);
+
+var ct = -1, lastNote = 0;
+var KB_NOTES = 'ZSXDCVGBHNJMQ2W3ER5T6Y7UI9O0P';
+var score = 'Y  WRTYTWO I Y  WRTYTWO I T  QERTRQO I T  QERTRQO P ';
+var notes = score.split('').map(function(k) {
+    return k != ' ' ? 36 + KB_NOTES.indexOf(k) : 0;
+});
+
+function tick() {
+    if (lastNote) instrument.noteOff(lastNote, 1);
+    if (ct++ > 100) return;
+    var note = notes[ct % notes.length];
+    if (note > 0) instrument.noteOn(note, 1);
+    lastNote = note;
+    setTimeout(tick, 200);
+}
+
+tick();
+		</code></pre>
+	</section>
+
 	<section>
 		<h1>Thank you</h1>
 		<div style="display:inline-block">
@@ -294,8 +321,6 @@ osc.disconnect();
 
 			</div>
 		</div>
-
-
 
 		<script src="lib/js/head.min.js"></script>
 		<script src="js/reveal.js"></script>
@@ -342,6 +367,16 @@ osc.disconnect();
 				}, 7000);
 			}, false);
 		</script>
+
+		<script src="js/synthlib.js"></script>
+		<script src="js/synthdemo.js"></script>
+		<script>
+			Reveal.addEventListener('synthlib-demo', function() {
+				playSynthDemo();
+			}, false);
+		</script>
+
+
 
 	</body>
 </html>
