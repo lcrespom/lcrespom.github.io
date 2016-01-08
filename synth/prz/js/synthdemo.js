@@ -16,10 +16,10 @@ function playSynthDemo() {
 	var lastNote = 0;
 	
 	function tick() {
-		if (lastNote) instrument.noteOff(lastNote, 1);
+		if (lastNote) instrument.noteOff(lastNote);
 		if (ct++ > 104) return;
 		var note = notes[ct % notes.length];
-		if (note > 0) instrument.noteOn(note, 1);
+		if (note > 0) instrument.noteOn(note);
 		lastNote = note;
 		setTimeout(tick, 200);
 	}

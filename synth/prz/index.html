@@ -277,10 +277,10 @@ var notes = score.split('').map(function(k) {
 });
 
 function tick() {
-    if (lastNote) instrument.noteOff(lastNote, 1);
+    if (lastNote) instrument.noteOff(lastNote);
     if (ct++ > 100) return;
     var note = notes[ct % notes.length];
-    if (note > 0) instrument.noteOn(note, 1);
+    if (note > 0) instrument.noteOn(note);
     lastNote = note;
     setTimeout(tick, 200);
 }
