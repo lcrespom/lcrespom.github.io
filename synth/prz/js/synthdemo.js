@@ -17,7 +17,7 @@ function playSynthDemo() {
 	
 	function tick() {
 		if (lastNote) instrument.noteOff(lastNote);
-		if (ct++ > 104) return;
+		if (ct++ > score.length * 2) return;
 		var note = notes[ct % notes.length];
 		if (note > 0) instrument.noteOn(note);
 		lastNote = note;

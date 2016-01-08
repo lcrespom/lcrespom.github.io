@@ -87,6 +87,16 @@
 				background: inherit !important;
 				border: none !important;
 			}
+
+			.hljs {
+				color: #66CCCC;
+			}
+			.hljs-keyword {
+				color: #CCCC66;
+			}
+			.hljs-comment {
+				color: #808080;
+			}
 		</style>
 
 		<!--[if lt IE 9]>
@@ -245,7 +255,7 @@
 
 	<section data-background="#084">
 		<p style="font-size: 200%">Live coding!</p>
-		<pre><code class="hljs" data-trim contenteditable>
+		<pre><code class="hljs javascript" data-trim contenteditable>
 var ac = new AudioContext();
 var osc = ac.createOscillator();
 osc.connect(ac.destination);
@@ -264,7 +274,7 @@ osc.disconnect();
 
 	<section data-state="synthlib-demo">
 		<h2 onclick="playSynthDemo()">SynthLib</h2>
-		<pre><code class="hljs" data-trim contenteditable style="max-height: 600px">
+		<pre><code class="hljs javascript" data-trim contenteditable style="max-height: 600px">
 var ac = new AudioContext();
 var json = { /* Instrument JSON... */ };
 var instrument = new Modulator.Instrument(ac, json, 8);
@@ -278,7 +288,7 @@ var notes = score.split('').map(function(k) {
 
 function tick() {
     if (lastNote) instrument.noteOff(lastNote);
-    if (ct++ > 104) return;
+    if (ct++ > score.length * 2) return;
     var note = notes[ct % notes.length];
     if (note > 0) instrument.noteOn(note);
     lastNote = note;
