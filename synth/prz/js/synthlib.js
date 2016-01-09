@@ -48,10 +48,12 @@
 	 * Library that exports the Instrument and Voice classes
 	 */
 	var instrument_1 = __webpack_require__(15);
+	var timer_1 = __webpack_require__(17);
 	var global = window;
 	global.Modulator = global.Modulator || {};
 	global.Modulator.Instrument = instrument_1.Instrument;
 	global.Modulator.Voice = instrument_1.Voice;
+	global.Modulator.Timer = timer_1.Timer;
 
 
 /***/ },
@@ -402,6 +404,7 @@
 	    BaseNoteHandler.prototype.rampParam = function (param, ratio, when) {
 	        var portamento = this.ndata.synth.portamento;
 	        var newv = param.value * ratio;
+	        param['_value'] = newv; // Required for ADSR to capture the correct value
 	        if (portamento.time > 0 && portamento.ratio > 0) {
 	            var oldv = param.value * portamento.ratio;
 	            param.cancelScheduledValues(when);
@@ -1167,6 +1170,62 @@
 	    };
 	    return SynthLoader;
 	})();
+
+
+/***/ },
+/* 16 */,
+/* 17 */
+/***/ function(module, exports) {
+
+	var Timer = (function () {
+	    function Timer(ac, bpm, interval, ahead) {
+	        if (bpm === void 0) { bpm = 60; }
+	        if (interval === void 0) { interval = 0.025; }
+	        if (ahead === void 0) { ahead = 0.1; }
+	        this.running = false;
+	        this.ac = ac;
+	        this.dt = 0;
+	        this.nextNoteTime = 0;
+	        this.bpm = bpm;
+	        this.interval = interval;
+	        this.ahead = ahead;
+	    }
+	    Object.defineProperty(Timer.prototype, "bpm", {
+	        get: function () { return this._bpm; },
+	        set: function (v) {
+	            this._bpm = v;
+	            this.nextNoteTime -= this.dt;
+	            this.dt = (1 / 4) * 60 / this._bpm;
+	            this.nextNoteTime += this.dt;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Timer.prototype.start = function (cb) {
+	        if (this.running)
+	            return;
+	        this.running = true;
+	        if (cb)
+	            this.cb = cb;
+	        this.nextNoteTime = this.ac.currentTime;
+	        this.tick();
+	    };
+	    Timer.prototype.stop = function () {
+	        this.running = false;
+	    };
+	    Timer.prototype.tick = function () {
+	        if (!this.running)
+	            return;
+	        setTimeout(this.tick.bind(this), this.interval * 1000);
+	        while (this.nextNoteTime < this.ac.currentTime + this.ahead) {
+	            if (this.cb)
+	                this.cb(this.nextNoteTime);
+	            this.nextNoteTime += this.dt;
+	        }
+	    };
+	    return Timer;
+	})();
+	exports.Timer = Timer;
 
 
 /***/ }
