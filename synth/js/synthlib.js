@@ -665,6 +665,20 @@
 	    return true;
 	}
 	exports.removeArrayElement = removeArrayElement;
+	var LOG_BASE = 2;
+	function logarithm(base, x) {
+	    return Math.log(x) / Math.log(base);
+	}
+	function linear2log(value, min, max) {
+	    var logRange = logarithm(LOG_BASE, max + 1 - min);
+	    return logarithm(LOG_BASE, value + 1 - min) / logRange;
+	}
+	exports.linear2log = linear2log;
+	function log2linear(value, min, max) {
+	    var logRange = logarithm(LOG_BASE, max + 1 - min);
+	    return min + Math.pow(LOG_BASE, value * logRange) - 1;
+	}
+	exports.log2linear = log2linear;
 
 
 /***/ },
@@ -1043,10 +1057,13 @@
 	var Instrument = (function () {
 	    function Instrument(ac, json, numVoices, dest) {
 	        // Setup voices
+	        this.pressed = [];
+	        this.released = [];
 	        this.voices = [];
-	        for (var i = 0; i < numVoices; i++)
+	        for (var i = 0; i < numVoices; i++) {
 	            this.voices.push(new Voice(ac, json, dest));
-	        this.voiceNum = 0;
+	            this.released.push(i);
+	        }
 	        // Setup synth params by having a common instance for all voices
 	        this.portamento = this.voices[0].synth.portamento;
 	        if (json.keyboard && json.keyboard.portamento)
@@ -1056,19 +1073,31 @@
 	    }
 	    Instrument.prototype.noteOn = function (midi, velocity, when) {
 	        if (velocity === void 0) { velocity = 1; }
-	        var voice = this.voices[this.voiceNum];
+	        var vnum = this.findVoice();
+	        var voice = this.voices[vnum];
+	        this.pressed.push(vnum);
 	        voice.noteOn(midi, velocity, when);
-	        this.voiceNum = (this.voiceNum + 1) % this.voices.length;
 	    };
 	    Instrument.prototype.noteOff = function (midi, velocity, when) {
 	        if (velocity === void 0) { velocity = 1; }
-	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
-	            var voice = _a[_i];
+	        for (var i = 0; i < this.voices.length; i++) {
+	            var voice = this.voices[i];
 	            if (voice.lastNote == midi) {
 	                voice.noteOff(midi, velocity, when);
+	                this.released.push(i);
 	                break;
 	            }
 	        }
+	    };
+	    Instrument.prototype.findVoice = function () {
+	        var voices;
+	        if (this.released.length > 0)
+	            voices = this.released;
+	        else if (this.pressed.length > 0)
+	            voices = this.pressed;
+	        else
+	            throw "This should never happen";
+	        return voices.splice(0, 1)[0];
 	    };
 	    Instrument.prototype.close = function () {
 	        for (var _i = 0, _a = this.voices; _i < _a.length; _i++) {
