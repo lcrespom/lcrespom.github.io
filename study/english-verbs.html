@@ -1,0 +1,92 @@
+<!doctype html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>English irregular verbs</title>
+	<style>
+		@import url(https://fonts.googleapis.com/css?family=Droid+Serif:700,400);
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0px;
+			font-family: 'Droid Serif', serif;
+			font-size: 170%;
+			font-weight: bold;
+			background-color: black;
+			color: white;
+		}
+		.row {
+			display: flex;
+			align-content: center;
+			justify-content: center;
+			flex-direction: column;
+		}
+		.cols {
+			display: flex;
+			align-content: center;
+			justify-content: center;
+			flex-direction: row;
+			margin: auto;
+			width: 100%;
+		}
+		.box {
+			margin: auto;
+		}
+		.question-mark {
+			font-size: 300%;
+			border: 0.1ex solid white;
+			border-radius: 2em;
+			text-align: center;
+			padding: 0.4ex 1ex;
+			background-color: orange;
+		}
+		.hidden {
+			display: none;
+		}
+		.score-but {
+			border: 0.3ex solid white;
+			border-radius: 0.5ex;
+			padding: 1ex;
+			width: 5em;
+			text-align: center;
+		}
+		.score-but span {
+			font-size: 180%;
+		}
+		.right {
+			background-color: green;
+		}
+		.wrong {
+			background-color: red;
+		}
+	</style>
+</head>
+
+
+<body class="row">
+
+	<div class="cols question">
+		<div class="box infinitive"></div>
+		<div class="box past"></div>
+		<div class="box participle"></div>
+	</div>
+	<div class="box question-mark">
+		?
+	</div>
+	<div class="cols score">
+		<div class="box score-but right">
+			<span>0</span>
+			<br>Right
+		</div>
+		<div class="box score-but wrong">
+			<span>0</span>
+			<br>Wrong
+		</div>
+	</div>
+
+	<script src="jquery-1.11.2.min.js"></script>
+	<script src="english-verbs.js"></script>
+</body>
+
+</html>
