@@ -17,7 +17,7 @@ $(function() {
 		["dig", "dug", "dug"],
 		["do", "did", "done", ],
 		["draw", "drew", "drawn"],
-		["deam", "dreamt", "dreamt"],
+		["dream", "dreamt", "dreamt"],
 		["drink", "drank", "drunk"],
 		["drive", "drove", "driven"]
 	];
