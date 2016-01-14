@@ -37,7 +37,7 @@ $(function() {
 		$('.question .past').text(tnum == 1 ? verb : '');
 		$('.question .participle').text(tnum == 2 ? verb : '');
 		$('.score').addClass('hidden');
-		$('.question-mark').removeClass('hidden').one('click', _ => {
+		$('.question-mark').removeClass('hidden').one('click', function() {
 			showAnswer(verbs[vnum]);
 		});
 	}
@@ -51,12 +51,12 @@ $(function() {
 	}
 
 	function registerButtons() {
-		$('.right').on('click', _ => {
+		$('.right').on('click', function() {
 			rights++;
 			$('.right span').text('' + rights);
 			setTimeout(askQuestion, WAIT);
 		});
-		$('.wrong').on('click', _ => {
+		$('.wrong').on('click', function() {
 			wrongs++;
 			$('.wrong span').text('' + wrongs);
 			setTimeout(askQuestion, WAIT);
