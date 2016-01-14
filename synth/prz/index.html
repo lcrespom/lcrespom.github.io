@@ -167,10 +167,29 @@
 
 	<section>
 		<h2>Web Audio API</h2>
+		<div class="audio-node audio-node-dst" style="margin-bottom: -20px !important">
+			AudioContext
+		</div>
+		<br>
+		<span class="arrows">&darr;</span>
+		<span style="font-size: 70%">Creates</span>
+		<br>
+		<div class="audio-node audio-node-dst" style="margin-bottom: -20px !important">
+			AudioNode
+		</div>
+		<br>
+		<span class="arrows">&darr;<sub>*</sub>&nbsp;</span>
+		<span style="font-size: 70%">Has</span>
+		<br>
+		<div class="audio-node audio-node-dst" style="margin-top: -5px !important">
+			AudioParam
+		</div>
+		<!--
 		<ul>
 			<li>AudioContext</li>
 			<li>AudioNodes</li>
 		</ul>
+		-->
 	</section>
 
 	<section data-transition="fade">
@@ -256,12 +275,16 @@
 	<section data-background="#084">
 		<p style="font-size: 200%">Live coding!</p>
 		<pre><code class="hljs javascript" data-trim contenteditable>
+// Create Audio Context and OscillatorNode, and connect them
 var ac = new AudioContext();
 var osc = ac.createOscillator();
 osc.connect(ac.destination);
+// Set the oscillator parameters
+osc.frequency.value = 150;
+osc.type = "sawtooth";
+// Play a sound for 2 seconds
 osc.start();
-osc.stop();
-osc.disconnect();
+osc.stop(ac.currentTime + 2);
 		</code></pre>
 	</section>
 
@@ -270,6 +293,10 @@ osc.disconnect();
 			style="border: none; background-color: inherit; box-shadow: none">
 		<p><a href="https://lcrespom.github.io/synth/">Live Demo</a></p>
 		<p>Repo at <a href="https://github.com/lcrespom/Modulator">https://github.com/lcrespom/Modulator</a></p>
+		<p style="font-size: 80%">
+			<br>Logo Design by
+			<a href="mailto:querbach.marta@gmail.com">Marta Quer Bach</a>
+		</p>
 	</section>
 
 	<section data-state="synthlib-demo">
