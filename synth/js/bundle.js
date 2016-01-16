@@ -976,7 +976,7 @@
 	var BaseNoteHandler = (function () {
 	    function BaseNoteHandler(ndata) {
 	        this.kbTrigger = false;
-	        this.playAfterNoteOff = false;
+	        this.releaseTime = 0;
 	        this.handlers = null;
 	        this.ndata = ndata;
 	        this.outTracker = new OutputTracker(ndata.anode);
@@ -1047,30 +1047,24 @@
 	    __extends(OscNoteHandler, _super);
 	    function OscNoteHandler() {
 	        _super.apply(this, arguments);
-	        this.playing = false;
 	    }
 	    OscNoteHandler.prototype.noteOn = function (midi, gain, ratio, when) {
-	        if (this.playing)
-	            this.noteEnd(midi, when); // Because this is monophonic
-	        this.playing = true;
+	        if (this.oscClone)
+	            this.oscClone.stop(when);
 	        this.oscClone = this.clone();
 	        this.rampParam(this.oscClone.frequency, ratio, when);
 	        this.oscClone.start(when);
-	        this.lastNote = midi;
 	    };
 	    OscNoteHandler.prototype.noteOff = function (midi, gain, when) {
-	        if (midi != this.lastNote)
-	            return;
-	        if (!this.playAfterNoteOff)
-	            this.noteEnd(midi, when);
+	        //TODO maybe get rid of noteEnd
+	        this.noteEnd(midi, when + this.releaseTime);
 	    };
 	    OscNoteHandler.prototype.noteEnd = function (midi, when) {
+	        // Currently doing nothing because it will be stopped on next noteOn
 	        // Stop and disconnect
-	        if (!this.playing)
-	            return;
-	        this.playing = false;
-	        this.oscClone.stop(when);
-	        //TODO ensure that not disconnecting does not produce memory leaks
+	        //this.oscClone.stop(when);
+	        //TODO ensure that not disconnecting does not produce memory leaks,
+	        //	especially when ADSR controls frequency
 	        // this.disconnect(this.oscClone);
 	        // this.oscClone = null;
 	    };
@@ -1118,8 +1112,7 @@
 	    BufferNoteHandler.prototype.noteOff = function (midi, gain, when) {
 	        if (midi != this.lastNote)
 	            return;
-	        if (!this.playAfterNoteOff)
-	            this.noteEnd(midi, when);
+	        this.noteEnd(midi, when + this.releaseTime);
 	    };
 	    BufferNoteHandler.prototype.noteEnd = function (midi, when) {
 	        // Stop and disconnect
@@ -1144,36 +1137,62 @@
 	    }
 	    ADSRNoteHandler.prototype.noteOn = function (midi, gain, ratio, when) {
 	        var _this = this;
-	        this.setupOtherHandlers();
 	        this.lastNote = midi;
 	        var adsr = this.ndata.anode;
+	        this.setupOtherHandlers(adsr);
 	        this.loopParams(function (out) {
 	            var v = _this.getParamValue(out);
-	            out.cancelScheduledValues(when);
 	            var initial = (1 - adsr.depth) * v;
-	            out.linearRampToValueAtTime(initial, when);
-	            out.linearRampToValueAtTime(v, when + adsr.attack);
+	            //TODO calculate current value and value at "when", then re-ramp
+	            //Workaround: at least set value back to initial - but this results in
+	            //	an audible stop
+	            out.cancelScheduledValues(0);
+	            out.setValueAtTime(initial, 0);
+	            if (adsr.attack > 0) {
+	                out.setValueAtTime(initial, when);
+	                out.linearRampToValueAtTime(v, when + adsr.attack);
+	            }
+	            else {
+	                out.setValueAtTime(v, when);
+	            }
 	            var target = v * adsr.sustain + initial * (1 - adsr.sustain);
-	            out.linearRampToValueAtTime(target, when + adsr.attack + adsr.decay);
+	            if (adsr.decay > 0) {
+	                out.linearRampToValueAtTime(target, when + adsr.attack + adsr.decay);
+	            }
+	            else {
+	                out.setValueAtTime(target, when + adsr.attack + adsr.decay);
+	            }
 	        });
 	    };
 	    ADSRNoteHandler.prototype.noteOff = function (midi, gain, when) {
+	        var _this = this;
 	        if (midi != this.lastNote)
 	            return;
 	        var adsr = this.ndata.anode;
 	        this.loopParams(function (out) {
-	            var v = out.value; // Get the really current value
+	            //TODO calculate value at "when" from previous ramps
+	            var v = when > adsr.context.currentTime ?
+	                _this.getParamValue(out) * adsr.sustain : out.value;
 	            var finalv = (1 - adsr.depth) * v;
 	            out.cancelScheduledValues(when);
-	            out.linearRampToValueAtTime(v, when);
-	            out.linearRampToValueAtTime(finalv, when + adsr.release);
+	            if (adsr.release > 0) {
+	                out.setValueAtTime(v, when);
+	                out.linearRampToValueAtTime(finalv, when + adsr.release);
+	            }
+	            else {
+	                out.setValueAtTime(finalv, when);
+	            }
 	        });
 	    };
-	    ADSRNoteHandler.prototype.setupOtherHandlers = function () {
-	        //TODO should set to false when ADSR node is removed
+	    ADSRNoteHandler.prototype.setupOtherHandlers = function (adsr) {
+	        //TODO should be set to 0 when ADSR node is removed
+	        //	or more in general, to the longest release time of all
+	        //	remaining ADSR nodes in the graph
+	        //TODO this code should be moved up to the synth level, which
+	        //	should keep track of the ADSR node with the longest release time, etc.
 	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
 	            var nh = _a[_i];
-	            nh.playAfterNoteOff = true;
+	            nh.releaseTime = adsr.release;
 	        }
 	    };
 	    ADSRNoteHandler.prototype.loopParams = function (cb) {
@@ -1211,11 +1230,9 @@
 	    RestartableNoteHandler.prototype.noteOff = function (midi, gain, when) {
 	        if (midi != this.lastNote)
 	            return;
-	        if (!this.playAfterNoteOff)
-	            this.noteEnd(midi, when);
+	        this.noteEnd(midi, when + this.releaseTime);
 	    };
 	    RestartableNoteHandler.prototype.noteEnd = function (midi, when) {
-	        // Stop and disconnect
 	        if (!this.playing)
 	            return;
 	        this.playing = false;
@@ -2022,7 +2039,7 @@
 	var piano_1 = __webpack_require__(14);
 	var arpeggiator_1 = __webpack_require__(15);
 	var instrument_1 = __webpack_require__(17);
-	var NUM_VOICES = 5;
+	var NUM_VOICES = 8;
 	/**
 	 * Manages all note-generation inputs:
 	 * 	- PC Keyboard
@@ -2482,7 +2499,6 @@
 	var timer_1 = __webpack_require__(16);
 	var Arpeggiator = (function () {
 	    function Arpeggiator(ac) {
-	        var _this = this;
 	        this.backward = false;
 	        this.noteOnTime = 0.75;
 	        this.mode = '';
@@ -2491,7 +2507,6 @@
 	        this.notect = 0;
 	        this.notes = new NoteTable();
 	        this.timer = new timer_1.Timer(ac, this.bpm);
-	        this.timer.start(function (time) { return _this.timerCB(time); });
 	    }
 	    Object.defineProperty(Arpeggiator.prototype, "bpm", {
 	        get: function () { return this._bpm; },
@@ -2547,6 +2562,7 @@
 	        }
 	    };
 	    Arpeggiator.prototype.sendNoteOn = function (midi, velocity) {
+	        var _this = this;
 	        if (this.mode.length == 0)
 	            return this.noteOn(midi, velocity);
 	        var shouldStart = this.notes.length() == 0;
@@ -2556,7 +2572,7 @@
 	        if (this.octaves > 2)
 	            this.notes.add(midi, midi + 24, velocity);
 	        if (shouldStart)
-	            this.timer.start();
+	            this.timer.start(function (time) { return _this.timerCB(time); });
 	    };
 	    Arpeggiator.prototype.sendNoteOff = function (midi, velocity) {
 	        if (this.mode.length == 0)
