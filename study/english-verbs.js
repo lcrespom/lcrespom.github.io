@@ -1,5 +1,6 @@
 $(function() {
 	var verbs = [
+		/*
 		["be", "was/were", "been"],
 		["become", "became", "become"],
 		["begin", "began", "begun"],
@@ -19,7 +20,24 @@ $(function() {
 		["draw", "drew", "drawn"],
 		["dream", "dreamt", "dreamt"],
 		["drink", "drank", "drunk"],
-		["drive", "drove", "driven"]
+		["drive", "drove", "driven"]*/
+		["leave", "left", "left"],
+		["let", "let", "let"],
+		["lose", "lost", "lost"],
+		["make", "made", "made"],
+		["mean", "meant", "meant"],
+		["meet", "met", "met"],
+		["pay", "paid ", "paid"],
+		["put", "put", "put"],
+		["read", "read", "read"],
+		["ride", "rode", "ridden"],
+		["ring", "rang", "rung"],
+		["run", "ran", "run"],
+		["say", "said", "said"],
+		["see", "saw", "seen"],
+		["send", "sent", "sent"],
+		["set", "set", "set"],
+		["shoot", "shot", "shot"]
 	];
 	var rights = 0;
 	var wrongs = 0;
