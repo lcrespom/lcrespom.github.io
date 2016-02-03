@@ -47,8 +47,8 @@
 	/**
 	 * Library that exports the Instrument and Voice classes
 	 */
-	var instrument_1 = __webpack_require__(17);
-	var timer_1 = __webpack_require__(16);
+	var instrument_1 = __webpack_require__(18);
+	var timer_1 = __webpack_require__(17);
 	var global = window;
 	global.Modulator = global.Modulator || {};
 	global.Modulator.Instrument = instrument_1.Instrument;
@@ -66,6 +66,7 @@
 	var palette_1 = __webpack_require__(6);
 	var modern_1 = __webpack_require__(5);
 	var custom = __webpack_require__(7);
+	var file = __webpack_require__(8);
 	var SEMITONE = Math.pow(2, 1 / 12);
 	var A4 = 57;
 	/**
@@ -112,7 +113,7 @@
 	        this.registerCustomNode('createNoiseCtrl', custom.NoiseCtrlGenerator);
 	        this.registerCustomNode('createLineIn', custom.LineInNode);
 	        this.registerCustomNode('createDetuner', custom.Detuner);
-	        this.registerParamHandler('BufferURL', new BufferURL());
+	        this.registerParamHandler('BufferData', new BufferData());
 	    }
 	    Synth.prototype.createAudioNode = function (type) {
 	        var def = palette_1.palette[type];
@@ -217,10 +218,9 @@
 	        if (!when)
 	            when = this.ac.currentTime;
 	        var ratio = this.midi2freqRatio(midi);
+	        this.setupNoteHandlers();
 	        for (var _i = 0, _a = this.noteHandlers; _i < _a.length; _i++) {
 	            var nh = _a[_i];
-	            if (nh.kbTrigger)
-	                nh.handlers = this.noteHandlers;
 	            nh.noteOn(midi, gain, ratio, when);
 	        }
 	        this.portamento.ratio = ratio;
@@ -238,6 +238,19 @@
 	    };
 	    Synth.prototype.removeNoteHandler = function (nh) {
 	        modern_1.removeArrayElement(this.noteHandlers, nh);
+	    };
+	    Synth.prototype.setupNoteHandlers = function () {
+	        var maxRelease = 0;
+	        for (var _i = 0, _a = this.noteHandlers; _i < _a.length; _i++) {
+	            var nh = _a[_i];
+	            if (nh.kbTrigger && nh.releaseTime > maxRelease)
+	                maxRelease = nh.releaseTime;
+	        }
+	        for (var _b = 0, _c = this.noteHandlers; _b < _c.length; _b++) {
+	            var nh = _c[_b];
+	            if (!nh.kbTrigger)
+	                nh.releaseTime = maxRelease;
+	        }
 	    };
 	    Synth.prototype.initNodeParams = function (anode, def, type) {
 	        for (var _i = 0, _a = Object.keys(def.params || {}); _i < _a.length; _i++) {
@@ -265,74 +278,31 @@
 	})();
 	exports.Synth = Synth;
 	//-------------------- Parameter handlers --------------------
-	var BufferURL = (function () {
-	    function BufferURL() {
+	var BufferData = (function () {
+	    function BufferData() {
 	    }
-	    BufferURL.prototype.initialize = function (anode, def) {
-	        var absn = anode;
-	        var url = def.params['buffer'].initial;
-	        if (!url)
-	            return;
-	        if (!this.popups)
-	            this.popups = {
-	                prompt: function () { },
-	                close: function () { },
-	                progress: function () { }
-	            };
-	        this.loadBufferParam(absn, url);
-	    };
-	    BufferURL.prototype.renderParam = function (panel, pdef, anode, param, label) {
-	        var _this = this;
+	    BufferData.prototype.initialize = function (anode, def) { };
+	    BufferData.prototype.renderParam = function (panel, pdef, anode, param, label) {
 	        var box = $('<div class="choice-box">');
-	        var button = $('<button class="btn btn-primary">URL</button>');
+	        var button = $("\n\t\t\t<span class=\"btn btn-primary upload\">\n\t\t\t\t<input type=\"file\" id=\"load-file\">\n\t\t\t\tLoad&nbsp;\n\t\t\t\t<span class=\"glyphicon glyphicon-open\" aria-hidden=\"true\"></span>\n\t\t\t</span>");
 	        box.append(button);
 	        button.after('<br/><br/>' + label);
 	        panel.append(box);
-	        button.click(function (_) {
-	            _this.popups.prompt('Audio buffer URL:', 'Please provide URL', null, function (url) {
-	                if (!url)
-	                    return;
-	                var absn = anode;
-	                _this.loadBufferParam(absn, url);
-	            });
-	        });
+	        button.find('input').change(function (evt) { return file.uploadArrayBuffer(evt, function (soundFile) {
+	            anode['_encoded'] = soundFile;
+	            anode.context.decodeAudioData(soundFile, function (buffer) { return anode['_buffer'] = buffer; });
+	        }); });
 	        return box;
 	    };
-	    BufferURL.prototype.param2json = function (anode) {
-	        return anode['_url'];
+	    BufferData.prototype.param2json = function (anode) {
+	        return file.arrayBufferToBase64(anode['_encoded']);
 	    };
-	    BufferURL.prototype.json2param = function (anode, json) {
-	        this.loadBufferParam(anode, json);
+	    BufferData.prototype.json2param = function (anode, json) {
+	        var encoded = file.base64ToArrayBuffer(json);
+	        anode['_encoded'] = encoded;
+	        anode.context.decodeAudioData(encoded, function (buffer) { return anode['_buffer'] = buffer; });
 	    };
-	    BufferURL.prototype.loadBufferParam = function (absn, url) {
-	        this.loadBuffer(absn.context, url, function (buffer) {
-	            absn['_buffer'] = buffer;
-	            absn['_url'] = url;
-	        });
-	    };
-	    BufferURL.prototype.loadBuffer = function (ac, url, cb) {
-	        var _this = this;
-	        var w = window;
-	        w.audioBufferCache = w.audioBufferCache || {};
-	        if (w.audioBufferCache[url])
-	            return cb(w.audioBufferCache[url]);
-	        var xhr = new XMLHttpRequest();
-	        xhr.open('GET', url, true);
-	        xhr.responseType = 'arraybuffer';
-	        xhr.onload = function (_) {
-	            _this.popups.close();
-	            ac.decodeAudioData(xhr.response, function (buffer) {
-	                w.audioBufferCache[url] = buffer;
-	                cb(buffer);
-	            });
-	        };
-	        xhr.send();
-	        setTimeout(function (_) {
-	            if (xhr.readyState != xhr.DONE)
-	                _this.popups.progress('Loading ' + url + '...');
-	        }, 300);
-	    };
-	    return BufferURL;
+	    return BufferData;
 	})();
 
 
@@ -353,13 +323,11 @@
 	    function BaseNoteHandler(ndata) {
 	        this.kbTrigger = false;
 	        this.releaseTime = 0;
-	        this.handlers = null;
 	        this.ndata = ndata;
 	        this.outTracker = new OutputTracker(ndata.anode);
 	    }
 	    BaseNoteHandler.prototype.noteOn = function (midi, gain, ratio, when) { };
 	    BaseNoteHandler.prototype.noteOff = function (midi, gain, when) { };
-	    BaseNoteHandler.prototype.noteEnd = function (midi, when) { };
 	    BaseNoteHandler.prototype.clone = function () {
 	        // Create clone
 	        var anode = this.ndata.anode.context[this.ndata.nodeDef.constructor]();
@@ -404,7 +372,7 @@
 	    BaseNoteHandler.prototype.rampParam = function (param, ratio, when) {
 	        var portamento = this.ndata.synth.portamento;
 	        var newv = param.value * ratio;
-	        param['_value'] = newv; // Required for ADSR to capture the correct value
+	        param._value = newv; // Required for ADSR to capture the correct value
 	        if (portamento.time > 0 && portamento.ratio > 0) {
 	            var oldv = param.value * portamento.ratio;
 	            param.cancelScheduledValues(when);
@@ -430,19 +398,12 @@
 	        this.oscClone = this.clone();
 	        this.rampParam(this.oscClone.frequency, ratio, when);
 	        this.oscClone.start(when);
+	        this.lastNote = midi;
 	    };
 	    OscNoteHandler.prototype.noteOff = function (midi, gain, when) {
-	        //TODO maybe get rid of noteEnd
-	        this.noteEnd(midi, when + this.releaseTime);
-	    };
-	    OscNoteHandler.prototype.noteEnd = function (midi, when) {
-	        // Currently doing nothing because it will be stopped on next noteOn
-	        // Stop and disconnect
-	        //this.oscClone.stop(when);
-	        //TODO ensure that not disconnecting does not produce memory leaks,
-	        //	especially when ADSR controls frequency
-	        // this.disconnect(this.oscClone);
-	        // this.oscClone = null;
+	        if (midi != this.lastNote)
+	            return; // Avoid multple keys artifacts in mono mode
+	        this.oscClone.stop(when + this.releaseTime);
 	    };
 	    return OscNoteHandler;
 	})(BaseNoteHandler);
@@ -468,15 +429,13 @@
 	    __extends(BufferNoteHandler, _super);
 	    function BufferNoteHandler() {
 	        _super.apply(this, arguments);
-	        this.playing = false;
 	    }
 	    BufferNoteHandler.prototype.noteOn = function (midi, gain, ratio, when) {
-	        if (this.playing)
-	            this.noteEnd(midi, when);
+	        if (this.absn)
+	            this.absn.stop(when);
 	        var buf = this.ndata.anode['_buffer'];
 	        if (!buf)
 	            return; // Buffer still loading or failed
-	        this.playing = true;
 	        this.absn = this.clone();
 	        this.absn.buffer = buf;
 	        var pbr = this.absn.playbackRate;
@@ -488,20 +447,13 @@
 	    BufferNoteHandler.prototype.noteOff = function (midi, gain, when) {
 	        if (midi != this.lastNote)
 	            return;
-	        this.noteEnd(midi, when + this.releaseTime);
-	    };
-	    BufferNoteHandler.prototype.noteEnd = function (midi, when) {
-	        // Stop and disconnect
-	        if (!this.playing)
-	            return;
-	        this.playing = false;
-	        this.absn.stop(when);
-	        //TODO ensure that not disconnecting does not produce memory leaks
-	        // this.disconnect(this.absn);
-	        // this.absn = null;
+	        this.absn.stop(when + this.releaseTime);
 	    };
 	    return BufferNoteHandler;
 	})(BaseNoteHandler);
+	/**
+	 * Performs computations about ramps so they can be easily rescheduled
+	 */
 	var Ramp = (function () {
 	    function Ramp(v1, v2, t1, t2) {
 	        this.v1 = v1;
@@ -534,17 +486,33 @@
 	 */
 	var ADSRNoteHandler = (function (_super) {
 	    __extends(ADSRNoteHandler, _super);
-	    function ADSRNoteHandler() {
-	        _super.apply(this, arguments);
+	    function ADSRNoteHandler(ndata) {
+	        var _this = this;
+	        _super.call(this, ndata);
 	        this.kbTrigger = true;
+	        var adsr = ndata.anode;
+	        var oldMethod = adsr.disconnect;
+	        adsr.disconnect = function (dest) {
+	            _this.loopParams(function (param) {
+	                if (param == dest)
+	                    param.setValueAtTime(param._value, adsr.context.currentTime);
+	            });
+	            oldMethod(dest);
+	        };
 	    }
+	    Object.defineProperty(ADSRNoteHandler.prototype, "releaseTime", {
+	        get: function () {
+	            var adsr = this.ndata.anode;
+	            return adsr.release;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
 	    ADSRNoteHandler.prototype.noteOn = function (midi, gain, ratio, when) {
 	        var _this = this;
 	        this.lastNote = midi;
 	        var adsr = this.ndata.anode;
-	        this.setupOtherHandlers(adsr);
-	        this.loopParams(function (out) {
-	            var param = out;
+	        this.loopParams(function (param) {
 	            var v = _this.getParamValue(param);
 	            var initial = (1 - adsr.depth) * v;
 	            var sustain = v * adsr.sustain + initial * (1 - adsr.sustain);
@@ -561,10 +529,9 @@
 	    ADSRNoteHandler.prototype.noteOff = function (midi, gain, when) {
 	        var _this = this;
 	        if (midi != this.lastNote)
-	            return; // That note was already closed
+	            return; // Avoid multple keys artifacts in mono mode
 	        var adsr = this.ndata.anode;
-	        this.loopParams(function (out) {
-	            var param = out;
+	        this.loopParams(function (param) {
 	            var v = _this.getRampValueAtTime(param, when);
 	            if (v === null)
 	                v = _this.getParamValue(param) * adsr.sustain;
@@ -593,17 +560,6 @@
 	            return param._decay.cut(t).v2;
 	        return null;
 	    };
-	    ADSRNoteHandler.prototype.setupOtherHandlers = function (adsr) {
-	        //TODO should be set to 0 when ADSR node is removed
-	        //	or more in general, to the longest release time of all
-	        //	remaining ADSR nodes in the graph
-	        //TODO this code should be moved up to the synth level, which
-	        //	should keep track of the ADSR node with the longest release time, etc.
-	        for (var _i = 0, _a = this.handlers; _i < _a.length; _i++) {
-	            var nh = _a[_i];
-	            nh.releaseTime = adsr.release;
-	        }
-	    };
 	    ADSRNoteHandler.prototype.loopParams = function (cb) {
 	        for (var _i = 0, _a = this.outTracker.outputs; _i < _a.length; _i++) {
 	            var out = _a[_i];
@@ -629,24 +585,19 @@
 	        this.playing = false;
 	    }
 	    RestartableNoteHandler.prototype.noteOn = function (midi, gain, ratio, when) {
-	        if (this.playing)
-	            this.noteEnd(midi, when);
-	        this.playing = true;
 	        var anode = this.ndata.anode;
+	        if (this.playing)
+	            anode.stop(when);
+	        this.playing = true;
 	        anode.start(when);
 	        this.lastNote = midi;
 	    };
 	    RestartableNoteHandler.prototype.noteOff = function (midi, gain, when) {
 	        if (midi != this.lastNote)
 	            return;
-	        this.noteEnd(midi, when + this.releaseTime);
-	    };
-	    RestartableNoteHandler.prototype.noteEnd = function (midi, when) {
-	        if (!this.playing)
-	            return;
 	        this.playing = false;
 	        var anode = this.ndata.anode;
-	        anode.stop(when);
+	        anode.stop(when + this.releaseTime);
 	    };
 	    return RestartableNoteHandler;
 	})(BaseNoteHandler);
@@ -768,7 +719,7 @@
 	            detune: OCTAVE_DETUNE,
 	            buffer: {
 	                initial: null,
-	                handler: 'BufferURL'
+	                handler: 'BufferData'
 	            },
 	            loop: { initial: false },
 	            loopStart: { initial: 0, min: 0, max: 10 },
@@ -912,7 +863,7 @@
 	        this.numberOfOutputs = 1;
 	    }
 	    CustomNodeBase.prototype.connect = function (param) { };
-	    CustomNodeBase.prototype.disconnect = function () { };
+	    CustomNodeBase.prototype.disconnect = function (dest) { };
 	    // Required for extending EventTarget
 	    CustomNodeBase.prototype.addEventListener = function () { };
 	    CustomNodeBase.prototype.dispatchEvent = function (evt) { return false; };
@@ -1085,7 +1036,63 @@
 
 
 /***/ },
-/* 8 */,
+/* 8 */
+/***/ function(module, exports) {
+
+	//-------------------- Encoding / decoding --------------------
+	function arrayBufferToBase64(buffer) {
+	    var binary = '';
+	    var bytes = new Uint8Array(buffer);
+	    var len = bytes.byteLength;
+	    for (var i = 0; i < len; i++) {
+	        binary += String.fromCharCode(bytes[i]);
+	    }
+	    return window.btoa(binary);
+	}
+	exports.arrayBufferToBase64 = arrayBufferToBase64;
+	function base64ToArrayBuffer(base64) {
+	    var binary_string = window.atob(base64);
+	    var len = binary_string.length;
+	    var bytes = new Uint8Array(len);
+	    for (var i = 0; i < len; i++) {
+	        bytes[i] = binary_string.charCodeAt(i);
+	    }
+	    return bytes.buffer;
+	}
+	exports.base64ToArrayBuffer = base64ToArrayBuffer;
+	//-------------------- Downloading --------------------
+	function browserSupportsDownload() {
+	    return !window.externalHost && 'download' in $('<a>')[0];
+	}
+	exports.browserSupportsDownload = browserSupportsDownload;
+	function download(fileName, fileData) {
+	    var a = $('<a>');
+	    a.attr('download', fileName);
+	    a.attr('href', 'data:application/octet-stream;base64,' + btoa(fileData));
+	    var clickEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: false });
+	    a[0].dispatchEvent(clickEvent);
+	}
+	exports.download = download;
+	//-------------------- Uploading --------------------
+	function uploadText(event, cb) {
+	    upload(event, cb, 'readAsText');
+	}
+	exports.uploadText = uploadText;
+	function uploadArrayBuffer(event, cb) {
+	    upload(event, cb, 'readAsArrayBuffer');
+	}
+	exports.uploadArrayBuffer = uploadArrayBuffer;
+	function upload(event, cb, readFunc) {
+	    if (!event.target.files || event.target.files.length <= 0)
+	        return cb(null);
+	    var file = event.target.files[0];
+	    var reader = new FileReader();
+	    reader.onload = function (loadEvt) { return cb(loadEvt.target.result); };
+	    reader[readFunc](file);
+	}
+
+
+/***/ },
 /* 9 */,
 /* 10 */,
 /* 11 */,
@@ -1093,7 +1100,8 @@
 /* 13 */,
 /* 14 */,
 /* 15 */,
-/* 16 */
+/* 16 */,
+/* 17 */
 /***/ function(module, exports) {
 
 	var Timer = (function () {
@@ -1148,7 +1156,7 @@
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __extends = (this && this.__extends) || function (d, b) {
