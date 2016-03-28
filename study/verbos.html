@@ -87,8 +87,7 @@
 			ask();
 		}
 	};
-	if (window.ontouchstart)
-		window.ontouchstart = window.onclick;
+	window.ontouchstart = window.onclick;
 
 	ask();
 })();
