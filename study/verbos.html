@@ -1,0 +1,97 @@
+<!doctype html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Verbos</title>
+	<style>
+		body {
+			font-family: sans-serif;
+			background-color: black;
+			color: white;
+		}
+		h1, h2 {
+			margin: 2em;
+			text-align: center;
+		}
+		h2 {
+			font-weight: normal;
+		}
+	</style>
+</head>
+
+
+<body>
+	<h1 id="tiempo">Tiempo</h1>
+	<h2 id="ejemplo">Ejemplo</h2>
+</body>
+
+<script>
+(function() {
+	var tiempos = [
+		'Presente indicativo',
+		'Pretérito perfecto indicativo',
+		'Pretérito imperfecto indicativo',
+		'Pretérito pluscuamperfeto indicativo',
+		'Pretérito indefinido indicativo',
+		'Pretérito anterior indicativo',
+		'Futuro simple indicativo',
+		'Futuro compuesto indicativo',
+		'Condicional simple indicativo',
+		'Condicional compuesto indicativo',
+		'Presente subjuntivo',
+		'Pretérito perfecto subjuntivo',
+		'Pretérito imperfecto subjuntivo',
+		'Pretérito pluscuamperfecto subjuntivo',
+		'Futuro simple subjuntivo',
+		'Futuro compuesto subjuntivo',
+		'Imperativo'
+	];
+	var ejemplos = [
+		'canto, soy',
+		'he cantado, he sido',
+		'cantaba, era',
+		'había cantado, había sido',
+		'canté, fui',
+		'hube cantado, hube sido',
+		'cantaré, seré',
+		'habré cantado, habré sido',
+		'cantaría, sería',
+		'habría cantado, habría sido',
+		'cante, sea',
+		'haya cantado, haya sido',
+		'cantara/cantase, fuera/fuese',
+		'hubiera/hubiese cantado, hubiera/hubiese sido',
+		'cantare, fuere',
+		'hubiere cantado, hubiere sido',
+		'canta, sé',
+	];
+
+	var vnum;
+	var asking;
+	var tiempo = document.getElementById('tiempo');
+	var ejemplo = document.getElementById('ejemplo');
+
+	function ask() {
+		vnum = Math.floor(Math.random() * tiempos.length);
+		tiempo.innerText = tiempos[vnum];
+		ejemplo.innerText = '';
+		asking = true;
+	}
+
+	window.onclick = function() {
+		if (asking) {
+			ejemplo.innerText = ejemplos[vnum];
+			asking = false;
+		}
+		else {
+			ask();
+		}
+	};
+
+	ask();
+})();
+
+
+</script>
+
+</html>
