@@ -184,12 +184,12 @@ var NeuralNetwork = (function () {
     };
     NeuralNetwork.prototype.backPropagate = function (inputs, targets) {
         var outputLayer = this.layers[this.layers.length - 1];
-        var errors = outputLayer.map(function (neuron, i) { return targets[i] - neuron.output; });
+        var errors = map2(outputLayer, targets, function (neuron, target) { return target - neuron.output; });
         for (var l = this.layers.length - 1; l >= 0; l--) {
             var layer = this.layers[l];
             var prevLayerOuts = this.addBias(l > 0 ?
                 this.layers[l - 1].map(function (neuron) { return neuron.output; }) : inputs);
-            var prevLayerErrors = this.fillArray(prevLayerOuts.length, 0);
+            var prevLayerErrors = fillArray(prevLayerOuts.length, 0);
             for (var i = 0; i < layer.length; i++) {
                 this.backPropagateNeuron(layer[i], errors[i], prevLayerOuts, prevLayerErrors);
             }
@@ -229,12 +229,6 @@ var NeuralNetwork = (function () {
         if (iteration % 100 == 0)
             console.log("Learn iteration " + iteration + " - error: " + totalError);
     };
-    NeuralNetwork.prototype.fillArray = function (len, v) {
-        var a = new Array(len);
-        for (var i = 0; i < a.length; i++)
-            a[i] = v;
-        return a;
-    };
     return NeuralNetwork;
 }());
 exports.NeuralNetwork = NeuralNetwork;
@@ -247,6 +241,21 @@ function sigmoid(x) {
     else
         return 1.0 / (1.0 + Math.exp(-x));
 }
+// -------------------- Utility functions --------------------
+function fillArray(len, v) {
+    var a = new Array(len);
+    for (var i = 0; i < a.length; i++)
+        a[i] = v;
+    return a;
+}
+exports.fillArray = fillArray;
+function map2(array1, array2, cb) {
+    if (array1.length >= array2.length)
+        return array1.map(function (e1, i) { return cb(e1, array2[i]); });
+    else
+        return array2.map(function (e2, i) { return cb(array1[i], e2); });
+}
+exports.map2 = map2;
 
 },{}],3:[function(require,module,exports){
 "use strict";
@@ -259,7 +268,7 @@ $(function () {
     // 	//TODO: validate and activate buttons
     // });
     // -------------------- Handle click on "Learn" button --------------------
-    $('#butlearn').click(function (_) {
+    $('#butlearn').click(function (evt) {
         $('#butlearn').text('Learning...');
         var formData = getFormData();
         var numLayers = parseNumbers(formData.numHidden);
@@ -269,6 +278,7 @@ $(function () {
         nn.maxLearnIterations = +formData.maxIterations;
         nn.epsilon = +formData.epsilon;
         var examples = parseLearnLines(formData.learnLines, +formData.numInputs, +formData.numOutputs);
+        evt.target.style.cursor = 'wait';
         setTimeout(function () {
             nn.learn(examples);
             console.log("*** Learned in " + nn.learnIteration + " iterations, with an error of " + nn.learnError);
@@ -277,6 +287,7 @@ $(function () {
             $('#lerror').val(fmtNum(nn.learnError, 9));
             $('#buttest, #butdiagram').attr('disabled', false);
             new diagram_1.NeuralNetworkDiagram(nn, $('#nn-diagram').get(0)).draw();
+            evt.target.style.cursor = 'initial';
         }, 10);
     });
     // -------------------- Handle click on "Test" button --------------------
@@ -286,9 +297,8 @@ $(function () {
         var testResults = [];
         tests.forEach(function (test) { return testResults.push(nn.forward(test.inputs)); });
         var ranges = getRanges(tests.map(function (test) { return test.outputs; }));
-        var strResult = testResults
-            .map(function (result, i) { return result.map(function (x) { return fmtNum(x, 6); }).join('  ') +
-            compareResult(result, tests[i].outputs, ranges); }).join('\n');
+        var strResult = neurons_1.map2(testResults, tests, function (result, test) { return formatNums(result) +
+            compareResult(result, test.outputs, ranges); }).join('\n');
         $('#tout').text(strResult);
     });
     // -------------------- Handle click on diagram button --------------------
@@ -303,6 +313,23 @@ $(function () {
             new diagram_1.NeuralNetworkDiagram(nn, $diagram.get(0)).draw();
         $diagram.slideToggle();
     });
+    // -------------------- Handle click on learn formula --------------------
+    $('#samples').on('input', function (evt) {
+        var numSamples = +evt.target.value;
+        var numInputs = +getFormData().numInputs;
+        $('#tsamples').val(Math.pow(numSamples, numInputs).toLocaleString('es'));
+    });
+    $('#butformula').click(function (_) {
+        var code = _js_editor.getModel().getValue();
+        var fun;
+        // tslint:disable-next-line - Disables all rules for the following line
+        eval('fun = ' + code);
+        var learnData = generateLearnData(getFormData(), fun);
+        var learnText = learnData.map(function (example) {
+            return formatNums(example.inputs) + '  /  ' + formatNums(example.outputs);
+        }).join('\n');
+        $('#ldata').text(learnText);
+    });
     // -------------------- Enable bootstrap-styled tooltips --------------------
     $('[data-toggle="tooltip"]').tooltip();
 });
@@ -316,7 +343,8 @@ function getFormData() {
         maxIterations: $('#maxiters').val(),
         epsilon: $('#epsilon').val(),
         learnLines: $('#ldata').val(),
-        testLines: $('#tdata').val()
+        testLines: $('#tdata').val(),
+        formulaSamples: $('#samples').val()
     };
 }
 function parseLearnLines(allLines, numInputs, numOutputs) {
@@ -348,6 +376,36 @@ function parseDataLines(allLines) {
 function parseNumbers(line) {
     return line.split(' ').filter(function (s) { return s.length > 0; }).map(function (s) { return parseFloat(s); });
 }
+// -------------------- Learn data formula --------------------
+function generateLearnData(formData, func) {
+    var numInputs = +formData.numInputs;
+    var samplesPerInput = +formData.formulaSamples;
+    var totalInputs = Math.pow(samplesPerInput, numInputs);
+    var examples = [];
+    for (var i = 0; i < totalInputs; i++)
+        examples.push({ inputs: [], outputs: [] });
+    generateInputs(numInputs, samplesPerInput, examples);
+    for (var _i = 0, examples_1 = examples; _i < examples_1.length; _i++) {
+        var example = examples_1[_i];
+        example.outputs = func.apply(null, example.inputs);
+    }
+    return examples;
+}
+function generateInputs(numInputs, samplesPerInput, samples, startAt) {
+    if (startAt === void 0) { startAt = 0; }
+    var inc = 1 / (samplesPerInput - 1);
+    var x = 0;
+    var totalInputs = Math.pow(samplesPerInput, numInputs);
+    var inputsPerStep = totalInputs / samplesPerInput;
+    for (var i = 0; i < totalInputs; i++) {
+        samples[i + startAt].inputs.push(x);
+        if ((i + 1) % inputsPerStep == 0) {
+            x += inc;
+            if (numInputs > 1)
+                generateInputs(numInputs - 1, samplesPerInput, samples, startAt + i + 1 - inputsPerStep);
+        }
+    }
+}
 // -------------------- Misc --------------------
 function getRanges(nums) {
     if (nums.length == 0)
@@ -355,12 +413,12 @@ function getRanges(nums) {
     var MAX_START = nums[0].map(function (x) { return Number.MAX_VALUE; });
     var MIN_START = MAX_START.map(function (x) { return -x; });
     var mins = nums.reduce(function (prevs, currs) {
-        return prevs.map(function (p, i) { return Math.min(p, currs[i]); });
+        return neurons_1.map2(prevs, currs, function (p, c) { return Math.min(p, c); });
     }, MAX_START);
     var maxs = nums.reduce(function (prevs, currs) {
-        return prevs.map(function (p, i) { return Math.max(p, currs[i]); });
+        return neurons_1.map2(prevs, currs, function (p, c) { return Math.max(p, c); });
     }, MIN_START);
-    var ranges = mins.map(function (min, i) { return maxs[i] - min; });
+    var ranges = neurons_1.map2(mins, maxs, function (min, max) { return max - min; });
     if (ranges.filter(function (x) { return isNaN(x); }).length > 0)
         ranges = [];
     return ranges;
@@ -376,6 +434,10 @@ function compareResult(actual, expected, ranges) {
 }
 function numError(actual, expected, range) {
     return Math.abs((actual - expected) / range);
+}
+function formatNums(nums, len) {
+    if (len === void 0) { len = 6; }
+    return nums.map(function (x) { return fmtNum(x, len); }).join('  ');
 }
 function fmtNum(n, len) {
     if (len === void 0) { len = 5; }
