@@ -29,7 +29,7 @@
 	margin: 0 auto;
 }
 
-.btn-primary {
+.btn-primary, .btn-warning {
 	width: 7em;
 }
 
@@ -37,4 +37,11 @@
 	border: 1px solid #CCC;
 	border-radius: 4px;
 	margin-left: 2em;
+}
+
+#js-editor {
+	width: 100%;
+	height: 20ex;
+	resize: vertical;
+	overflow: hidden;
 }

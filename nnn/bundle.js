@@ -119,7 +119,6 @@ var NeuralNetworkDiagram = (function () {
     return NeuralNetworkDiagram;
 }());
 exports.NeuralNetworkDiagram = NeuralNetworkDiagram;
-
 },{}],2:[function(require,module,exports){
 "use strict";
 var DEFAULT_ACTIVATION_FUNCTION = sigmoid;
@@ -280,29 +279,34 @@ function map2(array1, array2, cb) {
         return array2.map(function (e2, i) { return cb(array1[i], e2); });
 }
 exports.map2 = map2;
-
 },{}],3:[function(require,module,exports){
 "use strict";
 var neurons_1 = require('./neurons');
 var diagram_1 = require('./diagram');
 var text_utils_1 = require('./text-utils');
 var nn;
+var worker;
+var learning = false;
 $(function () {
     // $('input,textarea').on('input', evt => {
     // 	let formData = getFormData();
     // 	//TODO: validate and activate buttons
     // });
-    // -------------------- Handle click on "Learn" button --------------------
+    // --------------- Handle click on "Learn" and "Stop" buttons ---------------
     $('#butlearn').click(doLearn);
+    $('#butstop').click(function (_) {
+        worker.terminate();
+        exitLearnMode();
+        nnProgress({ iteration: '', totalError: '' });
+    });
     // -------------------- Handle click on "Test" button --------------------
     $('#buttest').click(function (_) {
         var formData = getFormData();
         var tests = text_utils_1.default.parseLearnLines(formData.testLines, nn.numInputs);
         var testResults = [];
         tests.forEach(function (test) { return testResults.push(nn.forward(test.inputs)); });
-        var ranges = getRanges(tests.map(function (test) { return test.outputs; }));
         var strResult = neurons_1.map2(testResults, tests, function (result, test) { return formatNums(result) +
-            compareResult(result, test.outputs, ranges); }).join('\n');
+            compareResult(result, test.outputs); }).join('\n');
         $('#tout').text(strResult);
     });
     // -------------------- Handle click on diagram button --------------------
@@ -334,14 +338,24 @@ $(function () {
         }).join('\n');
         $('#ldata').text(learnText);
     });
+    // -------------------- Handle formula editor resize --------------------
+    var $formula = $('#js-editor');
+    var feH = $formula.height();
+    setInterval(function (_) {
+        var newH = $formula.height();
+        if (feH != newH) {
+            feH = newH;
+            _js_editor.layout();
+        }
+    }, 1000);
     // -------------------- Enable bootstrap-styled tooltips --------------------
     $('[data-toggle="tooltip"]').tooltip();
 });
 // ------------------------- Learning -------------------------
 function doLearn() {
-    $('#butlearn').text('Learning...').attr('disabled', 'disabled');
+    enterLearnMode();
     var formData = getFormData();
-    var worker = new Worker('worker.js');
+    worker = new Worker('worker.js');
     worker.postMessage({ command: 'start', params: formData });
     worker.onmessage = function (msg) {
         switch (msg.data.command) {
@@ -351,13 +365,26 @@ function doLearn() {
         }
     };
 }
+function enterLearnMode() {
+    learning = true;
+    $('#butlearn').text('Learning...').attr('disabled', 'disabled');
+    setTimeout(function (_) {
+        if (learning)
+            $('#butstop').fadeIn('slow');
+    }, 1000);
+}
+function exitLearnMode() {
+    learning = false;
+    $('#butlearn').text('Learn').removeAttr('disabled');
+    $('#butstop').fadeOut('fast');
+}
 function nnProgress(params) {
     $('#liters').val(params.iteration);
     $('#lerror').val(fmtNum(params.totalError, 7));
 }
 function nnLearned(nnJSON) {
     nn = neurons_1.NeuralNetwork.fromJSON(nnJSON);
-    $('#butlearn').text('Learn').removeAttr('disabled');
+    exitLearnMode();
     $('#liters').val(nn.learnIteration);
     $('#lerror').val(fmtNum(nn.learnError, 7));
     $('#buttest, #butdiagram').removeAttr('disabled');
@@ -408,32 +435,17 @@ function generateInputs(numInputs, samplesPerInput, samples, startAt) {
     }
 }
 // -------------------- Misc --------------------
-function getRanges(nums) {
-    if (nums.length == 0)
-        return [];
-    var MAX_START = nums[0].map(function (x) { return Number.MAX_VALUE; });
-    var MIN_START = MAX_START.map(function (x) { return -x; });
-    var mins = nums.reduce(function (prevs, currs) {
-        return neurons_1.map2(prevs, currs, function (p, c) { return Math.min(p, c); });
-    }, MAX_START);
-    var maxs = nums.reduce(function (prevs, currs) {
-        return neurons_1.map2(prevs, currs, function (p, c) { return Math.max(p, c); });
-    }, MIN_START);
-    var ranges = neurons_1.map2(mins, maxs, function (min, max) { return max - min; });
-    if (ranges.filter(function (x) { return isNaN(x); }).length > 0)
-        ranges = [];
-    return ranges;
-}
-function compareResult(actual, expected, ranges) {
-    if (ranges.length == 0 || expected.length == 0)
+function compareResult(actual, expected) {
+    if (expected.length == 0)
         return '';
     return '  /  (' +
-        actual.map(function (act, i) { return numError(act, expected[i], ranges[i]).toLocaleString('en-US', {
+        actual.map(function (act, i) { return numError(act, expected[i]).toLocaleString('en-US', {
             style: 'percent',
             maximumFractionDigits: 3
         }); }).join('  ') + ')';
 }
 function numError(actual, expected, range) {
+    if (range === void 0) { range = 1; }
     return Math.abs((actual - expected) / range);
 }
 function formatNums(nums, len) {
@@ -448,7 +460,6 @@ function fmtNum(n, len) {
         useGrouping: false
     });
 }
-
 },{"./diagram":1,"./neurons":2,"./text-utils":4}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -487,6 +498,5 @@ function parseDataLines(allLines) {
 function parseNumbers(line) {
     return line.split(' ').filter(function (s) { return s.length > 0; }).map(function (s) { return parseFloat(s); });
 }
-
 },{}]},{},[3])
 //# sourceMappingURL=bundle.js.map
