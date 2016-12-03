@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>S2T testing</title>
+	<script src="https://code.jquery.com/jquery-3.1.0.js"></script>
+	<script src="https://code.jquery.com/jquery.min.js"></script>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<link href="style.css" rel="stylesheet" type="text/css" />
+	<script src="bundle.js"></script>
+</head>
+
+<body style="margin: 2em">
+	<h2>Speech recognition test</h2>
+
+	<div class="form-group">
+		<label for="langSel">Language:</label>
+		<select class="form-control" id="langSel" style="width: 20em">
+			<option value="en-US">US English</option>
+			<option value="en-GB">British English</option>
+			<option value="es-ES" selected>Spanish</option>
+			<option value="fr-FR">French</option>
+		</select>
+	</div>
+
+	<div>
+		<button id="s2t" class="btn btn-primary">Listen</button> &nbsp; &nbsp;
+		<button id="s2tstop" class="btn btn-warning">Stop</button>
+	</div>
+
+	<div style="margin-top: 2em">
+		<div class="form-group">
+			<label>Status:</label>
+			<button id="b-listening" class="btn">Listening</button>
+			<button id="b-sound" class="btn">Sound</button>
+			<button id="b-speech" class="btn">Speech</button>
+		</div>
+	</div>
+
+	<div style="margin-top: 2em">
+		<div class="form-group">
+			<label>Audio osc:</label>
+			<div>
+				<canvas id="audio-osc" class="audio-graph"></canvas>
+			</div>
+		</div>
+	</div>
+
+	<div style="margin-top: 2em">
+		<div class="form-group">
+			<label for="result">Result:</label>
+			<div id="result"></div>
+		</div>
+	</div>
+</body>
+
+</html>

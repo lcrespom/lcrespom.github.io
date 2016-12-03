@@ -1,0 +1,7 @@
+.audio-graph {
+	width: 222px;
+	height: 75px;
+	background-color: #444;
+	border-radius: 5px; margin: 10px;
+	box-shadow: inset 0px 0px 10px 5px rgba(85,163,26,0.6);
+}
