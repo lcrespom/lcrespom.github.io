@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css?family=Geostar+Fill');
+
+body {
+	font-family: sans-serif;
+	background: #333;
+	color: white;
+}
+
+#main {
+	text-align: center;
+}
+
+#info {
+	width: 480px;
+	display: inline-block;
+}
+
+#game-canvas {
+	margin: 10px;
+	background-color: black;
+	border-radius: 5px;
+	box-shadow: inset 0px 0px 10px 5px rgba(85,163,26,0.6);
+}
