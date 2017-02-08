@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Functional Patterns</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/night.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<style type="text/css">
+			body {
+				background-color: #036;
+			}
+			ul.sparse {
+				margin-top: 1em;
+			}
+			ul.sparse > li {
+				margin-top: 1ex;
+			}
+			li > ul {
+				font-size: 80% !important;
+			}
+			a {
+				color: #55ACEE !important;
+			}
+			a:hover {
+				color: #66CCCC !important;
+			}
+			img.big-img {
+				transform: translate(0, 5%) scale(1.3);
+				border-radius: 5px;
+			}
+			img.img-noeffects {
+				margin: 0 !important;
+				box-shadow: inherit !important;
+				background: inherit !important;
+				border: none !important;
+			}
+			.hljs {
+				color: #66CCCC;
+			}
+			.hljs-keyword {
+				color: #CCCC66;
+			}
+			.hljs-comment {
+				color: #808080;
+			}
+		</style>
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+		<div class="reveal">
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+
+
+<!-- ************************* Content begin ************************* -->
+
+	<section data-state="main-title" data-transition="zoom-in none">
+		<h2 style="font-size: 270%">Functional Patterns for everyday applications</h2>
+		<h4 style="margin-top: 2em">How can we use functional programming in our applications?</h4>
+		<a href="https://lcrespom.github.io/pf-talk">lcrespom.github.io/pf-patterns</a>
+
+		<div style="height: 1em"></div>
+		<div style="display:inline-block; float: left; padding-top: 2em">
+			Luis Crespo
+		</div>
+		<div style="display:inline-block; float: right">
+			<br>
+			<div style="text-align: left">
+				<div style="border-radius: 10px; padding: 10px;
+					display: inline-block; width: 80px; height: 80px">
+					<img src="img/GitHub-Mark-Light-120px-plus.png"
+						class="img-noeffects" style="width: 100px; height: 100px;">
+				</div>
+				<span style="position: relative; bottom: 25px; left: 20px">
+					<a href="https://github.com/lcrespom">github.com/lcrespom</a>
+				</span>
+			</div>
+			<div style="text-align: left; margin-top: 30px">
+				<div style="border-radius: 10px; background-color: #55ACEE; padding: 10px;
+					display: inline-block; width: 80px; height: 80px">
+					<img src="img/TwitterLogo_white.png"
+						class="img-noeffects" style="width: 100px; height: 100px;">
+				</div>
+				<span style="position: relative; bottom: 25px; left: 20px">
+					<a href="https://twitter.com/lcrespom">@lcrespom</a>
+				</span>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<h2>FP review</h2>
+		<ul class="sparse">
+			<li>We are now all convinced that FP is great</li>
+			<li>Side effects are bad</li>
+			<li>I/O is a side effect</li>
+			<li>...But applications without I/O are not very useful</li>
+		</ul>
+	</section>
+
+	<section>
+		<img class="big-img img-noeffects" src="img/full-picture.png">
+	</section>
+
+	<section>
+		<h2>Solution</h2>
+		<ul class="sparse">
+			<li>Use a functional-oriented framework / runtime</li>
+			<li>Only the framework can do I/O</li>
+			<li>Application code remains 100% pure functional</li>
+		</ul>
+	</section>
+
+	<section>
+		<img class="big-img img-noeffects" src="img/restux.png">
+	</section>
+
+	<section>
+		<img class="big-img img-noeffects" src="img/elm.png">
+	</section>
+
+	<section>
+		<h2>Redux</h2>
+		<ul class="sparse">
+			<li>Redux is a JavaScript implementation of the Elm architecture
+				<ul>
+					<li>Reduction in FP: take two or more values and create a new single value out of them</li>
+					<li>Thus, the update function is called the reducer: it creates a new model  from an action and previous model</li>
+				</ul>
+			</li>
+			<li>Redux is framework-neutral, but used mainly in combination with React</li>
+			<li>Other implementations of this pattern:
+				<ul>
+					<li>Vuex for Vue.js</li>
+					<li>ng-redux / ng2-redux for Angular</li>
+				</ul>
+			</li>
+			<li>Time-travel debugging
+				<ul>
+					<li>Vuex for Vue.js</li>
+					<li>ng-redux / ng2-redux for Angular</li>
+				</ul>
+			</li>
+		</ul>
+	</section>
+
+
+	<section>
+		<h1 style="font-size: 330%">How hard can it be?</h1>
+		<h2>Let's implement a simplified equivalent of Redux</h2>
+		<p style="margin-top: 2em"><a href="/hello.html">Hello world</a></p>
+		<p><a href="/todo.html">ToDo App</a></p>
+	</section>
+
+<!-- ************************* Content end ************************* -->
+
+
+
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: false,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+
+	</body>
+</html>
