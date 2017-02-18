@@ -1,0 +1,11 @@
+body {
+	margin: 0 1em;
+}
+
+.action-col {
+	width: 11.5em;
+}
+
+.nowrap {
+	white-space: nowrap;
+}
