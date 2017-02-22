@@ -119,7 +119,28 @@
 	<section>
 		<h2>FP review</h2>
 		<ul class="sparse">
-			<li>We are now all convinced that FP is great</li>
+			<li>Pure function:
+				<ul>
+					<li>It has <b>no side causes</b>: its return value depends strictly on its parameters</li>
+					<li>Its has <b>no side effects</b>: it does not modify any data other than its local variables</li>
+					<li>It is <i>referentially transparent</i>: its call could be replaced by its return value
+				</ul>
+			</li>
+			<li>Advantages of a pure function:
+				<ul>
+					<li>Simple to reason about: does not depend on the external world</li>
+					<li>Simple to test: requires no setup, just invocation</li>
+					<li>Avoids all bugs that are caused by side-effects</li>
+					<li>Can be optimized, paralellized, composed, chained...</li>
+				</ul>
+			</li>
+		</ul>
+	</section>
+
+	<section>
+		<h2>Let's program with Pure Functions</h2>
+		<ul class="sparse">
+			<li>We are now convinced that FP is great</li>
 			<li>Side effects are bad</li>
 			<li>I/O is a side effect</li>
 			<li>...But applications without I/O are not very useful</li>
@@ -148,7 +169,7 @@
 	</section>
 
 	<section>
-		<h2>Redux</h2>
+		<h2>Elm architecture in JS</h2>
 		<ul class="sparse">
 			<li>Redux is a JavaScript implementation of the Elm architecture
 				<ul>
