@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Rubixlator</title>
+	<script src="jquery-3.2.1.min.js"></script>
+	<style>
+		body {
+			font-family: sans-serif;
+		}
+		.diagram_box {
+			border: 1px solid gray;
+			margin-top: 1em;
+			display: inline-block;
+		}
+		#error_msg {
+			color: red;
+		}
+		.algorithm_item {
+			display: inline-block;
+			padding: 0 2em;
+			cursor: pointer;
+		}
+		.algorithm_item > img {
+			display: block;
+			margin: auto;
+		}
+		.algorithm_item > p {
+			font-weight: bold;
+		}
+		h2 {
+			margin-top: 2em;
+		}
+	</style>
+</head>
+<body>
+	<h1>Rubik's cube notation translator</h1>
+
+	<div class="notation_box">
+			Enter notation: <input id="notation" autofocus>
+			<p id="error_msg">&nbsp;</p>
+	</div>
+
+	<div class="diagram_box">
+		<canvas id="diagram" width="800" height="400"></canvas>
+	</div>
+
+	<div class="algorithms_box">
+		<h2>2 Look OLL</h2>
+		<h3>OLL edge pieces</h3>
+		<div class="algorithm_row">
+			<div class="algorithm_item">
+				<img src="img/OLL-45.PNG">
+				<p>F R U R' U' F'</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-44.PNG">
+				<p>f R U R' U' f'</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-2.PNG">
+				<p>[F R U R' U' F'] [f R U R' U' f']</p>
+			</div>
+		</div>
+		<h3>OLL corner pieces</h3>
+		<div class="algorithm_row">
+			<div class="algorithm_item">
+				<img src="img/OLL-27.PNG">
+				<p>L U L' U [L U2 L']</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-26.PNG">
+				<p>R' U' R U' R' U2 R</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-21.PNG">
+				<p>R U2 R' U' R U R' U' R U' R'</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-22.PNG">
+				<!-- <p>R U2' [R2 U'] [R2 U'] R2 U2' R</p> -->
+				<p>R U2 [R2 U'] [R2 U'] R2 U2 R</p>
+			</div>
+		</div>
+		<div class="algorithm_row">
+			<div class="algorithm_item">
+				<img src="img/OLL-23.PNG">
+				<p>R2 D [R' U2 R] D' [R' U2 R']</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-24.PNG">
+				<p>l' U' L U R U' [r' F]</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/OLL-25.PNG">
+				<p>[R' F' L' F] [R F' L F]</p>
+			</div>
+		</div>
+
+		<h2>2 Look PLL</h2>
+		<h3>Permuting corner pieces</h3>
+		<div class="algorithm_row">
+			<div class="algorithm_item">
+				<img src="img/PLL-Aa-perm-example.png">
+				<p>l' U R' D2 R U' R' D2 R2</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/PLL-E-perm-example.png">
+				<p>x' [R U' R' D] [R U R' D'] [R U R' D] [R U' R' D']</p>
+			</div>
+		</div>
+		<h3>Permuting edge pieces</h3>
+		<div class="algorithm_row">
+			<div class="algorithm_item">
+				<img src="img/PLL-Ua-perm.PNG">
+				<p>[R U' R] U R U R U' R' U' R2</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/PLL-Ub-perm.PNG">
+				<p>R2 U R U R' U' R' U' R' U R'</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/PLL-Z-perm.PNG">
+				<p>M2 U M2 U M' U2 M2 U2 M' U2</p>
+			</div>
+			<div class="algorithm_item">
+				<img src="img/PLL-H-perm.PNG">
+				<p>M2 U M2 U2 M2 U M2</p>
+			</div>
+		</div>
+	</div>
+	
+	<script src="rubixlator.js"></script>
+</body>
+</html>
