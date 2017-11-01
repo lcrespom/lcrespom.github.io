@@ -79,42 +79,51 @@ function renderCube(ctx, x, y) {
 function renderArrow(ctx, x, y, turn) {
 	ctx.strokeStyle = '#00F';
 	ctx.beginPath();
-	switch (turn.toUpperCase()) {
-		case "U":
+	switch (turn) {
+		//----- Normal turns -----
+		case "U": case "u":
 			arrowLeft(ctx, x, y);
+			if (turn == 'u') arrowLeft(ctx, x, y + CUBE_PIECE_SIZE);
 			break;
-		case "U'":
+		case "U'": case "u'":
 			arrowRight(ctx, x, y);
+			if (turn == "u'") arrowRight(ctx, x, y + CUBE_PIECE_SIZE);
 			break;
 		case "U2":
 			arrowLeft(ctx, x, y - 3);
 			arrowLeft(ctx, x, y + 3);
 			break;
-		case "D":
+		case "D": case "d":
 			arrowRight(ctx, x, y + 2 * CUBE_PIECE_SIZE);
+			if (turn == "d") arrowRight(ctx, x, y + CUBE_PIECE_SIZE);
 			break;
-		case "D'":
+		case "D'": case "d'":
 			arrowLeft(ctx,  x, y + 2 * CUBE_PIECE_SIZE);
+			if (turn == "d'") arrowLeft(ctx, x, y + CUBE_PIECE_SIZE);
 			break;
 		case "D2":
 			arrowLeft(ctx,  x, y + 2 * CUBE_PIECE_SIZE - 3);
 			arrowLeft(ctx,  x, y + 2 * CUBE_PIECE_SIZE + 3);
 			break;
-		case "L":
+		case "L": case "l":
 			arrowDown(ctx, x, y);
+			if (turn == "l") arrowDown(ctx, x + CUBE_PIECE_SIZE, y);
 			break;
-		case "L'":
+		case "L'": case "l'":
 			arrowUp(ctx, x, y);
+			if (turn == "l'") arrowUp(ctx, x + CUBE_PIECE_SIZE, y);
 			break;
 		case "L2":
 			arrowUp(ctx, x - 3, y);
 			arrowUp(ctx, x + 3, y);
 			break;
-		case "R":
+		case "R": case "r":
 			arrowUp(ctx, x + 2 * CUBE_PIECE_SIZE, y);
+			if (turn == "r") arrowUp(ctx, x + CUBE_PIECE_SIZE, y);
 			break;
-		case "R'":
+		case "R'": case "r'":
 			arrowDown(ctx, x + 2 * CUBE_PIECE_SIZE, y);
+			if (turn == "r'") arrowDown(ctx, x + CUBE_PIECE_SIZE, y);
 			break;
 		case "R2":
 			arrowUp(ctx, x + 2 * CUBE_PIECE_SIZE - 3, y);
@@ -129,8 +138,50 @@ function renderArrow(ctx, x, y, turn) {
 		case "F2":
 			curlCW(ctx, x - 3, y - 3);
 			curlCW(ctx, x + 3, y + 3);
-		break;
-		default:
+			break;
+		//----- Middle layers -----
+		case "M":
+			arrowDown(ctx, x + CUBE_PIECE_SIZE, y);
+			break;
+		case "M'":
+			arrowUp(ctx, x + CUBE_PIECE_SIZE, y);
+			break;
+		case "M2":
+			arrowUp(ctx, x + CUBE_PIECE_SIZE - 3, y);
+			arrowUp(ctx, x + CUBE_PIECE_SIZE + 3, y);
+			break;
+		case "E":
+			arrowRight(ctx, x, y + CUBE_PIECE_SIZE);
+			break;
+		case "E'":
+			arrowLeft(ctx, x, y + CUBE_PIECE_SIZE);
+			break;
+		case "E2":
+			arrowRight(ctx, x, y + CUBE_PIECE_SIZE - 3);
+			arrowRight(ctx, x, y + CUBE_PIECE_SIZE + 3);
+			break;
+		//----- Full cube -----
+		case "X":
+			arrowUp(ctx, x, y);
+			arrowUp(ctx, x + CUBE_PIECE_SIZE, y);
+			arrowUp(ctx, x + 2 * CUBE_PIECE_SIZE, y);
+			break;
+		case "X'":
+			arrowDown(ctx, x, y);
+			arrowDown(ctx, x + CUBE_PIECE_SIZE, y);
+			arrowDown(ctx, x + 2 * CUBE_PIECE_SIZE, y);
+			break;
+		case "Y":
+			arrowLeft(ctx, x, y);
+			arrowLeft(ctx, x, y + CUBE_PIECE_SIZE);
+			arrowLeft(ctx, x, y + 2 * CUBE_PIECE_SIZE);
+			break;
+		case "Y'":
+			arrowRight(ctx, x, y);
+			arrowRight(ctx, x, y + CUBE_PIECE_SIZE);
+			arrowRight(ctx, x, y + 2 * CUBE_PIECE_SIZE);
+			break;
+	default:
 			throw "Unsupported turn";
 	}
 	ctx.stroke();
@@ -239,9 +290,7 @@ function removeBlanks(txt) {
 }
 
 function validTurn(ch) {
-	return "udlrfb/[]()".indexOf(ch.toLowerCase()) >= 0;
-	//TODO: make it case sensitive to support 2-layer rotations
-	//TODO: Middle, Equator, Standing, X, Y, Z, and all 2 layer rotations
+	return "UDLRFB/[](){}udlrMEXY".indexOf(ch) >= 0;
 }
 
 function validModifier(ch) {
