@@ -56,7 +56,7 @@ function renderTurns(turns, ctx, width) {
 }
 
 function lineSepChar(turn) {
-    return '/[]()'.indexOf(turn) >= 0;
+    return '/[](){}'.indexOf(turn) >= 0;
 }
 
 function renderCube(ctx, x, y) {
