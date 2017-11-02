@@ -161,22 +161,22 @@ function renderArrow(ctx, x, y, turn) {
 			arrowRight(ctx, x, y + CUBE_PIECE_SIZE + 3);
 			break;
 		//----- Full cube -----
-		case "X":
+		case "X": case "x":
 			arrowUp(ctx, x, y);
 			arrowUp(ctx, x + CUBE_PIECE_SIZE, y);
 			arrowUp(ctx, x + 2 * CUBE_PIECE_SIZE, y);
 			break;
-		case "X'":
+		case "X'": case "x'":
 			arrowDown(ctx, x, y);
 			arrowDown(ctx, x + CUBE_PIECE_SIZE, y);
 			arrowDown(ctx, x + 2 * CUBE_PIECE_SIZE, y);
 			break;
-		case "Y":
+		case "Y": case "y":
 			arrowLeft(ctx, x, y);
 			arrowLeft(ctx, x, y + CUBE_PIECE_SIZE);
 			arrowLeft(ctx, x, y + 2 * CUBE_PIECE_SIZE);
 			break;
-		case "Y'":
+		case "Y'": case "y'":
 			arrowRight(ctx, x, y);
 			arrowRight(ctx, x, y + CUBE_PIECE_SIZE);
 			arrowRight(ctx, x, y + 2 * CUBE_PIECE_SIZE);
@@ -290,7 +290,7 @@ function removeBlanks(txt) {
 }
 
 function validTurn(ch) {
-	return "UDLRFB/[](){}udlrMEXY".indexOf(ch) >= 0;
+	return "UDLRFB/[](){}udlrMEXxYy".indexOf(ch) >= 0;
 }
 
 function validModifier(ch) {
