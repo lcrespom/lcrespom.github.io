@@ -6,7 +6,7 @@ $(_ => {
 });
 
 function updateInput(txt) {
-	$('#notation').val(txt);
+	$('#notation').val(txt).focus();
 	render(txt);
 	window.scrollTo(0, 0);
 }
