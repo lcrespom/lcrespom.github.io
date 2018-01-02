@@ -1,0 +1,121 @@
+<!doctype html>
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>Modulator</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="css/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="css/bootstrap/bootstrap-theme.min.css">
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+	<style>
+		body {
+			font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+			font-size: 155%;
+		}
+		h2 {
+			clear: both;
+		}
+		img.figure {
+			float: right;
+			margin-left: 10px;
+		}
+	</style>
+</head>
+
+<body>
+
+
+<div class="main">
+	<div style="width:500px; margin:auto;">
+		<img src="img/logo.png" style="width: 500px">
+	</div>
+
+	<h1 style="margin-top: 1em">About Modulator</h1>
+	Modulator lets you graphically build a modular sound synthesizer. The sound
+	is generated using the
+	<a href="https://webaudio.github.io/web-audio-api/">Web Audio API</a>.
+
+	<h1>Modulator components</h1>
+	The application displays several areas, each of which provides a specific
+	functionality. These are the following:
+
+	<h2>Audio routing graph editor</h2>
+	<img src="img/graph.png" width="354" class="figure">
+	<p>The graph editor lets you create an audio routing graph, interconnecting
+		a set of audio nodes, from sound sources, to effects and finally to the
+		synthesizer output.</p>
+	<p>Audio nodes are added by clicking on a specific node type from the
+		palette. They can be moved around the editor area by dragging them,
+		and deleted using the <code>del</code> key (or <code>cmd + backspace</code>
+		on the mac).
+	</p>
+	<p>In order to connect two nodes, use the <code>shift</code> key:
+		<ul>
+			<li>Place the mouse pointer over the source node</li>
+			<li>Press the shift key</li>
+			<li>Move the mouse pointer to the destination node
+				(but don't press the mouse button or you will start
+				dragging the node)
+			</li>
+			<li>Release the shift key to make the connection</li>
+		</ul>
+	</p>
+	<p>To disconnect two nodes, use the same approach as when connecting them:
+		if a connection already exists, it will be removed.
+	</p>
+
+	<h2>Audio node palette</h2>
+	<img src="img/palette.png" width="49" class="figure">
+	<p>The palette at the right of the graph editor provides all available audio nodes
+		so they can be added to the graph. Just click on a given node and it will be
+		added to the graph editor, so it can be connected.
+	</p>
+	<p>There are three types of audio nodes available from the palette:
+		<ul>
+			<li><b>Source nodes</b>: nodes that generate a sound</li>
+			<li><b>Effect nodes</b>: nodes that modify a sound</li>
+			<li><b>Control nodes</b>: nodes that modify a parameter of another node</li>
+		</ul>
+	</p>
+
+ 	<h2>Audio node parameter editor</h2>
+	<img src="img/params.png" width="305" class="figure">
+	<p>The node parameter editor lets you modify the parameters of the currently selected
+		audio node. To select an audio node, just click on it on the graph editor, and
+		its parameters will become available in the parameter editor.
+	</p>
+
+ 	<h2>Preset selector</h2>
+	<img src="img/presets.png" width="98.5" class="figure">
+	<p>A set of preset instruments are available by default, and the user can create
+		new ones, save them and load them on a later session.
+	</p>
+
+ 	<h2>Piano keyboard</h2>
+	<img src="img/piano.png" width="278.5" class="figure">
+	<p>The piano keyboard can be clicked with the mouse, or the PC keyboard
+		can be used to send notes to the synthesizer. Key <code>Z</code> corresponds
+		with the lowest pitch <b>C</b> key of the piano, and grows to <code>M</code>, then
+		continues on the upper row so <code>Q</code> corresponds with the middle <b>C</b>
+		key of the piano and grows to <code>P</code>.
+	</p>
+	<p>If an external MIDI keyboard is connected, it can also be used as an input
+		for notes.
+	</p>
+	<p>The synthesizer is monophonic by default, but can be played in polyphonic mode.
+		The number of polyphonic voices is set to 5. Synth editing is disabled in
+		polyphonic mode, because of the inherent complexity of modifying the
+		connections and parameters of all voices on the fly.
+	</p>
+
+ 	<h2>Audio analyzers</h2>
+	<img src="img/analyzers.png" width="124.5" class="figure">
+	The top analyzer displays the frequency spectrum of the output sound.
+	The bottom analyzer displays an oscilloscope of the output sound.
+
+
+</div><!-- end of main -->
+
+</body>
+</html>

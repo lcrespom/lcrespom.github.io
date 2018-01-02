@@ -1,0 +1,110 @@
+<!-- Top row with title and a couple of buttons -->
+<div class="app-navbar">
+	<div class="left-buttons">
+		<a href="/#synth" class="btn btn-primary btn-sm">Synth</a>
+		&nbsp;
+		<a href="/#live-coding" class="btn btn-primary btn-sm active">Code</a>
+	</div>
+	<div class="logo">
+		<img src="img/logo.svg">
+	</div>
+	<div class="right-buttons">
+		<a href="http://github.com/lcrespom/Modulator" target="_blank"
+			class="btn btn-primary btn-sm">Repo</a>
+		&nbsp;
+		<a href="help.html" target="_blank"
+			class="btn btn-primary btn-sm">Help</a>
+	</div>
+</div>
+
+
+<!-- Main app area -->
+<div class="main" id="walc">
+	<!-- - - - - - - - - - - Editing box - - - - - - - - - - -->
+	<div class="walc-editor-box graph-box">
+		<h5 class="bg-primary box-header">Live Coding</h5>
+		<!-- - - - - - - - - - - Top Button row - - - - - - - - - - -->
+		<div class="walc-buttons walc-border-bottom">
+			<div>
+				<button id="walc-run-all" class="btn btn-primary btn-xs" title="Run all code">
+					<span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+				</button>
+				&nbsp;
+				<button id="walc-run-sel" class="btn btn-primary btn-xs" title="Run current line or selection">
+					[<span class="glyphicon glyphicon-play" aria-hidden="true"></span>]
+				</button>
+				&nbsp;
+				<button id="walc-stop" class="btn btn-primary btn-xs" title="Stop all tracks">
+					<span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
+				</button>
+			</div>
+			<div>
+				<button id="walc-toggle-theme" class="btn btn-primary btn-xs"
+					title="Switch between light and dark themes">
+					Theme
+				</button>
+				&nbsp;
+				<button id="walc-font-sm" class="btn btn-primary btn-xs" title="Reduce code font">
+					Font <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+				</button>
+				&nbsp;
+				<button id="walc-font-lg" class="btn btn-primary btn-xs" title="Enlarge code font">
+					Font <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+				</button>
+				&nbsp;
+				<a id="walc-help" class="btn btn-primary btn-xs"
+					title="Live coding help"
+					href="https://github.com/lcrespom/Modulator/blob/live-coding/web/js/lc-definitions.ts"
+					target="_blank">
+					<span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+				</a>
+			</div>
+		</div>
+		<!-- - - - - - - - - - - The editor - - - - - - - - - - -->
+		<div id="walc-code-editor"></div>
+		<!-- - - - - - - - - - - Buffer Button row - - - - - - - - - - -->
+		<div class="walc-buttons walc-border-top">
+			<button id="walc-buffer-1" class="btn btn-info btn-xs">
+				Buffer 1
+			</button>
+			<button id="walc-buffer-2" class="btn btn-primary btn-xs">
+				Buffer 2
+			</button>
+			<button id="walc-buffer-3" class="btn btn-primary btn-xs">
+				Buffer 3
+			</button>
+			<button id="walc-buffer-4" class="btn btn-primary btn-xs">
+				Buffer 4
+			</button>
+			<button id="walc-buffer-5" class="btn btn-primary btn-xs">
+				Buffer 5
+			</button>
+			<button id="walc-buffer-6" class="btn btn-primary btn-xs">
+				Buffer 6
+			</button>
+			<button id="walc-buffer-7" class="btn btn-primary btn-xs">
+				Buffer 7
+			</button>
+			<button id="walc-buffer-8" class="btn btn-primary btn-xs">
+				Buffer 8
+			</button>
+		</div>
+	</div>
+	<div id="walc-right-col">
+		<!-- - - - - - - - - - - Analyzers - - - - - - - - - - -->
+		<div class="graph-box">
+			<h5 class="bg-primary box-header">Graph</h5>
+			<div class="walc-graph-box">
+				<div id="walc-graph-fft" class="audio-graph"></div>
+				<div id="walc-graph-osc" class="audio-graph"></div>
+			</div>
+		</div>
+		<!-- - - - - - - - - - - Log - - - - - - - - - - -->
+		<div class="graph-box walc-log-box">
+			<h5 class="bg-primary box-header">Log</h5>
+			<div id="walc-log-container">
+				<div id="walc-log-content"></div>
+			</div>
+		</div>
+	</div>
+</div>

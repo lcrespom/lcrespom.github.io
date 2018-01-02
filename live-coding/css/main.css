@@ -1,0 +1,501 @@
+@import url(https://fonts.googleapis.com/css?family=Electrolize);
+
+html, body {
+	height: 100%;
+	margin: 0;
+}
+
+body {
+	font-family: Electrolize, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+input.rounded {
+	border: 1px solid #DFDFDF;
+	border-radius: 5px;
+}
+
+.main {
+	max-width: 810px;
+	margin: auto;
+}
+
+.normal-font {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/*----- NavBar -----*/
+
+.app-navbar {
+	width: 810px;
+	margin: -3px auto 5px;
+	position: relative;
+}
+
+.app-navbar .btn {
+	width: 4em;
+	padding: 5px;
+}
+
+.app-navbar > .logo {
+	width: 250px;
+	margin: 0 auto;
+}
+
+.app-navbar > .logo > img {
+	width: 250px;
+}
+
+.app-navbar > .left-buttons {
+	float: left;
+	margin-top: 4px;
+}
+
+.app-navbar > .right-buttons {
+	display: inline-block;
+	position: absolute;
+	right: 6px;
+	top: 0px;
+	margin-top: 4px;
+}
+
+/*----- General -----*/
+
+#synth, #live-coding {
+	margin: 10px 0;
+}
+
+#page, #live-coding {
+	height: 100%;
+}
+
+.mod-no-outline {
+	outline: none;
+}
+
+.graph {
+	padding: 0; margin: 0;
+}
+
+.graph-row {
+	white-space: nowrap;
+}
+
+.graph-box {
+	border: 1px solid #999;
+	border-radius: 4px;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);
+			box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);
+	display: inline-block;
+	vertical-align: top;
+	overflow: hidden;
+}
+
+.box-header {
+    text-align: center;
+    margin: 0px;
+    padding: 3px;
+    text-shadow: 0 -1px 0 rgba(0,0,0,.2);
+	font-weight: bold;
+	font-size: 105%;
+}
+
+.canvas-box {
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+	position: relative;
+}
+
+
+/*----- Node styles -----*/
+
+.node {
+	color: white;
+	text-shadow: 0 -1px 0 rgba(0,0,0,.2);
+	position: absolute;
+	background-color: green;
+	border-radius: 4px;
+	width: 80px;
+	height: 50px;
+	text-align: center;
+	display: table;
+	/*line-height: 60px;*/
+}
+
+.node-text {
+	display: table-cell;
+	vertical-align: middle;
+}
+
+.node-src {
+	background-color: #36B75D;
+}
+
+.node-effect {
+	background-color: royalblue;
+}
+
+.node-out {
+	background-color: #41A6E1;
+}
+
+.node-ctrl {
+	background-color: #C841E1;
+}
+
+.node.selected {
+	box-shadow: 5px 5px 2px rgba(0,0,0,0.5);
+}
+
+.arrow {
+	display: none;
+	color: royalblue;
+}
+
+.arrow-ctrl {
+	display: none;
+	color: #C841E1;
+}
+
+/*----- Palette box -----*/
+
+.palette {
+	margin-left: 10px;
+	height: 452px;
+	vertical-align: top;
+	width: 92px;
+	overflow: hidden;
+	padding-bottom: 26px;
+}
+
+.palette .node {
+	position: static;
+	margin: 5px 5px 0px 5px;
+	cursor: copy;
+}
+
+.palette-section {
+	margin: 3px 4px -4px 4px;
+	text-align: center;
+	font-size: 90%;
+}
+
+/*----- Params box -----*/
+
+.params-box {
+	height: 210px;
+	width: 605px;
+	margin-top: 5px;
+	margin-bottom: 10px;
+	overflow-x: auto;
+	display: inline-block;
+	position: static;
+	white-space: normal;
+}
+
+input[type=range][orient=vertical] {
+	writing-mode: bt-lr; /* IE */
+	-webkit-appearance: slider-vertical; /* WebKit */
+	width: 50px;
+	height: 125px;
+	padding: 0 5px;
+	display: inline-block;
+}
+
+.slider-box {
+	display: inline-block;
+	text-align: center;
+	width: 100px;
+	margin-top: 7px;
+	font-size: 90%;
+	line-height: 1.4em;
+}
+
+.slider-box input[type=number] {
+	width: 60px;
+	text-align: center;
+	margin-bottom: 5px;
+}
+
+.choice-box {
+	display: inline-block;
+	text-align: center;
+	width: 100px;
+	margin-top: 10px;
+	font-size: 90%;
+	line-height: 1.4em;
+}
+
+.choice-box select {
+	border-radius: 3px;
+}
+
+.del-node-but {
+	float: right;
+	margin-top: 145px;
+	margin-right: 15px;
+}
+
+
+/*----- Preset box -----*/
+
+.presets-box {
+	height: 210px;
+	width: 190px;
+	margin-top: 5px;
+	margin-bottom: 10px;
+	margin-left: 10px;
+	vertical-align: top;
+	display: inline-block;
+}
+
+#preset-num {
+	width: 40px;
+	height: 34px;
+	font-size: 130%;
+	padding: 3px;
+}
+
+.preset-selector {
+	display: none;
+    width: 168px;
+    height: 122px;
+    z-index: 1000;
+    position: absolute;
+    background: white;
+    margin: 5px 0;
+	margin-left: -20px;
+}
+.preset-selector select {
+    width: 168px;
+    height: 116px;
+    border: 1px solid #999;
+    border-radius: 5px;
+	padding: 5px;
+}
+
+#preset-name {
+	width: 100%;
+	text-align: center;
+}
+
+.upload {
+  position: relative;
+}
+
+.upload input {
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.upload .glyphicon {
+	pointer-events: none;
+}
+
+/*----- Piano box -----*/
+
+.piano-box {
+	width: 550px;
+	height: 140px;
+	padding: 10px 10px 0 10px;
+	position: relative;
+}
+
+.piano-key {
+	margin-left: -1px;
+	background-color: white;
+	border: 1px solid black;
+	border-radius: 0px 0px 5px 5px;
+	display: inline-block;
+}
+
+.piano-black {
+	background-color: black;
+	position: absolute;
+}
+
+.piano-key-pressed {
+	background-color: #0CC;
+}
+
+#piano-buttons {
+	width:550px;
+	height: 40px;
+	padding: 5px 10px 10px 10px;
+	text-align: center;
+}
+
+.audio-graph {
+	width: 222px;
+	height: 75px;
+	background-color: #444;
+	border-radius: 5px; margin: 10px;
+	box-shadow: inset 0px 0px 10px 5px rgba(85,163,26,0.6);
+}
+
+.editor-cover {
+	position: absolute;
+	top: 46px;
+	width: 99%;
+	height: 674px;
+	z-index: 1000;
+	opacity: 0.85;
+	background-color: white;
+	display: table;
+}
+
+.editor-cover > p {
+	display: table-cell;
+	font-size: 150%;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.portamento-box {
+	display: inline-block;
+	position: absolute;
+	left: 120px;
+}
+
+.arpeggio-box {
+	display: inline-block;
+	position: absolute;
+	left: 275px;
+}
+
+
+/*-------------------------------------------*/
+/*--------------- Live-coding ---------------*/
+/*-------------------------------------------*/
+
+#live-coding {
+	display: flex;
+	flex-direction: column;
+}
+
+#live-coding > .main {
+	flex: 1;
+	max-width: initial;
+	margin: 0 10px;
+	display: flex;
+}
+
+.walc-editor-box {
+	height: calc(100% - 20px);
+	overflow: hidden;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+#walc-code-editor {
+	width: 100%;
+	flex: 1;
+}
+
+.walc-error {
+	background-color: #FA9;
+}
+
+.walc-running {
+	background-color: rgb(91, 255, 91);
+	transition: background-color 0.7s ease-in;
+}
+
+.walc-buttons {
+	padding: 8px 10px;
+	display: flex;
+	justify-content: space-between;
+}
+
+.walc-border-bottom {
+	border-bottom: 1px solid #999;
+}
+
+.walc-border-top {
+	border-top: 1px solid #999;
+}
+
+.walc-buttons button {
+	min-width: 3em;
+	outline: none !important;
+}
+
+#walc-right-col {
+	width: 476px;
+	margin-bottom: 20px;
+	margin-left: 8px;
+	display: flex;
+	flex-direction: column;
+}
+
+.walc-graph-box {
+	display: flex;
+}
+
+.walc-graph-box > #audio-graph-fft {
+	margin-right: 0;
+}
+
+.walc-log-box {
+	flex: 1;
+	margin-top: 8px;
+}
+
+#walc-log-container {
+    height: calc(100% - 22px);
+    overflow-y: scroll;
+}
+#walc-log-content {
+	font-family: Menlo, Monaco, "Courier New", monospace;
+	padding: 8px;
+	white-space: pre-wrap;
+}
+
+.log-bold {
+	font-weight: bold;
+}
+
+.log-track {
+	color: blue;
+}
+
+.log-instr {
+	color: #F92672;
+}
+
+/*----- Dark theme -----*/
+
+body.dark {
+	background-color: black;
+	color: #aaa;
+}
+
+.dark input, .dark select {
+	color: black;
+}
+
+.dark .audio-graph {
+	background-color: #111;
+	border-radius: 5px; margin: 10px;
+	box-shadow: inset 0px 0px 10px 3px rgba(25,100,128,0.6);
+}
+
+.dark .walc-error {
+	background-color: red;
+}
+
+.dark .log-bold {
+	font-weight: inherit;
+	color: white;
+}
+
+.dark .log-track {
+	color: #66D9EF;
+}
