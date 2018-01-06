@@ -60,11 +60,20 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 10);
+/******/ 	return __webpack_require__(__webpack_require__.s = 19);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
+/***/ (function(module, exports) {
+
+module.exports = function() {
+	throw new Error("define cannot be used indirect");
+};
+
+
+/***/ }),
+/* 1 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -106,7 +115,44 @@ function focusable(elem) {
 
 
 /***/ }),
-/* 1 */
+/* 2 */
+/***/ (function(module, exports) {
+
+module.exports = function(module) {
+	if(!module.webpackPolyfill) {
+		module.deprecate = function() {};
+		module.paths = [];
+		// module.parent = undefined by default
+		if(!module.children) module.children = [];
+		Object.defineProperty(module, "loaded", {
+			enumerable: true,
+			get: function() {
+				return module.l;
+			}
+		});
+		Object.defineProperty(module, "id", {
+			enumerable: true,
+			get: function() {
+				return module.i;
+			}
+		});
+		module.webpackPolyfill = 1;
+	}
+	return module;
+};
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports) {
+
+/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {/* globals __webpack_amd_options__ */
+module.exports = __webpack_amd_options__;
+
+/* WEBPACK VAR INJECTION */}.call(exports, {}))
+
+/***/ }),
+/* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -164,15 +210,15 @@ function upload(event, cb, readFunc) {
 
 
 /***/ }),
-/* 2 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__notes__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__palette__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_modern__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__customNodes__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__utils_file__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__notes__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__palette__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_modern__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__customNodes__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__utils_file__ = __webpack_require__(4);
 
 
 
@@ -442,7 +488,7 @@ class SoundBankHandler {
 
 
 /***/ }),
-/* 3 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -557,7 +603,7 @@ $('body').append(popup);
 
 
 /***/ }),
-/* 4 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -605,11 +651,11 @@ class Timer {
 
 
 /***/ }),
-/* 5 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth__ = __webpack_require__(5);
 
 /**
  * A polyphonic synth controlling an array of voices
@@ -771,11 +817,11 @@ class SynthLoader {
 
 
 /***/ }),
-/* 6 */
+/* 9 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_modern__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_modern__ = __webpack_require__(1);
 
 /**
  * Handles common AudioNode cloning, used by oscillator and buffered data nodes.
@@ -1115,7 +1161,7 @@ class OutputTracker {
 
 
 /***/ }),
-/* 7 */
+/* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1285,7 +1331,7 @@ let palette = {
 
 
 /***/ }),
-/* 8 */
+/* 11 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1467,21 +1513,364 @@ class LineInNode extends CustomNodeBase {
 
 
 /***/ }),
-/* 9 */
+/* 12 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return instruments; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return effects; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return userTracks; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return tracks; });
+/* harmony export (immutable) */ __webpack_exports__["e"] = timerTickHandler;
+/* harmony export (immutable) */ __webpack_exports__["a"] = eachTrack;
+/* harmony export (immutable) */ __webpack_exports__["d"] = scheduleTrack;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__log__ = __webpack_require__(13);
+
+let instruments = {};
+let effects = {};
+let userTracks = {};
+let tracks = {};
+let nextTracks = {};
+function timerTickHandler(timer, time) {
+    eachTrack(t => playTrack(timer, t, time));
+}
+function eachTrack(cb) {
+    let tnames = Object.getOwnPropertyNames(tracks);
+    for (let tname of tnames)
+        cb(tracks[tname]);
+}
+function scheduleTrack(t) {
+    if (tracks[t.name])
+        nextTracks[t.name] = t;
+    else
+        tracks[t.name] = t;
+}
+function playTrack(timer, track, time) {
+    let played;
+    do {
+        played = false;
+        if (shouldTrackEnd(track))
+            break;
+        track = tracks[track.name];
+        let note = track.notes[track.notect];
+        if (track.startTime + note.time <= time) {
+            playNote(track, note, timer, track.startTime);
+            played = true;
+            track.notect++;
+        }
+    } while (played);
+}
+function playNote(track, note, timer, startTime) {
+    if (note.options)
+        setOptions(note.options);
+    if (note.number < 1)
+        return;
+    Object(__WEBPACK_IMPORTED_MODULE_0__log__["c" /* logNote */])(note, track);
+    note.instrument.noteOn(note.number, note.velocity, startTime + note.time);
+    let duration = note.duration
+        || note.instrument.duration || timer.noteDuration;
+    note.instrument.noteOff(note.number, note.velocity, startTime + note.time + duration);
+}
+function setOptions(opts) {
+    if (opts.effect) {
+        let e = opts.effect;
+        for (let pname of Object.getOwnPropertyNames(opts))
+            if (pname != 'effect')
+                e.param(pname, opts[pname]);
+    }
+    else if (opts.instrument) {
+        let i = opts.instrument;
+        for (let pname of Object.getOwnPropertyNames(opts))
+            if (pname != 'instrument')
+                i.param(pname, opts[pname]);
+    }
+}
+function shouldTrackEnd(track) {
+    if (track.stopped)
+        return true;
+    if (track.notect < track.notes.length)
+        return false;
+    track.notect = 0;
+    if (track.shouldStop) {
+        track.stopped = true;
+        track.shouldStop = false;
+        return true;
+    }
+    if (nextTracks[track.name]) {
+        let nextTrack = nextTracks[track.name];
+        nextTrack.startTime = track.startTime + track.time;
+        tracks[track.name] = nextTrack;
+        userTracks[track.name] = nextTrack;
+        delete nextTracks[track.name];
+        return false;
+    }
+    if (track.loop) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_0__log__["e" /* txt2html */])(`Track [log-track|${track.name}] has looped`));
+        track.startTime += track.time;
+        track.loopCount++;
+        return false;
+    }
+    else {
+        Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_0__log__["e" /* txt2html */])(`Track [log-track|${track.name}] has ended`));
+        delete tracks[track.name];
+        delete userTracks[track.name];
+        return true;
+    }
+}
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["d"] = logToPanel;
+/* harmony export (immutable) */ __webpack_exports__["b"] = enableLog;
+/* harmony export (immutable) */ __webpack_exports__["e"] = txt2html;
+/* harmony export (immutable) */ __webpack_exports__["a"] = clearLog;
+/* harmony export (immutable) */ __webpack_exports__["c"] = logNote;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__scales__ = __webpack_require__(14);
+
+let logEnabled = true;
+let logCount = 0;
+const MAX_LOG_LINES = 1000;
+function logToPanel(always, asHTML, ...args) {
+    if (!always && !logEnabled)
+        return;
+    ffTweak();
+    if (logCount++ > MAX_LOG_LINES)
+        $('#walc-log-content > *:first-child').remove();
+    let txt = args.join(', ');
+    let div = $('<div>');
+    if (asHTML)
+        div.html(txt);
+    else
+        div.text(txt);
+    $('#walc-log-content').append(div);
+    let logContainer = $('#walc-log-container');
+    logContainer.scrollTop(MAX_LOG_LINES * 100);
+}
+function enableLog(flag) {
+    logEnabled = flag;
+}
+function txt2html(s) {
+    return s.replace(/\[([^\]\|]+)\|([^\]\|]+)\]/g, (x, y, z) => `<span class="${y}">${z}</span>`);
+}
+function clearLog() {
+    logCount = 0;
+    $('#walc-log-content').empty();
+}
+function logNote(note, track) {
+    let noteName = __WEBPACK_IMPORTED_MODULE_0__scales__["a" /* Note */][note.number];
+    if (noteName && noteName.length < 3)
+        noteName += ' ';
+    let snote = noteName
+        ? `[log-bold|${noteName}] (${note.number})`
+        : `[log-bold|${note.number}]`;
+    let sinstr = `[log-instr|${note.instrument.name}]`;
+    let strack = `[log-track|${track.name}]`;
+    logToPanel(false, true, txt2html(`Note: ${snote} ${sinstr} ${strack}`));
+}
+function ffTweak() {
+    if (tweaked)
+        return;
+    tweaked = true;
+    if (navigator.userAgent.indexOf('Firefox') < 0)
+        return;
+    let logContainer = $('#walc-log-container');
+    let h = logContainer.height();
+    logContainer.css('height', h + 'px');
+}
+let tweaked = false;
+
+
+/***/ }),
+/* 14 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Note; });
+/* harmony export (immutable) */ __webpack_exports__["b"] = makeScale;
+let Note = {
+    C0: 12, Cs0: 13, Db0: 13, D0: 14, Ds0: 15, Eb0: 15,
+    E0: 16, F0: 17, Fs0: 18, Gb0: 18, G0: 19, Gs0: 20,
+    Ab0: 20, A0: 21, As0: 22, Bb0: 22, B0: 23,
+    C1: 24, Cs1: 25, Db1: 25, D1: 26, Ds1: 27, Eb1: 27,
+    E1: 28, F1: 29, Fs1: 30, Gb1: 30, G1: 31, Gs1: 32,
+    Ab1: 32, A1: 33, As1: 34, Bb1: 34, B1: 35,
+    C2: 36, Cs2: 37, Db2: 37, D2: 38, Ds2: 39, Eb2: 39,
+    E2: 40, F2: 41, Fs2: 42, Gb2: 42, G2: 43, Gs2: 44,
+    Ab2: 44, A2: 45, As2: 46, Bb2: 46, B2: 47,
+    C3: 48, Cs3: 49, Db3: 49, D3: 50, Ds3: 51, Eb3: 51,
+    E3: 52, F3: 53, Fs3: 54, Gb3: 54, G3: 55, Gs3: 56,
+    Ab3: 56, A3: 57, As3: 58, Bb3: 58, B3: 59,
+    C4: 60, Cs4: 61, Db4: 61, D4: 62, Ds4: 63, Eb4: 63,
+    E4: 64, F4: 65, Fs4: 66, Gb4: 66, G4: 67, Gs4: 68,
+    Ab4: 68, A4: 69, As4: 70, Bb4: 70, B4: 71,
+    C5: 72, Cs5: 73, Db5: 73, D5: 74, Ds5: 75, Eb5: 75,
+    E5: 76, F5: 77, Fs5: 78, Gb5: 78, G5: 79, Gs5: 80,
+    Ab5: 80, A5: 81, As5: 82, Bb5: 82, B5: 83,
+    C6: 84, Cs6: 85, Db6: 85, D6: 86, Ds6: 87, Eb6: 87,
+    E6: 88, F6: 89, Fs6: 90, Gb6: 90, G6: 91, Gs6: 92,
+    Ab6: 92, A6: 93, As6: 94, Bb6: 94, B6: 95,
+    C7: 96, Cs7: 97, Db7: 97, D7: 98, Ds7: 99, Eb7: 99,
+    E7: 100, F7: 101, Fs7: 102, Gb7: 102, G7: 103, Gs7: 104,
+    Ab7: 104, A7: 105, As7: 106, Bb7: 106, B7: 107,
+    C8: 108, Cs8: 109, Db8: 109, D8: 110, Ds8: 111, Eb8: 111,
+    E8: 112, F8: 113, Fs8: 114, Gb8: 114, G8: 115, Gs8: 116,
+    Ab8: 116, A8: 117, As8: 118, Bb8: 118, B8: 119
+};
+const NoteDeltas = {
+    major: [0, 2, 4, 5, 7, 9, 11, 12],
+    major_pentatonic: [0, 2, 4, 7, 9, 12],
+    minor: [0, 2, 3, 5, 7, 8, 10, 12],
+    minor_pentatonic: [0, 3, 5, 7, 10, 12],
+    chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+};
+function invertEnum(enm) {
+    for (let k of Object.getOwnPropertyNames(enm))
+        enm[enm[k]] = k;
+}
+invertEnum(Note);
+function makeSingleScale(note, type) {
+    let deltas = NoteDeltas[type];
+    if (!deltas)
+        throw new Error(`Scale type "${type}" does not exist`);
+    let r = [];
+    for (let delta of deltas)
+        r.push(note + delta);
+    return r.ring();
+}
+function makeScale(note, type = 'major', octaves = 1) {
+    if (octaves <= 1)
+        return makeSingleScale(note, type);
+    let r = [].ring();
+    for (let oct = 0; oct < octaves; oct++) {
+        r = r.concat(makeSingleScale(note + oct * 12, type));
+        if (oct < octaves - 1)
+            r = r.butlast();
+    }
+    return r;
+}
+
+
+/***/ }),
+/* 15 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/**
+ * Displays FFT and Oscilloscope graphs from the output of a given AudioNode
+ */
+class AudioAnalyzer {
+    constructor(jqfft, jqosc) {
+        this.canvasFFT = this.createCanvas(jqfft);
+        this.gcFFT = this.canvasFFT.getContext('2d');
+        this.canvasOsc = this.createCanvas(jqosc);
+        this.gcOsc = this.canvasOsc.getContext('2d');
+    }
+    createCanvas(panel) {
+        const jqCanvas = $(`<canvas width="${panel.width()}" height="${panel.height()}">`);
+        panel.append(jqCanvas);
+        const canvas = jqCanvas[0];
+        return canvas;
+    }
+    createAnalyzerNode(ac) {
+        if (this.anode)
+            return;
+        this.anode = ac.createAnalyser();
+        this.fftData = new Uint8Array(this.anode.fftSize);
+        this.oscData = new Uint8Array(this.anode.fftSize);
+    }
+    analyze(input) {
+        this.disconnect();
+        this.createAnalyzerNode(input.context);
+        this.input = input;
+        this.input.connect(this.anode);
+        this.requestAnimationFrame();
+    }
+    disconnect() {
+        if (!this.input)
+            return;
+        this.input.disconnect(this.anode);
+        this.input = null;
+    }
+    requestAnimationFrame() {
+        window.requestAnimationFrame(_ => this.updateCanvas());
+    }
+    updateCanvas() {
+        if (!this.input)
+            return;
+        if (this.gcFFT)
+            this.drawFFT(this.gcFFT, this.canvasFFT, this.fftData, '#00FF00');
+        if (this.gcOsc)
+            this.drawOsc(this.gcOsc, this.canvasOsc, this.oscData, '#FFFF00');
+        this.requestAnimationFrame();
+    }
+    drawFFT(gc, canvas, data, color) {
+        const [w, h] = this.setupDraw(gc, canvas, data, color);
+        this.anode.getByteFrequencyData(data);
+        const dx = (data.length / 2) / canvas.width;
+        let x = 0;
+        // TODO calculate average of all samples from x to x + dx - 1
+        for (let i = 0; i < w; i++) {
+            let y = data[Math.floor(x)];
+            x += dx;
+            gc.moveTo(i, h - 1);
+            gc.lineTo(i, h - 1 - h * y / 256);
+        }
+        gc.stroke();
+        gc.closePath();
+    }
+    drawOsc(gc, canvas, data, color) {
+        const [w, h] = this.setupDraw(gc, canvas, data, color);
+        this.anode.getByteTimeDomainData(data);
+        gc.moveTo(0, h / 2);
+        let x = 0;
+        while (data[x] > 128 && x < data.length / 4)
+            x++;
+        while (data[x] < 128 && x < data.length / 4)
+            x++;
+        const dx = (data.length * 0.75) / canvas.width;
+        for (let i = 0; i < w; i++) {
+            let y = data[Math.floor(x)];
+            x += dx;
+            gc.lineTo(i, h * y / 256);
+        }
+        gc.stroke();
+        gc.closePath();
+    }
+    setupDraw(gc, canvas, data, color) {
+        const w = canvas.width;
+        const h = canvas.height;
+        gc.clearRect(0, 0, w, h);
+        gc.beginPath();
+        gc.strokeStyle = color;
+        return [w, h];
+    }
+}
+/* harmony export (immutable) */ __webpack_exports__["a"] = AudioAnalyzer;
+
+
+
+/***/ }),
+/* 16 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = createEditor;
 /* harmony export (immutable) */ __webpack_exports__["c"] = flashRange;
 /* harmony export (immutable) */ __webpack_exports__["b"] = doRunCode;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__live_coding__ = __webpack_require__(22);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__editor_actions__ = __webpack_require__(26);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__rings__ = __webpack_require__(32);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__scales__ = __webpack_require__(33);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__random__ = __webpack_require__(37);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__editor_buffers__ = __webpack_require__(47);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__live_coding__ = __webpack_require__(30);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__editor_actions__ = __webpack_require__(35);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__rings__ = __webpack_require__(36);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__scales__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__random__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__editor_buffers__ = __webpack_require__(17);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__synthUI_analyzer__ = __webpack_require__(15);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__log__ = __webpack_require__(48);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__log__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__scheduler__ = __webpack_require__(12);
+
 
 
 
@@ -1520,7 +1909,6 @@ function createEditor(ac, presets, synthUI) {
         });
         handleEditorResize(editorElem);
         Object(__WEBPACK_IMPORTED_MODULE_1__editor_actions__["a" /* registerActions */])(editor, monaco);
-        preventParentScroll(editorElem);
         editor.focus();
         Object(__WEBPACK_IMPORTED_MODULE_5__editor_buffers__["a" /* handleBuffers */])(editor);
         $(document).on('route:show', (e, h) => {
@@ -1535,17 +1923,13 @@ function createEditor(ac, presets, synthUI) {
 }
 function setupGlobals(lc) {
     global.lc = lc;
-    global.instruments = __WEBPACK_IMPORTED_MODULE_0__live_coding__["c" /* instruments */];
-    global.effects = __WEBPACK_IMPORTED_MODULE_0__live_coding__["b" /* effects */];
-    global.tracks = __WEBPACK_IMPORTED_MODULE_0__live_coding__["d" /* tracks */];
+    global.instruments = __WEBPACK_IMPORTED_MODULE_8__scheduler__["c" /* instruments */];
+    global.effects = __WEBPACK_IMPORTED_MODULE_8__scheduler__["b" /* effects */];
+    global.tracks = __WEBPACK_IMPORTED_MODULE_8__scheduler__["g" /* userTracks */];
     global.Note = __WEBPACK_IMPORTED_MODULE_3__scales__["a" /* Note */];
     global.random = __WEBPACK_IMPORTED_MODULE_4__random__["a" /* random */];
     global.global = {};
     Object(__WEBPACK_IMPORTED_MODULE_2__rings__["a" /* setupRing */])();
-}
-function preventParentScroll(elem) {
-    $(elem).bind('wheel', e => e.preventDefault());
-    Object(__WEBPACK_IMPORTED_MODULE_7__log__["e" /* preventLogParentScroll */])();
 }
 function addTypeScriptDefinitions(defs) {
     monaco.languages.typescript.typescriptDefaults.addExtraLib(defs);
@@ -1596,7 +1980,7 @@ function getErrorLocation(e) {
     return null;
 }
 function showError(msg, line, col) {
-    Object(__WEBPACK_IMPORTED_MODULE_7__log__["d" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_7__log__["f" /* txt2html */])(`[log-bold|Runtime error]: "${msg}" at line ${line}, column ${col}`));
+    Object(__WEBPACK_IMPORTED_MODULE_7__log__["d" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_7__log__["e" /* txt2html */])(`[log-bold|Runtime error]: "${msg}" at line ${line}, column ${col}`));
     editor.revealLineInCenter(line);
     let errorRange = getErrorRange(editor.getModel().getLineContent(line), col);
     decorations = editor.deltaDecorations(decorations, [{
@@ -1650,23 +2034,173 @@ function doRunCode(code) {
 
 
 /***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 17 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
-module.exports = __webpack_require__(11);
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = handleBuffers;
+/* harmony export (immutable) */ __webpack_exports__["c"] = prevBuffer;
+/* harmony export (immutable) */ __webpack_exports__["b"] = nextBuffer;
+const NUM_BUFFERS = 8;
+let currentBuffer = 1;
+// -------------------- Buffer navigation --------------------
+function handleBuffers(editor) {
+    handleEditorStorage(editor);
+    for (let i = 1; i <= NUM_BUFFERS; i++)
+        registerButton(i, editor);
+    selectSavedBuffer(editor);
+}
+function prevBuffer(editor) {
+    let num = currentBuffer - 1;
+    if (num < 1)
+        num = NUM_BUFFERS;
+    bufferChanged(num, editor);
+}
+function nextBuffer(editor) {
+    let num = currentBuffer + 1;
+    if (num > NUM_BUFFERS)
+        num = 1;
+    bufferChanged(num, editor);
+}
+function registerButton(id, editor) {
+    getButton$(id).click(_ => bufferChanged(id, editor));
+}
+function getButton$(id) {
+    return $('#walc-buffer-' + id);
+}
+function updateButtons(disableId, enableId) {
+    getButton$(disableId)
+        .removeClass('btn-info')
+        .addClass('btn-primary');
+    getButton$(enableId)
+        .removeClass('btn-primary')
+        .addClass('btn-info');
+}
+function bufferChanged(num, editor) {
+    updateButtons(currentBuffer, num);
+    storeBuffer(currentBuffer, editor);
+    loadBuffer(num, editor);
+    currentBuffer = num;
+    localStorage.setItem('code_buffer_selected', '' + currentBuffer);
+    editor.focus();
+}
+function selectSavedBuffer(editor) {
+    let snum = localStorage.getItem('code_buffer_selected') || '1';
+    let num = parseInt(snum, 10);
+    if (!isNaN(num))
+        bufferChanged(num, editor);
+}
+// -------------------- Buffer storage management --------------------
+function handleEditorStorage(editor) {
+    loadBuffer(currentBuffer, editor);
+    watchCodeAndStoreIt(editor);
+}
+function watchCodeAndStoreIt(editor) {
+    let storedCode = getEditorText(editor);
+    let storedPos = editor.getPosition();
+    setInterval(() => {
+        let code = getEditorText(editor);
+        let pos = editor.getPosition();
+        if (storedCode == code
+            && storedPos.lineNumber == pos.lineNumber
+            && storedPos.column == pos.column)
+            return;
+        storeBuffer(currentBuffer, editor);
+        storedCode = code;
+        storedPos = pos;
+    }, 1000);
+}
+// -------------------- Helpers --------------------
+function storeBuffer(num, editor) {
+    let txt = getEditorText(editor);
+    localStorage.setItem('code_buffer_' + num, txt);
+    let prefs = {
+        fontSize: editor.getConfiguration().fontInfo.fontSize,
+        position: editor.getPosition()
+    };
+    localStorage.setItem('code_buffer_prefs_' + num, JSON.stringify(prefs));
+}
+function loadBuffer(num, editor) {
+    let code = localStorage.getItem('code_buffer_' + num) || '';
+    setEditorText(editor, code);
+    let sprefs = localStorage.getItem('code_buffer_prefs_' + num);
+    if (sprefs) {
+        let prefs = JSON.parse(sprefs);
+        editor.setPosition(prefs.position);
+        editor.revealPositionInCenterIfOutsideViewport(prefs.position);
+        editor.updateOptions({ fontSize: prefs.fontSize });
+    }
+}
+function setEditorText(editor, text) {
+    editor.getModel().setValue(text);
+}
+function getEditorText(editor) {
+    return editor.getModel().getValue();
+}
 
 
 /***/ }),
-/* 11 */
+/* 18 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return random; });
+const seedrandom = __webpack_require__(37);
+let random = {
+    seed(newSeed) {
+        if (newSeed !== undefined)
+            setSeedNumber(newSeed);
+        return seedNumber;
+    },
+    float(from, to) {
+        if (to === undefined)
+            return rng() * from;
+        return from + rng() * (to - from);
+    },
+    integer(from, to) {
+        return from + Math.floor(rng() * (to - from + 1));
+    },
+    dice(sides) {
+        return this.integer(1, sides);
+    },
+    one_in(times) {
+        return this.dice(times) === 1;
+    },
+    choose(...args) {
+        let arr = [];
+        for (let a of args)
+            arr = arr.concat(a);
+        return arr[this.dice(arr.length) - 1];
+    }
+};
+let seedNumber = 0;
+let rng;
+function setSeedNumber(newSeed) {
+    let seed = (newSeed + 123456789).toString();
+    rng = seedrandom(seed);
+    seedNumber = newSeed;
+}
+setSeedNumber(0);
+
+
+/***/ }),
+/* 19 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__(20);
+
+
+/***/ }),
+/* 20 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synthUI_synthUI__ = __webpack_require__(12);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__piano_noteInputs__ = __webpack_require__(16);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__synthUI_presets__ = __webpack_require__(21);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__live_coding_editor__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__utils_routes__ = __webpack_require__(27);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synthUI_synthUI__ = __webpack_require__(21);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__piano_noteInputs__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__synthUI_presets__ = __webpack_require__(29);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__live_coding_editor__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__utils_routes__ = __webpack_require__(46);
 /**
  * Main entry point: setup synth editor and keyboard listener.
  */
@@ -1678,7 +2212,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 const graphCanvas = $('#graph-canvas')[0];
 const ac = createAudioContext();
 const synthUI = new __WEBPACK_IMPORTED_MODULE_0__synthUI_synthUI__["a" /* SynthUI */](ac, graphCanvas, $('#node-params'), $('#audio-graph-fft'), $('#audio-graph-osc'));
-const presets = setupPanels();
+setupPanels();
 function createAudioContext() {
     const CtxClass = window.AudioContext || window.webkitAudioContext;
     return new CtxClass();
@@ -1693,7 +2227,10 @@ function setupPanels() {
         $('#synth').focus();
     });
     Object(__WEBPACK_IMPORTED_MODULE_4__utils_routes__["a" /* setupRoutes */])('#synth').then(_ => Object(__WEBPACK_IMPORTED_MODULE_3__live_coding_editor__["a" /* createEditor */])(ac, prsts, synthUI));
-    return prsts.presets;
+    $(document).on('route:show', (e, h) => {
+        if (h == '#synth')
+            prsts.selectBestNode();
+    });
 }
 function setupPalette() {
     $(function () {
@@ -1704,15 +2241,15 @@ function setupPalette() {
 
 
 /***/ }),
-/* 12 */
+/* 21 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__graph__ = __webpack_require__(13);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__synth_synth__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_modern__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils_popups__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__paramsUI__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__graph__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__synth_synth__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_modern__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils_popups__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__paramsUI__ = __webpack_require__(23);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__analyzer__ = __webpack_require__(15);
 
 
@@ -1915,7 +2452,7 @@ function getCssFromClass(className, propName) {
 
 
 /***/ }),
-/* 13 */
+/* 22 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2308,14 +2845,14 @@ class GraphDraw {
 
 
 /***/ }),
-/* 14 */
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = renderParams;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_modern__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_file__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_popups__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_modern__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_file__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_popups__ = __webpack_require__(6);
 
 
 
@@ -2574,114 +3111,15 @@ function truncateFloat(f, len) {
 
 
 /***/ }),
-/* 15 */
+/* 24 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/**
- * Displays FFT and Oscilloscope graphs from the output of a given AudioNode
- */
-class AudioAnalyzer {
-    constructor(jqfft, jqosc) {
-        this.canvasFFT = this.createCanvas(jqfft);
-        this.gcFFT = this.canvasFFT.getContext('2d');
-        this.canvasOsc = this.createCanvas(jqosc);
-        this.gcOsc = this.canvasOsc.getContext('2d');
-    }
-    createCanvas(panel) {
-        const jqCanvas = $(`<canvas width="${panel.width()}" height="${panel.height()}">`);
-        panel.append(jqCanvas);
-        const canvas = jqCanvas[0];
-        return canvas;
-    }
-    createAnalyzerNode(ac) {
-        if (this.anode)
-            return;
-        this.anode = ac.createAnalyser();
-        this.fftData = new Uint8Array(this.anode.fftSize);
-        this.oscData = new Uint8Array(this.anode.fftSize);
-    }
-    analyze(input) {
-        this.disconnect();
-        this.createAnalyzerNode(input.context);
-        this.input = input;
-        this.input.connect(this.anode);
-        this.requestAnimationFrame();
-    }
-    disconnect() {
-        if (!this.input)
-            return;
-        this.input.disconnect(this.anode);
-        this.input = null;
-    }
-    requestAnimationFrame() {
-        window.requestAnimationFrame(_ => this.updateCanvas());
-    }
-    updateCanvas() {
-        if (!this.input)
-            return;
-        if (this.gcFFT)
-            this.drawFFT(this.gcFFT, this.canvasFFT, this.fftData, '#00FF00');
-        if (this.gcOsc)
-            this.drawOsc(this.gcOsc, this.canvasOsc, this.oscData, '#FFFF00');
-        this.requestAnimationFrame();
-    }
-    drawFFT(gc, canvas, data, color) {
-        const [w, h] = this.setupDraw(gc, canvas, data, color);
-        this.anode.getByteFrequencyData(data);
-        const dx = (data.length / 2) / canvas.width;
-        let x = 0;
-        // TODO calculate average of all samples from x to x + dx - 1
-        for (let i = 0; i < w; i++) {
-            let y = data[Math.floor(x)];
-            x += dx;
-            gc.moveTo(i, h - 1);
-            gc.lineTo(i, h - 1 - h * y / 256);
-        }
-        gc.stroke();
-        gc.closePath();
-    }
-    drawOsc(gc, canvas, data, color) {
-        const [w, h] = this.setupDraw(gc, canvas, data, color);
-        this.anode.getByteTimeDomainData(data);
-        gc.moveTo(0, h / 2);
-        let x = 0;
-        while (data[x] > 128 && x < data.length / 4)
-            x++;
-        while (data[x] < 128 && x < data.length / 4)
-            x++;
-        const dx = (data.length * 0.75) / canvas.width;
-        for (let i = 0; i < w; i++) {
-            let y = data[Math.floor(x)];
-            x += dx;
-            gc.lineTo(i, h * y / 256);
-        }
-        gc.stroke();
-        gc.closePath();
-    }
-    setupDraw(gc, canvas, data, color) {
-        const w = canvas.width;
-        const h = canvas.height;
-        gc.clearRect(0, 0, w, h);
-        gc.beginPath();
-        gc.strokeStyle = color;
-        return [w, h];
-    }
-}
-/* harmony export (immutable) */ __webpack_exports__["a"] = AudioAnalyzer;
-
-
-
-/***/ }),
-/* 16 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__keyboard__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__midi__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__piano__ = __webpack_require__(19);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__arpeggiator__ = __webpack_require__(20);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__synth_instrument__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__keyboard__ = __webpack_require__(25);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__midi__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__piano__ = __webpack_require__(27);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__arpeggiator__ = __webpack_require__(28);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__synth_instrument__ = __webpack_require__(8);
 
 
 
@@ -2807,7 +3245,7 @@ class NoteInputs {
 
 
 /***/ }),
-/* 17 */
+/* 25 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2860,7 +3298,7 @@ class Keyboard {
 
 
 /***/ }),
-/* 18 */
+/* 26 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2903,12 +3341,12 @@ class MidiKeyboard {
 
 
 /***/ }),
-/* 19 */
+/* 27 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_popups__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_modern__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_popups__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_modern__ = __webpack_require__(1);
 
 
 const NUM_WHITES = 17;
@@ -3161,11 +3599,11 @@ class PianoKeyboard {
 
 
 /***/ }),
-/* 20 */
+/* 28 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_timer__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_timer__ = __webpack_require__(7);
 
 class Arpeggiator {
     constructor(ac) {
@@ -3290,13 +3728,13 @@ class NoteTable {
 
 
 /***/ }),
-/* 21 */
+/* 29 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_popups__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_file__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_modern__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_popups__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_file__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_modern__ = __webpack_require__(1);
 
 
 
@@ -3454,107 +3892,71 @@ class Presets {
 
 
 /***/ }),
-/* 22 */
+/* 30 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return instruments; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return effects; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return tracks; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_instrument__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__synth_timer__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__track__ = __webpack_require__(23);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__effects__ = __webpack_require__(24);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__scales__ = __webpack_require__(33);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__log__ = __webpack_require__(48);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_timer__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__track__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__scheduler__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__effects__ = __webpack_require__(32);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__scales__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__log__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__instruments__ = __webpack_require__(34);
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
 
 
 
 
 
-class LCInstrument extends __WEBPACK_IMPORTED_MODULE_0__synth_instrument__["a" /* Instrument */] {
-    param(pname, value, rampTime, exponential = true) {
-        let names = pname.split('/');
-        if (names.length < 2)
-            throw new Error(`Instrument parameters require "node/param" format`);
-        let node = names[0];
-        let name = names[1];
-        if (value === undefined) {
-            let prm = this.voices[0].getParameterNode(node, name);
-            return prm.value;
-        }
-        for (let v of this.voices) {
-            let prm = v.getParameterNode(node, name);
-            this.updateValue(prm, value, rampTime, exponential);
-        }
-        return this;
-    }
-    paramNames() {
-        let pnames = [];
-        let v = this.voices[0];
-        for (let nname of Object.getOwnPropertyNames(v.nodes))
-            for (let pname in v.nodes[nname])
-                if (v.nodes[nname][pname] instanceof AudioParam)
-                    pnames.push(nname + '/' + pname);
-        return pnames;
-    }
-    updateValue(prm, value, rampTime, exponential = true) {
-        if (rampTime === undefined) {
-            prm._value = value;
-            prm.value = value;
-        }
-        else {
-            let ctx = this.voices[0].synth.ac;
-            if (exponential) {
-                prm.exponentialRampToValueAtTime(value, ctx.currentTime + rampTime);
-            }
-            else {
-                prm.linearRampToValueAtTime(value, ctx.currentTime + rampTime);
-            }
-        }
-    }
-}
-/* unused harmony export LCInstrument */
 
 class LiveCoding {
     constructor(context, presets, synthUI) {
         this.context = context;
         this.presets = presets;
         this.synthUI = synthUI;
-        this.timer = new __WEBPACK_IMPORTED_MODULE_1__synth_timer__["a" /* Timer */](context, 60, 0.2);
-        this.timer.start(time => timerCB(this.timer, time));
+        this.timer = new __WEBPACK_IMPORTED_MODULE_0__synth_timer__["a" /* Timer */](context, 60, 0.2);
+        this.timer.start(time => Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["e" /* timerTickHandler */])(this.timer, time));
     }
     instrument(preset, name, numVoices = 4) {
-        let prst = getPreset(this.presets, preset);
-        let instr = new LCInstrument(this.context, prst, numVoices, this.synthUI.outNode);
-        instr.name = prst.name;
-        instr.duration = findNoteDuration(prst);
+        if (typeof preset == 'string') {
+            let oldInstr = __WEBPACK_IMPORTED_MODULE_2__scheduler__["c" /* instruments */][name || preset];
+            if (oldInstr)
+                oldInstr.shutdown();
+        }
+        let instr = Object(__WEBPACK_IMPORTED_MODULE_6__instruments__["a" /* createInstrument */])(this, preset, name, numVoices);
         if (name)
             instr.name = name;
-        instruments[instr.name] = instr;
+        __WEBPACK_IMPORTED_MODULE_2__scheduler__["c" /* instruments */][instr.name] = instr;
+        initInstrument(instr);
         return instr;
     }
     effect(name, newName) {
         let eff = Object(__WEBPACK_IMPORTED_MODULE_3__effects__["a" /* createEffect */])(this.context, name);
-        effects[newName || name] = eff;
+        __WEBPACK_IMPORTED_MODULE_2__scheduler__["b" /* effects */][newName || name] = eff;
         return eff;
     }
-    track(name, cb) {
-        let t = new __WEBPACK_IMPORTED_MODULE_2__track__["a" /* Track */](this.context, this.synthUI.outNode, this.timer);
+    track(name, cb, loop = false) {
+        let t = new __WEBPACK_IMPORTED_MODULE_1__track__["a" /* Track */](this.context, this.synthUI.outNode, this.timer);
+        t.loop = loop;
         t.name = name;
-        if (tracks[name])
-            nextTracks[name] = t;
-        else
-            tracks[name] = t;
-        if (cb)
+        __WEBPACK_IMPORTED_MODULE_2__scheduler__["g" /* userTracks */][name] = t;
+        onInitialized(() => {
+            Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["d" /* scheduleTrack */])(t);
             cb(t);
-        return t;
+        });
+        return this;
     }
     loop_track(name, cb) {
-        let t = this.track(name, cb);
-        t.loop = true;
-        return t;
+        return this.track(name, cb, true);
     }
     scale(note, type, octaves) {
         return Object(__WEBPACK_IMPORTED_MODULE_4__scales__["b" /* makeScale */])(note, type, octaves);
@@ -3578,146 +3980,71 @@ class LiveCoding {
         return this;
     }
     stop() {
-        eachTrack(t => t.stop());
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => t.stop());
         return this;
     }
     pause() {
-        eachTrack(t => t.pause());
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => t.pause());
         return this;
     }
     continue() {
-        eachTrack(t => t.continue());
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => t.continue());
         return this;
     }
     reset() {
-        eachTrack(t => {
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => {
             if (t._effect)
                 t._effect.input.disconnect();
             t.delete();
         });
         return this;
     }
+    init(initFunc) {
+        return __awaiter(this, void 0, void 0, function* () {
+            pushTask();
+            yield initFunc();
+            popTask();
+            return this;
+        });
+    }
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = LiveCoding;
 
-function getPreset(presets, preset) {
-    if (typeof preset == 'number') {
-        let maxPrst = presets.presets.length;
-        if (preset < 1 || preset > maxPrst)
-            throw new Error(`The preset number should be between 1 and ${maxPrst}`);
-        return presets.presets[preset - 1];
-    }
-    else if (typeof preset == 'string') {
-        for (let prs of presets.presets)
-            if (prs.name == preset)
-                return prs;
-        throw new Error(`Preset "${preset}" does not exist`);
-    }
-    return preset;
+// ---------- Instrument init ----------
+function initInstrument(instr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        pushTask();
+        yield instr.initialize();
+        popTask();
+    });
 }
-function findNoteDuration(preset) {
-    let duration = 0;
-    for (let node of preset.nodeData) {
-        if (node.type == 'ADSR') {
-            let d = node.params.attack + node.params.decay;
-            if (d > duration)
-                duration = d;
-        }
-    }
-    if (duration)
-        duration += 0.01;
-    return duration;
+let taskCount = 0;
+let initListeners = [];
+function pushTask() {
+    taskCount++;
 }
-let instruments = {};
-let effects = {};
-let tracks = {};
-let nextTracks = {};
-function eachTrack(cb) {
-    let tnames = Object.getOwnPropertyNames(tracks);
-    for (let tname of tnames)
-        cb(tracks[tname]);
-}
-function timerCB(timer, time) {
-    eachTrack(t => playTrack(timer, t, time));
-}
-function playTrack(timer, track, time) {
-    let played;
-    do {
-        played = false;
-        if (shouldTrackEnd(track))
-            break;
-        track = tracks[track.name];
-        let note = track.notes[track.notect];
-        if (track.startTime + note.time <= time) {
-            playNote(track, note, timer, track.startTime);
-            played = true;
-            track.notect++;
-        }
-    } while (played);
-}
-function playNote(track, note, timer, startTime) {
-    if (note.options)
-        setOptions(note.options);
-    if (note.number < 1)
-        return;
-    Object(__WEBPACK_IMPORTED_MODULE_5__log__["c" /* logNote */])(note, track);
-    note.instrument.noteOn(note.number, note.velocity, startTime + note.time);
-    let duration = note.duration
-        || note.instrument.duration || timer.noteDuration;
-    note.instrument.noteOff(note.number, note.velocity, startTime + note.time + duration);
-}
-function setOptions(opts) {
-    if (opts.effect) {
-        let e = opts.effect;
-        for (let pname of Object.getOwnPropertyNames(opts))
-            if (pname != 'effect')
-                e.param(pname, opts[pname]);
-    }
-    else if (opts.instrument) {
-        let i = opts.instrument;
-        for (let pname of Object.getOwnPropertyNames(opts))
-            if (pname != 'instrument')
-                i.param(pname, opts[pname]);
+function popTask() {
+    taskCount--;
+    if (taskCount <= 0) {
+        for (let trackCB of initListeners)
+            trackCB();
+        initListeners = [];
     }
 }
-function shouldTrackEnd(track) {
-    if (track.stopped)
-        return true;
-    if (track.notect < track.notes.length)
-        return false;
-    track.notect = 0;
-    if (track.shouldStop) {
-        track.stopped = true;
-        track.shouldStop = false;
-        return true;
-    }
-    if (nextTracks[track.name]) {
-        let nextTrack = nextTracks[track.name];
-        nextTrack.startTime = track.startTime + track.time;
-        tracks[track.name] = nextTrack;
-        delete nextTracks[track.name];
-        return false;
-    }
-    if (track.loop) {
-        Object(__WEBPACK_IMPORTED_MODULE_5__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_5__log__["f" /* txt2html */])(`Track [log-track|${track.name}] has looped`));
-        track.startTime += track.time;
-        track.loopCount++;
-        return false;
-    }
-    else {
-        Object(__WEBPACK_IMPORTED_MODULE_5__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_5__log__["f" /* txt2html */])(`Track [log-track|${track.name}] has ended`));
-        delete tracks[track.name];
-        return true;
-    }
+function onInitialized(cb) {
+    if (taskCount <= 0)
+        cb();
+    else
+        initListeners.push(cb);
 }
 
 
 /***/ }),
-/* 23 */
+/* 31 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__live_coding__ = __webpack_require__(22);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__scheduler__ = __webpack_require__(12);
 
 class TrackControl {
     constructor(ac, out, timer) {
@@ -3764,7 +4091,8 @@ class TrackControl {
     }
     delete() {
         this.mute();
-        delete __WEBPACK_IMPORTED_MODULE_0__live_coding__["d" /* tracks */][this.name];
+        delete __WEBPACK_IMPORTED_MODULE_0__scheduler__["f" /* tracks */][this.name];
+        delete __WEBPACK_IMPORTED_MODULE_0__scheduler__["g" /* userTracks */][this.name];
     }
 }
 class Track extends TrackControl {
@@ -3773,16 +4101,14 @@ class Track extends TrackControl {
         this.notect = 0;
         this.notes = [];
         this.time = 0;
+        this.latency = 0.25;
         this.loop = false;
         this.loopCount = 0;
         this.velocity = 1;
         this._transpose = 0;
     }
     instrument(inst) {
-        for (let v of inst.voices) {
-            v.synth.outGainNode.disconnect();
-            v.synth.outGainNode.connect(this._gain);
-        }
+        inst.connect(this._gain);
         this.inst = inst;
         return this;
     }
@@ -3804,7 +4130,7 @@ class Track extends TrackControl {
         this.notes.push({
             instrument: this.inst,
             number: note + this._transpose,
-            time: this.time,
+            time: this.time + this.latency,
             velocity: this.velocity,
             duration,
             options
@@ -3812,7 +4138,9 @@ class Track extends TrackControl {
         return this;
     }
     play_notes(notes, times, durations) {
-        if (typeof times == 'number')
+        if (times === undefined)
+            times = [0];
+        else if (typeof times == 'number')
             times = [times];
         let rtimes = times.ring();
         if (typeof durations == 'number')
@@ -3849,13 +4177,13 @@ class Track extends TrackControl {
 
 
 /***/ }),
-/* 24 */
+/* 32 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* unused harmony export registerProvider */
 /* harmony export (immutable) */ __webpack_exports__["a"] = createEffect;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__tuna_tuna__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__third_party_tuna__ = __webpack_require__(49);
 
 class BaseEffect {
     constructor(ac, name) {
@@ -3942,7 +4270,7 @@ let providers = {
 };
 function tunaProvider(ac, name) {
     if (!tuna)
-        tuna = Object(__WEBPACK_IMPORTED_MODULE_0__tuna_tuna__["a" /* Tuna */])(ac);
+        tuna = Object(__WEBPACK_IMPORTED_MODULE_0__third_party_tuna__["a" /* Tuna */])(ac);
     return new TunaEffect(ac, name);
 }
 let tuna;
@@ -3961,14 +4289,226 @@ function createEffect(ac, name) {
 
 
 /***/ }),
-/* 25 */,
-/* 26 */
+/* 33 */,
+/* 34 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* unused harmony export registerProvider */
+/* harmony export (immutable) */ __webpack_exports__["a"] = createInstrument;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_instrument__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__ = __webpack_require__(50);
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+let providers = {
+    Modulator: modulatorInstrProvider,
+    wavetable: wavetableInstrProvider
+};
+function registerProvider(prefix, provider) {
+    providers[prefix] = provider;
+}
+function createInstrument(lc, // This is ugly and should be refactored
+    preset, name, numVoices = 4) {
+    if (typeof preset != 'string')
+        return modulatorInstrProvider(lc, preset, name, numVoices);
+    if (preset.indexOf('/') < 0)
+        preset = 'Modulator/' + preset;
+    let [prefix, iname] = preset.split('/');
+    let provider = providers[prefix];
+    if (!provider)
+        throw new Error(`Instrument "${preset}" not found: unknown prefix "${provider}"`);
+    return provider(lc, iname, name, numVoices);
+}
+function modulatorInstrProvider(lc, // This is ugly and should be refactored
+    preset, name, numVoices = 4) {
+    let prst = getPreset(lc.presets, preset);
+    let instr = new ModulatorInstrument(lc.context, prst, numVoices, lc.synthUI.outNode);
+    instr.name = name || prst.name;
+    instr.duration = findNoteDuration(prst);
+    return instr;
+}
+function wavetableInstrProvider(lc, preset, name, numVoices = 4) {
+    let instr = new WavetableInstrument(lc.context, preset, name);
+    return instr;
+}
+// ------------------------- Modulator instrument -------------------------
+class ModulatorInstrument extends __WEBPACK_IMPORTED_MODULE_0__synth_instrument__["a" /* Instrument */] {
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () { });
+    }
+    shutdown() { }
+    param(pname, value, rampTime, exponential = true) {
+        let names = pname.split('/');
+        if (names.length < 2)
+            throw new Error(`Instrument parameters require "node/param" format`);
+        let node = names[0];
+        let name = names[1];
+        if (value === undefined) {
+            let prm = this.voices[0].getParameterNode(node, name);
+            return prm.value;
+        }
+        for (let v of this.voices) {
+            let prm = v.getParameterNode(node, name);
+            this.updateValue(prm, value, rampTime, exponential);
+        }
+        return this;
+    }
+    paramNames() {
+        let pnames = [];
+        let v = this.voices[0];
+        for (let nname of Object.getOwnPropertyNames(v.nodes))
+            for (let pname in v.nodes[nname])
+                if (v.nodes[nname][pname] instanceof AudioParam)
+                    pnames.push(nname + '/' + pname);
+        return pnames;
+    }
+    connect(node) {
+        for (let v of this.voices) {
+            v.synth.outGainNode.disconnect();
+            v.synth.outGainNode.connect(node);
+        }
+    }
+    updateValue(prm, value, rampTime, exponential = true) {
+        if (rampTime === undefined) {
+            prm._value = value;
+            prm.value = value;
+        }
+        else {
+            let ctx = this.voices[0].synth.ac;
+            if (exponential) {
+                prm.exponentialRampToValueAtTime(value, ctx.currentTime + rampTime);
+            }
+            else {
+                prm.linearRampToValueAtTime(value, ctx.currentTime + rampTime);
+            }
+        }
+    }
+}
+function getPreset(presets, preset) {
+    if (typeof preset == 'number') {
+        let maxPrst = presets.presets.length;
+        if (preset < 1 || preset > maxPrst)
+            throw new Error(`The preset number should be between 1 and ${maxPrst}`);
+        return presets.presets[preset - 1];
+    }
+    else if (typeof preset == 'string') {
+        for (let prs of presets.presets)
+            if (prs.name == preset)
+                return prs;
+        throw new Error(`Preset "${preset}" does not exist`);
+    }
+    return preset;
+}
+function findNoteDuration(preset) {
+    let duration = 0;
+    for (let node of preset.nodeData) {
+        if (node.type == 'ADSR') {
+            let d = node.params.attack + node.params.decay;
+            if (d > duration)
+                duration = d;
+        }
+    }
+    if (duration)
+        duration += 0.01;
+    return duration;
+}
+// ------------------------- Wavetable instrument -------------------------
+class WavetableInstrument {
+    constructor(ctx, presetName, name) {
+        this.ctx = ctx;
+        this.presetName = presetName;
+        this.envelopes = [];
+        this.duration = 0;
+        if (name === undefined)
+            name = presetName;
+        this.name = name;
+    }
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.preset = yield this.loadInstrument(this.presetName);
+        });
+    }
+    shutdown() {
+        wtPlayer.expireEnvelopes(this.ctx);
+    }
+    param(pname, value, rampTime, exponential = true) {
+        // TODO maybe provide ADSR
+        return this;
+    }
+    paramNames() {
+        // TODO implement
+        let pnames = [];
+        return pnames;
+    }
+    connect(node) {
+        this.destination = node;
+    }
+    noteOn(midi, velocity, when) {
+        if (when === undefined)
+            when = this.ctx.currentTime;
+        let envelope = wtPlayer.queueWaveTable(this.ctx, this.destination, this.preset, when, midi, 9999);
+        this.envelopes[midi] = envelope;
+    }
+    noteOff(midi, velocity, when) {
+        let envelope = this.envelopes[midi];
+        if (envelope)
+            envelope.cancel(when);
+    }
+    adjustPreset(preset) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise(resolve => wtPlayer.adjustPreset(this.ctx, preset, resolve));
+        });
+    }
+    fetchPreset(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let response = yield fetch(this.getURL(name, '_sf2_file'));
+            if (!response.ok)
+                response = yield fetch(this.getURL(name, '_sf2'));
+            let data = yield response.json();
+            return data;
+        });
+    }
+    loadInstrument(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let preset = yield this.fetchPreset(name);
+            yield this.adjustPreset(preset);
+            return preset;
+        });
+    }
+    getURL(name, suffix) {
+        // The following files have both _sf2 and _sf2_file ending:
+        // 0280_LesPaul
+        // 0290_LesPaul
+        // 0291_LesPaul
+        // 0292_LesPaul
+        // 0300_LesPaul
+        // 0301_LesPaul
+        // 0310_LesPaul
+        // Therefore it is better to load them using their full name
+        if (!name.endsWith('_sf2_file') && !name.endsWith('_sf2'))
+            name += suffix;
+        return `wavetables/${name}.json`;
+    }
+}
+let wtPlayer = new __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__["a" /* WebAudioFontPlayer */]();
+
+
+/***/ }),
+/* 35 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = registerActions;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__editor__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__editor_buffers__ = __webpack_require__(47);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__editor__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__editor_buffers__ = __webpack_require__(17);
 
 
 function registerActions(editor, monaco) {
@@ -3976,6 +4516,7 @@ function registerActions(editor, monaco) {
     const CTRL_SHIFT = monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift;
     let editorActions = new EditorActions(editor);
     registerButtons(editorActions);
+    setColorTheme(editorActions);
     // -------------------- Run code actions --------------------
     editor.addAction({
         id: 'walc-run-all',
@@ -4037,14 +4578,20 @@ function registerActions(editor, monaco) {
     });
 }
 function registerButtons(editorActions) {
+    let refocus = (x) => editorActions.editor.focus();
     // ----- Left buttons ----
-    $('#walc-font-sm').click(_ => editorActions.reduceFont());
-    $('#walc-font-lg').click(_ => editorActions.enlargeFont());
-    $('#walc-stop').click(_ => editorActions.stopAllTracks());
+    $('#walc-run-all').click(_ => refocus(editorActions.runAllCode()));
+    $('#walc-run-sel').click(_ => refocus(editorActions.runSomeCode()));
+    $('#walc-stop').click(_ => refocus(editorActions.stopAllTracks()));
     // ----- Right buttons -----
-    $('#walc-toggle-theme').click(_ => editorActions.toggleTheme());
-    $('#walc-run-all').click(_ => editorActions.runAllCode());
-    $('#walc-run-sel').click(_ => editorActions.runSomeCode());
+    $('#walc-toggle-theme').click(_ => refocus(editorActions.toggleTheme()));
+    $('#walc-font-sm').click(_ => refocus(editorActions.reduceFont()));
+    $('#walc-font-lg').click(_ => refocus(editorActions.enlargeFont()));
+}
+function setColorTheme(editorActions) {
+    let theme = localStorage.walc_prefs_theme;
+    if (theme == 'dark')
+        editorActions.toggleTheme();
 }
 class EditorActions {
     constructor(editor) {
@@ -4077,6 +4624,7 @@ class EditorActions {
             monaco.editor.setTheme('vs-dark');
             $('.logo > img').attr('src', 'img/logo-white.svg');
         }
+        localStorage.walc_prefs_theme = this.lightTheme ? 'light' : 'dark';
     }
     reduceFont() {
         let fs = this.getFontSize();
@@ -4113,7 +4661,1133 @@ class EditorActions {
 
 
 /***/ }),
-/* 27 */
+/* 36 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = setupRing;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__random__ = __webpack_require__(18);
+
+class Ring extends Array {
+    constructor() {
+        super(...arguments);
+        this.tick_ct = 0;
+    }
+    tick() {
+        let result = this[this.tick_ct];
+        this.tick_ct++;
+        if (this.tick_ct >= this.length)
+            this.tick_ct = 0;
+        return result;
+    }
+    choose() {
+        return this[__WEBPACK_IMPORTED_MODULE_0__random__["a" /* random */].integer(0, this.length - 1)];
+    }
+    fromArray(arr) {
+        for (let x of arr)
+            this.push(x);
+        return this;
+    }
+    toArray() {
+        return new Array(...this);
+    }
+    clone() {
+        return copytick(this, this.toArray().ring());
+    }
+    reverse() {
+        return copytick(this, this.toArray().reverse().ring());
+    }
+    sort(compareFn) {
+        let r = this.toArray().sort(compareFn).ring();
+        return copytick(this, r);
+    }
+    shuffle() {
+        let r = this.clone();
+        for (let i = r.length - 1; i > 0; i--) {
+            let j = __WEBPACK_IMPORTED_MODULE_0__random__["a" /* random */].integer(0, i);
+            let temp = r[i];
+            r[i] = r[j];
+            r[j] = temp;
+        }
+        return copytick(this, r);
+    }
+    take(n) {
+        return copytick(this, this.slice(0, n));
+    }
+    drop(n) {
+        return copytick(this, this.slice(n));
+    }
+    butlast() {
+        return this.take(this.length - 1);
+    }
+    drop_last(n) {
+        return this.take(this.length - n);
+    }
+    take_last(n) {
+        return this.drop(this.length - n);
+    }
+    stretch(n) {
+        let r = new Ring();
+        for (let x of this)
+            for (let i = 0; i < n; i++)
+                r.push(x);
+        return copytick(this, r);
+    }
+    repeat(n) {
+        let r = new Ring();
+        for (let i = 0; i < n; i++)
+            for (let x of this)
+                r.push(x);
+        return copytick(this, r);
+    }
+    mirror() {
+        let r = this.concat(this.reverse());
+        return copytick(this, r);
+    }
+    reflect() {
+        let r = this.concat(this.reverse().drop(1));
+        return copytick(this, r);
+    }
+    scale(n) {
+        let r = this.clone();
+        for (let i = 0; i < r.length; i++)
+            r[i] *= n;
+        return copytick(this, r);
+    }
+    transpose(n) {
+        let r = this.clone();
+        for (let i = 0; i < r.length; i++)
+            r[i] += n;
+        return copytick(this, r);
+    }
+    toString() {
+        let arr = [];
+        for (let x of this)
+            arr.push(x.toString());
+        arr[this.tick_ct] = '>' + arr[this.tick_ct] + '<';
+        return '(' + arr.join(', ') + ')';
+    }
+}
+/* unused harmony export Ring */
+
+function setupRing() {
+    if (!Array.prototype.ring) {
+        Array.prototype.ring = function () {
+            return new Ring().fromArray(this);
+        };
+    }
+}
+function copytick(from, to) {
+    to.tick_ct = from.tick_ct;
+    if (to.tick_ct >= to.length)
+        to.tick_ct = to.length - 1;
+    return to;
+}
+
+
+/***/ }),
+/* 37 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// A library of seedable RNGs implemented in Javascript.
+//
+// Usage:
+//
+// var seedrandom = require('seedrandom');
+// var random = seedrandom(1); // or any seed.
+// var x = random();       // 0 <= x < 1.  Every bit is random.
+// var x = random.quick(); // 0 <= x < 1.  32 bits of randomness.
+
+// alea, a 53-bit multiply-with-carry generator by Johannes Baagøe.
+// Period: ~2^116
+// Reported to pass all BigCrush tests.
+var alea = __webpack_require__(38);
+
+// xor128, a pure xor-shift generator by George Marsaglia.
+// Period: 2^128-1.
+// Reported to fail: MatrixRank and LinearComp.
+var xor128 = __webpack_require__(39);
+
+// xorwow, George Marsaglia's 160-bit xor-shift combined plus weyl.
+// Period: 2^192-2^32
+// Reported to fail: CollisionOver, SimpPoker, and LinearComp.
+var xorwow = __webpack_require__(40);
+
+// xorshift7, by François Panneton and Pierre L'ecuyer, takes
+// a different approach: it adds robustness by allowing more shifts
+// than Marsaglia's original three.  It is a 7-shift generator
+// with 256 bits, that passes BigCrush with no systmatic failures.
+// Period 2^256-1.
+// No systematic BigCrush failures reported.
+var xorshift7 = __webpack_require__(41);
+
+// xor4096, by Richard Brent, is a 4096-bit xor-shift with a
+// very long period that also adds a Weyl generator. It also passes
+// BigCrush with no systematic failures.  Its long period may
+// be useful if you have many generators and need to avoid
+// collisions.
+// Period: 2^4128-2^32.
+// No systematic BigCrush failures reported.
+var xor4096 = __webpack_require__(42);
+
+// Tyche-i, by Samuel Neves and Filipe Araujo, is a bit-shifting random
+// number generator derived from ChaCha, a modern stream cipher.
+// https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
+// Period: ~2^127
+// No systematic BigCrush failures reported.
+var tychei = __webpack_require__(43);
+
+// The original ARC4-based prng included in this library.
+// Period: ~2^1600
+var sr = __webpack_require__(44);
+
+sr.alea = alea;
+sr.xor128 = xor128;
+sr.xorwow = xorwow;
+sr.xorshift7 = xorshift7;
+sr.xor4096 = xor4096;
+sr.tychei = tychei;
+
+module.exports = sr;
+
+
+/***/ }),
+/* 38 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A port of an algorithm by Johannes Baagøe <baagoe@baagoe.com>, 2010
+// http://baagoe.com/en/RandomMusings/javascript/
+// https://github.com/nquinlan/better-random-numbers-for-javascript-mirror
+// Original work is under MIT license -
+
+// Copyright (C) 2010 by Johannes Baagøe <baagoe@baagoe.org>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+
+
+(function(global, module, define) {
+
+function Alea(seed) {
+  var me = this, mash = Mash();
+
+  me.next = function() {
+    var t = 2091639 * me.s0 + me.c * 2.3283064365386963e-10; // 2^-32
+    me.s0 = me.s1;
+    me.s1 = me.s2;
+    return me.s2 = t - (me.c = t | 0);
+  };
+
+  // Apply the seeding algorithm from Baagoe.
+  me.c = 1;
+  me.s0 = mash(' ');
+  me.s1 = mash(' ');
+  me.s2 = mash(' ');
+  me.s0 -= mash(seed);
+  if (me.s0 < 0) { me.s0 += 1; }
+  me.s1 -= mash(seed);
+  if (me.s1 < 0) { me.s1 += 1; }
+  me.s2 -= mash(seed);
+  if (me.s2 < 0) { me.s2 += 1; }
+  mash = null;
+}
+
+function copy(f, t) {
+  t.c = f.c;
+  t.s0 = f.s0;
+  t.s1 = f.s1;
+  t.s2 = f.s2;
+  return t;
+}
+
+function impl(seed, opts) {
+  var xg = new Alea(seed),
+      state = opts && opts.state,
+      prng = xg.next;
+  prng.int32 = function() { return (xg.next() * 0x100000000) | 0; }
+  prng.double = function() {
+    return prng() + (prng() * 0x200000 | 0) * 1.1102230246251565e-16; // 2^-53
+  };
+  prng.quick = prng;
+  if (state) {
+    if (typeof(state) == 'object') copy(state, xg);
+    prng.state = function() { return copy(xg, {}); }
+  }
+  return prng;
+}
+
+function Mash() {
+  var n = 0xefc8249d;
+
+  var mash = function(data) {
+    data = data.toString();
+    for (var i = 0; i < data.length; i++) {
+      n += data.charCodeAt(i);
+      var h = 0.02519603282416938 * n;
+      n = h >>> 0;
+      h -= n;
+      h *= n;
+      n = h >>> 0;
+      h -= n;
+      n += h * 0x100000000; // 2^32
+    }
+    return (n >>> 0) * 2.3283064365386963e-10; // 2^-32
+  };
+
+  return mash;
+}
+
+
+if (module && module.exports) {
+  module.exports = impl;
+} else if (__webpack_require__(0) && __webpack_require__(3)) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+} else {
+  this.alea = impl;
+}
+
+})(
+  this,
+  (typeof module) == 'object' && module,    // present in node.js
+  __webpack_require__(0)   // present with an AMD loader
+);
+
+
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module)))
+
+/***/ }),
+/* 39 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "xor128" prng algorithm by
+// George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
+
+(function(global, module, define) {
+
+function XorGen(seed) {
+  var me = this, strseed = '';
+
+  me.x = 0;
+  me.y = 0;
+  me.z = 0;
+  me.w = 0;
+
+  // Set up generator function.
+  me.next = function() {
+    var t = me.x ^ (me.x << 11);
+    me.x = me.y;
+    me.y = me.z;
+    me.z = me.w;
+    return me.w ^= (me.w >>> 19) ^ t ^ (t >>> 8);
+  };
+
+  if (seed === (seed | 0)) {
+    // Integer seed.
+    me.x = seed;
+  } else {
+    // String seed.
+    strseed += seed;
+  }
+
+  // Mix in string seed, then discard an initial batch of 64 values.
+  for (var k = 0; k < strseed.length + 64; k++) {
+    me.x ^= strseed.charCodeAt(k) | 0;
+    me.next();
+  }
+}
+
+function copy(f, t) {
+  t.x = f.x;
+  t.y = f.y;
+  t.z = f.z;
+  t.w = f.w;
+  return t;
+}
+
+function impl(seed, opts) {
+  var xg = new XorGen(seed),
+      state = opts && opts.state,
+      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
+  prng.double = function() {
+    do {
+      var top = xg.next() >>> 11,
+          bot = (xg.next() >>> 0) / 0x100000000,
+          result = (top + bot) / (1 << 21);
+    } while (result === 0);
+    return result;
+  };
+  prng.int32 = xg.next;
+  prng.quick = prng;
+  if (state) {
+    if (typeof(state) == 'object') copy(state, xg);
+    prng.state = function() { return copy(xg, {}); }
+  }
+  return prng;
+}
+
+if (module && module.exports) {
+  module.exports = impl;
+} else if (__webpack_require__(0) && __webpack_require__(3)) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+} else {
+  this.xor128 = impl;
+}
+
+})(
+  this,
+  (typeof module) == 'object' && module,    // present in node.js
+  __webpack_require__(0)   // present with an AMD loader
+);
+
+
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module)))
+
+/***/ }),
+/* 40 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "xorwow" prng algorithm by
+// George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
+
+(function(global, module, define) {
+
+function XorGen(seed) {
+  var me = this, strseed = '';
+
+  // Set up generator function.
+  me.next = function() {
+    var t = (me.x ^ (me.x >>> 2));
+    me.x = me.y; me.y = me.z; me.z = me.w; me.w = me.v;
+    return (me.d = (me.d + 362437 | 0)) +
+       (me.v = (me.v ^ (me.v << 4)) ^ (t ^ (t << 1))) | 0;
+  };
+
+  me.x = 0;
+  me.y = 0;
+  me.z = 0;
+  me.w = 0;
+  me.v = 0;
+
+  if (seed === (seed | 0)) {
+    // Integer seed.
+    me.x = seed;
+  } else {
+    // String seed.
+    strseed += seed;
+  }
+
+  // Mix in string seed, then discard an initial batch of 64 values.
+  for (var k = 0; k < strseed.length + 64; k++) {
+    me.x ^= strseed.charCodeAt(k) | 0;
+    if (k == strseed.length) {
+      me.d = me.x << 10 ^ me.x >>> 4;
+    }
+    me.next();
+  }
+}
+
+function copy(f, t) {
+  t.x = f.x;
+  t.y = f.y;
+  t.z = f.z;
+  t.w = f.w;
+  t.v = f.v;
+  t.d = f.d;
+  return t;
+}
+
+function impl(seed, opts) {
+  var xg = new XorGen(seed),
+      state = opts && opts.state,
+      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
+  prng.double = function() {
+    do {
+      var top = xg.next() >>> 11,
+          bot = (xg.next() >>> 0) / 0x100000000,
+          result = (top + bot) / (1 << 21);
+    } while (result === 0);
+    return result;
+  };
+  prng.int32 = xg.next;
+  prng.quick = prng;
+  if (state) {
+    if (typeof(state) == 'object') copy(state, xg);
+    prng.state = function() { return copy(xg, {}); }
+  }
+  return prng;
+}
+
+if (module && module.exports) {
+  module.exports = impl;
+} else if (__webpack_require__(0) && __webpack_require__(3)) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+} else {
+  this.xorwow = impl;
+}
+
+})(
+  this,
+  (typeof module) == 'object' && module,    // present in node.js
+  __webpack_require__(0)   // present with an AMD loader
+);
+
+
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module)))
+
+/***/ }),
+/* 41 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "xorshift7" algorithm by
+// François Panneton and Pierre L'ecuyer:
+// "On the Xorgshift Random Number Generators"
+// http://saluc.engr.uconn.edu/refs/crypto/rng/panneton05onthexorshift.pdf
+
+(function(global, module, define) {
+
+function XorGen(seed) {
+  var me = this;
+
+  // Set up generator function.
+  me.next = function() {
+    // Update xor generator.
+    var X = me.x, i = me.i, t, v, w;
+    t = X[i]; t ^= (t >>> 7); v = t ^ (t << 24);
+    t = X[(i + 1) & 7]; v ^= t ^ (t >>> 10);
+    t = X[(i + 3) & 7]; v ^= t ^ (t >>> 3);
+    t = X[(i + 4) & 7]; v ^= t ^ (t << 7);
+    t = X[(i + 7) & 7]; t = t ^ (t << 13); v ^= t ^ (t << 9);
+    X[i] = v;
+    me.i = (i + 1) & 7;
+    return v;
+  };
+
+  function init(me, seed) {
+    var j, w, X = [];
+
+    if (seed === (seed | 0)) {
+      // Seed state array using a 32-bit integer.
+      w = X[0] = seed;
+    } else {
+      // Seed state using a string.
+      seed = '' + seed;
+      for (j = 0; j < seed.length; ++j) {
+        X[j & 7] = (X[j & 7] << 15) ^
+            (seed.charCodeAt(j) + X[(j + 1) & 7] << 13);
+      }
+    }
+    // Enforce an array length of 8, not all zeroes.
+    while (X.length < 8) X.push(0);
+    for (j = 0; j < 8 && X[j] === 0; ++j);
+    if (j == 8) w = X[7] = -1; else w = X[j];
+
+    me.x = X;
+    me.i = 0;
+
+    // Discard an initial 256 values.
+    for (j = 256; j > 0; --j) {
+      me.next();
+    }
+  }
+
+  init(me, seed);
+}
+
+function copy(f, t) {
+  t.x = f.x.slice();
+  t.i = f.i;
+  return t;
+}
+
+function impl(seed, opts) {
+  if (seed == null) seed = +(new Date);
+  var xg = new XorGen(seed),
+      state = opts && opts.state,
+      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
+  prng.double = function() {
+    do {
+      var top = xg.next() >>> 11,
+          bot = (xg.next() >>> 0) / 0x100000000,
+          result = (top + bot) / (1 << 21);
+    } while (result === 0);
+    return result;
+  };
+  prng.int32 = xg.next;
+  prng.quick = prng;
+  if (state) {
+    if (state.x) copy(state, xg);
+    prng.state = function() { return copy(xg, {}); }
+  }
+  return prng;
+}
+
+if (module && module.exports) {
+  module.exports = impl;
+} else if (__webpack_require__(0) && __webpack_require__(3)) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+} else {
+  this.xorshift7 = impl;
+}
+
+})(
+  this,
+  (typeof module) == 'object' && module,    // present in node.js
+  __webpack_require__(0)   // present with an AMD loader
+);
+
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module)))
+
+/***/ }),
+/* 42 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of Richard Brent's Xorgens xor4096 algorithm.
+//
+// This fast non-cryptographic random number generator is designed for
+// use in Monte-Carlo algorithms. It combines a long-period xorshift
+// generator with a Weyl generator, and it passes all common batteries
+// of stasticial tests for randomness while consuming only a few nanoseconds
+// for each prng generated.  For background on the generator, see Brent's
+// paper: "Some long-period random number generators using shifts and xors."
+// http://arxiv.org/pdf/1004.3115v1.pdf
+//
+// Usage:
+//
+// var xor4096 = require('xor4096');
+// random = xor4096(1);                        // Seed with int32 or string.
+// assert.equal(random(), 0.1520436450538547); // (0, 1) range, 53 bits.
+// assert.equal(random.int32(), 1806534897);   // signed int32, 32 bits.
+//
+// For nonzero numeric keys, this impelementation provides a sequence
+// identical to that by Brent's xorgens 3 implementaion in C.  This
+// implementation also provides for initalizing the generator with
+// string seeds, or for saving and restoring the state of the generator.
+//
+// On Chrome, this prng benchmarks about 2.1 times slower than
+// Javascript's built-in Math.random().
+
+(function(global, module, define) {
+
+function XorGen(seed) {
+  var me = this;
+
+  // Set up generator function.
+  me.next = function() {
+    var w = me.w,
+        X = me.X, i = me.i, t, v;
+    // Update Weyl generator.
+    me.w = w = (w + 0x61c88647) | 0;
+    // Update xor generator.
+    v = X[(i + 34) & 127];
+    t = X[i = ((i + 1) & 127)];
+    v ^= v << 13;
+    t ^= t << 17;
+    v ^= v >>> 15;
+    t ^= t >>> 12;
+    // Update Xor generator array state.
+    v = X[i] = v ^ t;
+    me.i = i;
+    // Result is the combination.
+    return (v + (w ^ (w >>> 16))) | 0;
+  };
+
+  function init(me, seed) {
+    var t, v, i, j, w, X = [], limit = 128;
+    if (seed === (seed | 0)) {
+      // Numeric seeds initialize v, which is used to generates X.
+      v = seed;
+      seed = null;
+    } else {
+      // String seeds are mixed into v and X one character at a time.
+      seed = seed + '\0';
+      v = 0;
+      limit = Math.max(limit, seed.length);
+    }
+    // Initialize circular array and weyl value.
+    for (i = 0, j = -32; j < limit; ++j) {
+      // Put the unicode characters into the array, and shuffle them.
+      if (seed) v ^= seed.charCodeAt((j + 32) % seed.length);
+      // After 32 shuffles, take v as the starting w value.
+      if (j === 0) w = v;
+      v ^= v << 10;
+      v ^= v >>> 15;
+      v ^= v << 4;
+      v ^= v >>> 13;
+      if (j >= 0) {
+        w = (w + 0x61c88647) | 0;     // Weyl.
+        t = (X[j & 127] ^= (v + w));  // Combine xor and weyl to init array.
+        i = (0 == t) ? i + 1 : 0;     // Count zeroes.
+      }
+    }
+    // We have detected all zeroes; make the key nonzero.
+    if (i >= 128) {
+      X[(seed && seed.length || 0) & 127] = -1;
+    }
+    // Run the generator 512 times to further mix the state before using it.
+    // Factoring this as a function slows the main generator, so it is just
+    // unrolled here.  The weyl generator is not advanced while warming up.
+    i = 127;
+    for (j = 4 * 128; j > 0; --j) {
+      v = X[(i + 34) & 127];
+      t = X[i = ((i + 1) & 127)];
+      v ^= v << 13;
+      t ^= t << 17;
+      v ^= v >>> 15;
+      t ^= t >>> 12;
+      X[i] = v ^ t;
+    }
+    // Storing state as object members is faster than using closure variables.
+    me.w = w;
+    me.X = X;
+    me.i = i;
+  }
+
+  init(me, seed);
+}
+
+function copy(f, t) {
+  t.i = f.i;
+  t.w = f.w;
+  t.X = f.X.slice();
+  return t;
+};
+
+function impl(seed, opts) {
+  if (seed == null) seed = +(new Date);
+  var xg = new XorGen(seed),
+      state = opts && opts.state,
+      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
+  prng.double = function() {
+    do {
+      var top = xg.next() >>> 11,
+          bot = (xg.next() >>> 0) / 0x100000000,
+          result = (top + bot) / (1 << 21);
+    } while (result === 0);
+    return result;
+  };
+  prng.int32 = xg.next;
+  prng.quick = prng;
+  if (state) {
+    if (state.X) copy(state, xg);
+    prng.state = function() { return copy(xg, {}); }
+  }
+  return prng;
+}
+
+if (module && module.exports) {
+  module.exports = impl;
+} else if (__webpack_require__(0) && __webpack_require__(3)) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+} else {
+  this.xor4096 = impl;
+}
+
+})(
+  this,                                     // window object or global
+  (typeof module) == 'object' && module,    // present in node.js
+  __webpack_require__(0)   // present with an AMD loader
+);
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module)))
+
+/***/ }),
+/* 43 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "Tyche-i" prng algorithm by
+// Samuel Neves and Filipe Araujo.
+// See https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
+
+(function(global, module, define) {
+
+function XorGen(seed) {
+  var me = this, strseed = '';
+
+  // Set up generator function.
+  me.next = function() {
+    var b = me.b, c = me.c, d = me.d, a = me.a;
+    b = (b << 25) ^ (b >>> 7) ^ c;
+    c = (c - d) | 0;
+    d = (d << 24) ^ (d >>> 8) ^ a;
+    a = (a - b) | 0;
+    me.b = b = (b << 20) ^ (b >>> 12) ^ c;
+    me.c = c = (c - d) | 0;
+    me.d = (d << 16) ^ (c >>> 16) ^ a;
+    return me.a = (a - b) | 0;
+  };
+
+  /* The following is non-inverted tyche, which has better internal
+   * bit diffusion, but which is about 25% slower than tyche-i in JS.
+  me.next = function() {
+    var a = me.a, b = me.b, c = me.c, d = me.d;
+    a = (me.a + me.b | 0) >>> 0;
+    d = me.d ^ a; d = d << 16 ^ d >>> 16;
+    c = me.c + d | 0;
+    b = me.b ^ c; b = b << 12 ^ d >>> 20;
+    me.a = a = a + b | 0;
+    d = d ^ a; me.d = d = d << 8 ^ d >>> 24;
+    me.c = c = c + d | 0;
+    b = b ^ c;
+    return me.b = (b << 7 ^ b >>> 25);
+  }
+  */
+
+  me.a = 0;
+  me.b = 0;
+  me.c = 2654435769 | 0;
+  me.d = 1367130551;
+
+  if (seed === Math.floor(seed)) {
+    // Integer seed.
+    me.a = (seed / 0x100000000) | 0;
+    me.b = seed | 0;
+  } else {
+    // String seed.
+    strseed += seed;
+  }
+
+  // Mix in string seed, then discard an initial batch of 64 values.
+  for (var k = 0; k < strseed.length + 20; k++) {
+    me.b ^= strseed.charCodeAt(k) | 0;
+    me.next();
+  }
+}
+
+function copy(f, t) {
+  t.a = f.a;
+  t.b = f.b;
+  t.c = f.c;
+  t.d = f.d;
+  return t;
+};
+
+function impl(seed, opts) {
+  var xg = new XorGen(seed),
+      state = opts && opts.state,
+      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
+  prng.double = function() {
+    do {
+      var top = xg.next() >>> 11,
+          bot = (xg.next() >>> 0) / 0x100000000,
+          result = (top + bot) / (1 << 21);
+    } while (result === 0);
+    return result;
+  };
+  prng.int32 = xg.next;
+  prng.quick = prng;
+  if (state) {
+    if (typeof(state) == 'object') copy(state, xg);
+    prng.state = function() { return copy(xg, {}); }
+  }
+  return prng;
+}
+
+if (module && module.exports) {
+  module.exports = impl;
+} else if (__webpack_require__(0) && __webpack_require__(3)) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+} else {
+  this.tychei = impl;
+}
+
+})(
+  this,
+  (typeof module) == 'object' && module,    // present in node.js
+  __webpack_require__(0)   // present with an AMD loader
+);
+
+
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)(module)))
+
+/***/ }),
+/* 44 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_RESULT__;/*
+Copyright 2014 David Bau.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
+
+(function (pool, math) {
+//
+// The following constants are related to IEEE 754 limits.
+//
+var global = this,
+    width = 256,        // each RC4 output is 0 <= x < 256
+    chunks = 6,         // at least six RC4 outputs for each double
+    digits = 52,        // there are 52 significant digits in a double
+    rngname = 'random', // rngname: name for Math.random and Math.seedrandom
+    startdenom = math.pow(width, chunks),
+    significance = math.pow(2, digits),
+    overflow = significance * 2,
+    mask = width - 1,
+    nodecrypto;         // node.js crypto module, initialized at the bottom.
+
+//
+// seedrandom()
+// This is the seedrandom function described above.
+//
+function seedrandom(seed, options, callback) {
+  var key = [];
+  options = (options == true) ? { entropy: true } : (options || {});
+
+  // Flatten the seed string or build one from local entropy if needed.
+  var shortseed = mixkey(flatten(
+    options.entropy ? [seed, tostring(pool)] :
+    (seed == null) ? autoseed() : seed, 3), key);
+
+  // Use the seed to initialize an ARC4 generator.
+  var arc4 = new ARC4(key);
+
+  // This function returns a random double in [0, 1) that contains
+  // randomness in every bit of the mantissa of the IEEE 754 value.
+  var prng = function() {
+    var n = arc4.g(chunks),             // Start with a numerator n < 2 ^ 48
+        d = startdenom,                 //   and denominator d = 2 ^ 48.
+        x = 0;                          //   and no 'extra last byte'.
+    while (n < significance) {          // Fill up all significant digits by
+      n = (n + x) * width;              //   shifting numerator and
+      d *= width;                       //   denominator and generating a
+      x = arc4.g(1);                    //   new least-significant-byte.
+    }
+    while (n >= overflow) {             // To avoid rounding up, before adding
+      n /= 2;                           //   last byte, shift everything
+      d /= 2;                           //   right using integer math until
+      x >>>= 1;                         //   we have exactly the desired bits.
+    }
+    return (n + x) / d;                 // Form the number within [0, 1).
+  };
+
+  prng.int32 = function() { return arc4.g(4) | 0; }
+  prng.quick = function() { return arc4.g(4) / 0x100000000; }
+  prng.double = prng;
+
+  // Mix the randomness into accumulated entropy.
+  mixkey(tostring(arc4.S), pool);
+
+  // Calling convention: what to return as a function of prng, seed, is_math.
+  return (options.pass || callback ||
+      function(prng, seed, is_math_call, state) {
+        if (state) {
+          // Load the arc4 state from the given state if it has an S array.
+          if (state.S) { copy(state, arc4); }
+          // Only provide the .state method if requested via options.state.
+          prng.state = function() { return copy(arc4, {}); }
+        }
+
+        // If called as a method of Math (Math.seedrandom()), mutate
+        // Math.random because that is how seedrandom.js has worked since v1.0.
+        if (is_math_call) { math[rngname] = prng; return seed; }
+
+        // Otherwise, it is a newer calling convention, so return the
+        // prng directly.
+        else return prng;
+      })(
+  prng,
+  shortseed,
+  'global' in options ? options.global : (this == math),
+  options.state);
+}
+math['seed' + rngname] = seedrandom;
+
+//
+// ARC4
+//
+// An ARC4 implementation.  The constructor takes a key in the form of
+// an array of at most (width) integers that should be 0 <= x < (width).
+//
+// The g(count) method returns a pseudorandom integer that concatenates
+// the next (count) outputs from ARC4.  Its return value is a number x
+// that is in the range 0 <= x < (width ^ count).
+//
+function ARC4(key) {
+  var t, keylen = key.length,
+      me = this, i = 0, j = me.i = me.j = 0, s = me.S = [];
+
+  // The empty key [] is treated as [0].
+  if (!keylen) { key = [keylen++]; }
+
+  // Set up S using the standard key scheduling algorithm.
+  while (i < width) {
+    s[i] = i++;
+  }
+  for (i = 0; i < width; i++) {
+    s[i] = s[j = mask & (j + key[i % keylen] + (t = s[i]))];
+    s[j] = t;
+  }
+
+  // The "g" method returns the next (count) outputs as one number.
+  (me.g = function(count) {
+    // Using instance members instead of closure state nearly doubles speed.
+    var t, r = 0,
+        i = me.i, j = me.j, s = me.S;
+    while (count--) {
+      t = s[i = mask & (i + 1)];
+      r = r * width + s[mask & ((s[i] = s[j = mask & (j + t)]) + (s[j] = t))];
+    }
+    me.i = i; me.j = j;
+    return r;
+    // For robust unpredictability, the function call below automatically
+    // discards an initial batch of values.  This is called RC4-drop[256].
+    // See http://google.com/search?q=rsa+fluhrer+response&btnI
+  })(width);
+}
+
+//
+// copy()
+// Copies internal state of ARC4 to or from a plain object.
+//
+function copy(f, t) {
+  t.i = f.i;
+  t.j = f.j;
+  t.S = f.S.slice();
+  return t;
+};
+
+//
+// flatten()
+// Converts an object tree to nested arrays of strings.
+//
+function flatten(obj, depth) {
+  var result = [], typ = (typeof obj), prop;
+  if (depth && typ == 'object') {
+    for (prop in obj) {
+      try { result.push(flatten(obj[prop], depth - 1)); } catch (e) {}
+    }
+  }
+  return (result.length ? result : typ == 'string' ? obj : obj + '\0');
+}
+
+//
+// mixkey()
+// Mixes a string seed into a key that is an array of integers, and
+// returns a shortened string seed that is equivalent to the result key.
+//
+function mixkey(seed, key) {
+  var stringseed = seed + '', smear, j = 0;
+  while (j < stringseed.length) {
+    key[mask & j] =
+      mask & ((smear ^= key[mask & j] * 19) + stringseed.charCodeAt(j++));
+  }
+  return tostring(key);
+}
+
+//
+// autoseed()
+// Returns an object for autoseeding, using window.crypto and Node crypto
+// module if available.
+//
+function autoseed() {
+  try {
+    var out;
+    if (nodecrypto && (out = nodecrypto.randomBytes)) {
+      // The use of 'out' to remember randomBytes makes tight minified code.
+      out = out(width);
+    } else {
+      out = new Uint8Array(width);
+      (global.crypto || global.msCrypto).getRandomValues(out);
+    }
+    return tostring(out);
+  } catch (e) {
+    var browser = global.navigator,
+        plugins = browser && browser.plugins;
+    return [+new Date, global, plugins, global.screen, tostring(pool)];
+  }
+}
+
+//
+// tostring()
+// Converts an array of charcodes to a string
+//
+function tostring(a) {
+  return String.fromCharCode.apply(0, a);
+}
+
+//
+// When seedrandom.js is loaded, we immediately mix a few bits
+// from the built-in RNG into the entropy pool.  Because we do
+// not want to interfere with deterministic PRNG state later,
+// seedrandom will not call math.random on its own again after
+// initialization.
+//
+mixkey(math.random(), pool);
+
+//
+// Nodejs and AMD support: export the implementation as a module using
+// either convention.
+//
+if ((typeof module) == 'object' && module.exports) {
+  module.exports = seedrandom;
+  // When in node.js, try using crypto package for autoseeding.
+  try {
+    nodecrypto = __webpack_require__(45);
+  } catch (ex) {}
+} else if (true) {
+  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return seedrandom; }).call(exports, __webpack_require__, exports, module),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+}
+
+// End anonymous scope, and pass initial values.
+})(
+  [],     // pool: entropy pool starts empty
+  Math    // math: package containing random, pow, and seedrandom
+);
+
+
+/***/ }),
+/* 45 */
+/***/ (function(module, exports) {
+
+/* (ignored) */
+
+/***/ }),
+/* 46 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -4147,10 +5821,9 @@ function loadPages() {
 
 
 /***/ }),
-/* 28 */,
-/* 29 */,
-/* 30 */,
-/* 31 */
+/* 47 */,
+/* 48 */,
+/* 49 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6280,1433 +7953,504 @@ Tuna.toString = Tuna.prototype.toString = function () {
 
 
 /***/ }),
-/* 32 */
+/* 50 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = setupRing;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__random__ = __webpack_require__(37);
-
-class Ring extends Array {
-    constructor() {
-        super(...arguments);
-        this.tick_ct = 0;
-    }
-    tick() {
-        let result = this[this.tick_ct];
-        this.tick_ct++;
-        if (this.tick_ct >= this.length)
-            this.tick_ct = 0;
-        return result;
-    }
-    choose() {
-        return this[__WEBPACK_IMPORTED_MODULE_0__random__["a" /* random */].integer(0, this.length - 1)];
-    }
-    fromArray(arr) {
-        for (let x of arr)
-            this.push(x);
-        return this;
-    }
-    toArray() {
-        return new Array(...this);
-    }
-    clone() {
-        return copytick(this, this.toArray().ring());
-    }
-    reverse() {
-        return copytick(this, this.toArray().reverse().ring());
-    }
-    sort(compareFn) {
-        let r = this.toArray().sort(compareFn).ring();
-        return copytick(this, r);
-    }
-    shuffle() {
-        let r = this.clone();
-        for (let i = r.length - 1; i > 0; i--) {
-            let j = __WEBPACK_IMPORTED_MODULE_0__random__["a" /* random */].integer(0, i);
-            let temp = r[i];
-            r[i] = r[j];
-            r[j] = temp;
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return WebAudioFontPlayer; });
+let WebAudioFontPlayer = WebAudioFontPlayerConstructor;
+function WebAudioFontPlayerConstructor() {
+    this.envelopes = [];
+    this.onCacheFinish = null;
+    this.onCacheProgress = null;
+    this.afterTime = 0.05;
+    this.nearZero = 0.000001;
+    this.queueWaveTable = function (audioContext, target, preset, when, pitch, duration, volume, slides) {
+        if (volume) {
+            volume = 1.0 * volume;
         }
-        return copytick(this, r);
-    }
-    take(n) {
-        return copytick(this, this.slice(0, n));
-    }
-    drop(n) {
-        return copytick(this, this.slice(n));
-    }
-    butlast() {
-        return this.take(this.length - 1);
-    }
-    drop_last(n) {
-        return this.take(this.length - n);
-    }
-    take_last(n) {
-        return this.drop(this.length - n);
-    }
-    stretch(n) {
-        let r = new Ring();
-        for (let x of this)
-            for (let i = 0; i < n; i++)
-                r.push(x);
-        return copytick(this, r);
-    }
-    repeat(n) {
-        let r = new Ring();
-        for (let i = 0; i < n; i++)
-            for (let x of this)
-                r.push(x);
-        return copytick(this, r);
-    }
-    mirror() {
-        let r = this.concat(this.reverse());
-        return copytick(this, r);
-    }
-    reflect() {
-        let r = this.concat(this.reverse().drop(1));
-        return copytick(this, r);
-    }
-    scale(n) {
-        let r = this.clone();
-        for (let i = 0; i < r.length; i++)
-            r[i] *= n;
-        return copytick(this, r);
-    }
-    transpose(n) {
-        let r = this.clone();
-        for (let i = 0; i < r.length; i++)
-            r[i] += n;
-        return copytick(this, r);
-    }
-    toString() {
-        let arr = [];
-        for (let x of this)
-            arr.push(x.toString());
-        arr[this.tick_ct] = '>' + arr[this.tick_ct] + '<';
-        return '(' + arr.join(', ') + ')';
-    }
+        else {
+            volume = 1.0;
+        }
+        let zone = this.findZone(audioContext, preset, pitch);
+        if (!(zone.buffer))
+            throw new Error('Preset is not ready: empty buffer');
+        let baseDetune = zone.originalPitch - 100.0 * zone.coarseTune - zone.fineTune;
+        let playbackRate = 1.0 * Math.pow(2, (100.0 * pitch - baseDetune) / 1200.0);
+        let sampleRatio = zone.sampleRate / audioContext.sampleRate;
+        let startWhen = when;
+        if (startWhen < audioContext.currentTime) {
+            startWhen = audioContext.currentTime;
+        }
+        let waveDuration = duration + this.afterTime;
+        let loop = true;
+        if (zone.loopStart < 1 || zone.loopStart >= zone.loopEnd) {
+            loop = false;
+        }
+        if (!loop) {
+            if (waveDuration > zone.buffer.duration / playbackRate) {
+                waveDuration = zone.buffer.duration / playbackRate;
+            }
+        }
+        let envelope = this.findEnvelope(audioContext, target, startWhen, waveDuration);
+        this.setupEnvelope(audioContext, envelope, zone, volume, startWhen, waveDuration, duration);
+        envelope.audioBufferSourceNode = audioContext.createBufferSource();
+        envelope.audioBufferSourceNode.playbackRate.value = playbackRate;
+        if (slides) {
+            if (slides.length > 0) {
+                envelope.audioBufferSourceNode.playbackRate.setValueAtTime(playbackRate, when);
+                for (let i = 0; i < slides.length; i++) {
+                    let newPlaybackRate = 1.0 * Math.pow(2, (100.0 * slides[i].pitch - baseDetune) / 1200.0);
+                    let newWhen = when + slides[i].when;
+                    envelope.audioBufferSourceNode.playbackRate.linearRampToValueAtTime(newPlaybackRate, newWhen);
+                }
+            }
+        }
+        envelope.audioBufferSourceNode.buffer = zone.buffer;
+        if (loop) {
+            envelope.audioBufferSourceNode.loop = true;
+            envelope.audioBufferSourceNode.loopStart = zone.loopStart / zone.sampleRate + zone.delay;
+            envelope.audioBufferSourceNode.loopEnd = zone.loopEnd / zone.sampleRate + zone.delay;
+        }
+        else {
+            envelope.audioBufferSourceNode.loop = false;
+        }
+        envelope.audioBufferSourceNode.connect(envelope);
+        envelope.audioBufferSourceNode.start(startWhen, zone.delay);
+        envelope.audioBufferSourceNode.stop(startWhen + waveDuration);
+        envelope.when = startWhen;
+        envelope.duration = waveDuration;
+        envelope.pitch = pitch;
+        envelope.preset = preset;
+        return envelope;
+    };
+    this.noZeroVolume = function (n) {
+        if (n > this.nearZero) {
+            return n;
+        }
+        else {
+            return this.nearZero;
+        }
+    };
+    this.setupEnvelope = function (audioContext, envelope, zone, volume, when, sampleDuration, noteDuration) {
+        envelope.gain.setValueAtTime(this.noZeroVolume(0), audioContext.currentTime);
+        let lastTime = 0;
+        let lastVolume = 0;
+        let duration = noteDuration;
+        let ahdsr = zone.ahdsr;
+        if (sampleDuration < duration + this.afterTime) {
+            duration = sampleDuration - this.afterTime;
+        }
+        if (ahdsr) {
+            if (!(ahdsr.length > 0)) {
+                ahdsr = [{
+                        duration: 0,
+                        volume: 1
+                    }, {
+                        duration: 0.5,
+                        volume: 1
+                    }, {
+                        duration: 1.5,
+                        volume: 0.5
+                    }, {
+                        duration: 3,
+                        volume: 0
+                    }
+                ];
+            }
+        }
+        else {
+            ahdsr = [{
+                    duration: 0,
+                    volume: 1
+                }, {
+                    duration: duration,
+                    volume: 1
+                }
+            ];
+        }
+        envelope.gain.cancelScheduledValues(when);
+        envelope.gain.setValueAtTime(this.noZeroVolume(ahdsr[0].volume * volume), when);
+        for (let i = 0; i < ahdsr.length; i++) {
+            if (ahdsr[i].duration > 0) {
+                if (ahdsr[i].duration + lastTime > duration) {
+                    let r = 1 - (ahdsr[i].duration + lastTime - duration) / ahdsr[i].duration;
+                    let n = lastVolume - r * (lastVolume - ahdsr[i].volume);
+                    envelope.gain.linearRampToValueAtTime(this.noZeroVolume(volume * n), when + duration);
+                    break;
+                }
+                lastTime = lastTime + ahdsr[i].duration;
+                lastVolume = ahdsr[i].volume;
+                envelope.gain.linearRampToValueAtTime(this.noZeroVolume(volume * lastVolume), when + lastTime);
+            }
+        }
+        envelope.gain.linearRampToValueAtTime(this.noZeroVolume(0), when + duration + this.afterTime);
+    };
+    this.numValue = function (aValue, defValue) {
+        if (typeof aValue === 'number') {
+            return aValue;
+        }
+        else {
+            return defValue;
+        }
+    };
+    this.findEnvelope = function (audioContext, target, when, duration) {
+        let envelope = null;
+        for (let i = 0; i < this.envelopes.length; i++) {
+            let e = this.envelopes[i];
+            if (this.expireEnvelope(e, audioContext)) {
+                envelope = e;
+                break;
+            }
+        }
+        if (!(envelope)) {
+            envelope = audioContext.createGain();
+            envelope.target = target;
+            envelope.connect(target);
+            envelope.cancel = function (time) {
+                if (time === undefined)
+                    time = audioContext.currentTime;
+                if (envelope.when + envelope.duration > audioContext.currentTime) {
+                    envelope.gain.cancelScheduledValues(time);
+                    envelope.gain.setTargetAtTime(0.00001, time, 0.1);
+                    envelope.when = time + 0.00001;
+                    envelope.duration = 0;
+                }
+            };
+            this.envelopes.push(envelope);
+        }
+        console.log('---', this.envelopes.length);
+        return envelope;
+    };
+    this.expireEnvelope = function (e, ctx) {
+        if (ctx.currentTime > e.when + e.duration + 0.1) {
+            try {
+                e.audioBufferSourceNode.disconnect();
+                e.audioBufferSourceNode.stop(0);
+                e.audioBufferSourceNode = null;
+            }
+            catch (x) {
+                // audioBufferSourceNode is dead already
+            }
+            return true;
+        }
+        return false;
+    };
+    this.expireEnvelopes = function (ctx) {
+        this.envelopes = this.envelopes.filter((e) => !this.expireEnvelope(e, ctx));
+    };
+    this.adjustPreset = function (audioContext, preset, cb) {
+        preset.bufferct = 0;
+        for (let i = 0; i < preset.zones.length; i++) {
+            this.adjustZone(audioContext, preset.zones[i], preset, cb);
+        }
+    };
+    this.adjustZone = function (audioContext, zone, preset, cb) {
+        if (zone.buffer) {
+            //
+        }
+        else {
+            zone.delay = 0;
+            if (zone.sample) {
+                let decoded = atob(zone.sample);
+                zone.buffer = audioContext.createBuffer(1, decoded.length / 2, zone.sampleRate);
+                let float32Array = zone.buffer.getChannelData(0);
+                let b1, b2, n;
+                for (let i = 0; i < decoded.length / 2; i++) {
+                    b1 = decoded.charCodeAt(i * 2);
+                    b2 = decoded.charCodeAt(i * 2 + 1);
+                    if (b1 < 0) {
+                        b1 = 256 + b1;
+                    }
+                    if (b2 < 0) {
+                        b2 = 256 + b2;
+                    }
+                    n = b2 * 256 + b1;
+                    if (n >= 65536 / 2) {
+                        n = n - 65536;
+                    }
+                    float32Array[i] = n / 65536.0;
+                }
+                preset.bufferct++;
+                if (preset.bufferct >= preset.zones.length && cb)
+                    cb();
+            }
+            else {
+                if (zone.file) {
+                    let datalen = zone.file.length;
+                    let arraybuffer = new ArrayBuffer(datalen);
+                    let view = new Uint8Array(arraybuffer);
+                    let decoded = atob(zone.file);
+                    let b;
+                    for (let i = 0; i < decoded.length; i++) {
+                        b = decoded.charCodeAt(i);
+                        view[i] = b;
+                    }
+                    audioContext.decodeAudioData(arraybuffer, function (audioBuffer) {
+                        zone.buffer = audioBuffer;
+                        preset.bufferct++;
+                        if (preset.bufferct >= preset.zones.length && cb)
+                            cb();
+                    });
+                }
+            }
+            zone.loopStart = this.numValue(zone.loopStart, 0);
+            zone.loopEnd = this.numValue(zone.loopEnd, 0);
+            zone.coarseTune = this.numValue(zone.coarseTune, 0);
+            zone.fineTune = this.numValue(zone.fineTune, 0);
+            zone.originalPitch = this.numValue(zone.originalPitch, 6000);
+            zone.sampleRate = this.numValue(zone.sampleRate, 44100);
+            zone.sustain = this.numValue(zone.originalPitch, 0);
+        }
+    };
+    this.findZone = function (audioContext, preset, pitch) {
+        let zone = null;
+        for (let i = preset.zones.length - 1; i >= 0; i--) {
+            zone = preset.zones[i];
+            if (zone.keyRangeLow <= pitch && zone.keyRangeHigh + 1 >= pitch) {
+                break;
+            }
+        }
+        try {
+            this.adjustZone(audioContext, zone);
+        }
+        catch (ex) {
+            console.log('adjustZone', ex);
+        }
+        return zone;
+    };
+    this.cancelQueue = function (audioContext) {
+        for (let i = 0; i < this.envelopes.length; i++) {
+            let e = this.envelopes[i];
+            e.gain.cancelScheduledValues(0);
+            e.gain.setValueAtTime(this.nearZero, audioContext.currentTime);
+            e.when = -1;
+            try {
+                e.audioBufferSourceNode.disconnect();
+            }
+            catch (ex) {
+                console.log(ex);
+            }
+        }
+    };
+    return this;
 }
-/* unused harmony export Ring */
-
-function setupRing() {
-    if (!Array.prototype.ring) {
-        Array.prototype.ring = function () {
-            return new Ring().fromArray(this);
-        };
-    }
-}
-function copytick(from, to) {
-    to.tick_ct = from.tick_ct;
-    if (to.tick_ct >= to.length)
-        to.tick_ct = to.length - 1;
-    return to;
-}
-
-
-/***/ }),
-/* 33 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Note; });
-/* harmony export (immutable) */ __webpack_exports__["b"] = makeScale;
-let Note = {
-    C0: 12, Cs0: 13, Db0: 13, D0: 14, Ds0: 15, Eb0: 15,
-    E0: 16, F0: 17, Fs0: 18, Gb0: 18, G0: 19, Gs0: 20,
-    Ab0: 20, A0: 21, As0: 22, Bb0: 22, B0: 23,
-    C1: 24, Cs1: 25, Db1: 25, D1: 26, Ds1: 27, Eb1: 27,
-    E1: 28, F1: 29, Fs1: 30, Gb1: 30, G1: 31, Gs1: 32,
-    Ab1: 32, A1: 33, As1: 34, Bb1: 34, B1: 35,
-    C2: 36, Cs2: 37, Db2: 37, D2: 38, Ds2: 39, Eb2: 39,
-    E2: 40, F2: 41, Fs2: 42, Gb2: 42, G2: 43, Gs2: 44,
-    Ab2: 44, A2: 45, As2: 46, Bb2: 46, B2: 47,
-    C3: 48, Cs3: 49, Db3: 49, D3: 50, Ds3: 51, Eb3: 51,
-    E3: 52, F3: 53, Fs3: 54, Gb3: 54, G3: 55, Gs3: 56,
-    Ab3: 56, A3: 57, As3: 58, Bb3: 58, B3: 59,
-    C4: 60, Cs4: 61, Db4: 61, D4: 62, Ds4: 63, Eb4: 63,
-    E4: 64, F4: 65, Fs4: 66, Gb4: 66, G4: 67, Gs4: 68,
-    Ab4: 68, A4: 69, As4: 70, Bb4: 70, B4: 71,
-    C5: 72, Cs5: 73, Db5: 73, D5: 74, Ds5: 75, Eb5: 75,
-    E5: 76, F5: 77, Fs5: 78, Gb5: 78, G5: 79, Gs5: 80,
-    Ab5: 80, A5: 81, As5: 82, Bb5: 82, B5: 83,
-    C6: 84, Cs6: 85, Db6: 85, D6: 86, Ds6: 87, Eb6: 87,
-    E6: 88, F6: 89, Fs6: 90, Gb6: 90, G6: 91, Gs6: 92,
-    Ab6: 92, A6: 93, As6: 94, Bb6: 94, B6: 95,
-    C7: 96, Cs7: 97, Db7: 97, D7: 98, Ds7: 99, Eb7: 99,
-    E7: 100, F7: 101, Fs7: 102, Gb7: 102, G7: 103, Gs7: 104,
-    Ab7: 104, A7: 105, As7: 106, Bb7: 106, B7: 107,
-    C8: 108, Cs8: 109, Db8: 109, D8: 110, Ds8: 111, Eb8: 111,
-    E8: 112, F8: 113, Fs8: 114, Gb8: 114, G8: 115, Gs8: 116,
-    Ab8: 116, A8: 117, As8: 118, Bb8: 118, B8: 119
-};
-const NoteDeltas = {
-    major: [0, 2, 4, 5, 7, 9, 11, 12],
-    major_pentatonic: [0, 2, 4, 7, 9, 12],
-    minor: [0, 2, 3, 5, 7, 8, 10, 12],
-    minor_pentatonic: [0, 3, 5, 7, 10, 12],
-    chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-};
-function invertEnum(enm) {
-    for (let k of Object.getOwnPropertyNames(enm))
-        enm[enm[k]] = k;
-}
-invertEnum(Note);
-function makeSingleScale(note, type) {
-    let deltas = NoteDeltas[type];
-    if (!deltas)
-        throw new Error(`Scale type "${type}" does not exist`);
-    let r = [];
-    for (let delta of deltas)
-        r.push(note + delta);
-    return r.ring();
-}
-function makeScale(note, type = 'major', octaves = 1) {
-    if (octaves <= 1)
-        return makeSingleScale(note, type);
-    let r = [].ring();
-    for (let oct = 0; oct < octaves; oct++) {
-        r = r.concat(makeSingleScale(note + oct * 12, type));
-        if (oct < octaves - 1)
-            r = r.butlast();
-    }
-    return r;
-}
-
-
-/***/ }),
-/* 34 */
-/***/ (function(module, exports) {
-
-module.exports = function() {
-	throw new Error("define cannot be used indirect");
-};
-
-
-/***/ }),
-/* 35 */
-/***/ (function(module, exports) {
-
-module.exports = function(module) {
-	if(!module.webpackPolyfill) {
-		module.deprecate = function() {};
-		module.paths = [];
-		// module.parent = undefined by default
-		if(!module.children) module.children = [];
-		Object.defineProperty(module, "loaded", {
-			enumerable: true,
-			get: function() {
-				return module.l;
-			}
-		});
-		Object.defineProperty(module, "id", {
-			enumerable: true,
-			get: function() {
-				return module.i;
-			}
-		});
-		module.webpackPolyfill = 1;
-	}
-	return module;
-};
-
-
-/***/ }),
-/* 36 */
-/***/ (function(module, exports) {
-
-/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {/* globals __webpack_amd_options__ */
-module.exports = __webpack_amd_options__;
-
-/* WEBPACK VAR INJECTION */}.call(exports, {}))
-
-/***/ }),
-/* 37 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return random; });
-const seedrandom = __webpack_require__(38);
-let random = {
-    seed(newSeed) {
-        if (newSeed !== undefined)
-            setSeedNumber(newSeed);
-        return seedNumber;
-    },
-    float(from, to) {
-        if (to === undefined)
-            return rng() * from;
-        return from + rng() * (to - from);
-    },
-    integer(from, to) {
-        return from + Math.floor(rng() * (to - from + 1));
-    },
-    dice(sides) {
-        return this.integer(1, sides);
-    },
-    one_in(times) {
-        return this.dice(times) === 1;
-    },
-    choose(...args) {
-        let arr = [];
-        for (let a of args)
-            arr = arr.concat(a);
-        return arr[this.dice(arr.length) - 1];
-    }
-};
-let seedNumber = 0;
-let rng;
-function setSeedNumber(newSeed) {
-    let seed = (newSeed + 123456789).toString();
-    rng = seedrandom(seed);
-    seedNumber = newSeed;
-}
-setSeedNumber(0);
-
-
-/***/ }),
-/* 38 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// A library of seedable RNGs implemented in Javascript.
-//
-// Usage:
-//
-// var seedrandom = require('seedrandom');
-// var random = seedrandom(1); // or any seed.
-// var x = random();       // 0 <= x < 1.  Every bit is random.
-// var x = random.quick(); // 0 <= x < 1.  32 bits of randomness.
-
-// alea, a 53-bit multiply-with-carry generator by Johannes Baagøe.
-// Period: ~2^116
-// Reported to pass all BigCrush tests.
-var alea = __webpack_require__(39);
-
-// xor128, a pure xor-shift generator by George Marsaglia.
-// Period: 2^128-1.
-// Reported to fail: MatrixRank and LinearComp.
-var xor128 = __webpack_require__(40);
-
-// xorwow, George Marsaglia's 160-bit xor-shift combined plus weyl.
-// Period: 2^192-2^32
-// Reported to fail: CollisionOver, SimpPoker, and LinearComp.
-var xorwow = __webpack_require__(41);
-
-// xorshift7, by François Panneton and Pierre L'ecuyer, takes
-// a different approach: it adds robustness by allowing more shifts
-// than Marsaglia's original three.  It is a 7-shift generator
-// with 256 bits, that passes BigCrush with no systmatic failures.
-// Period 2^256-1.
-// No systematic BigCrush failures reported.
-var xorshift7 = __webpack_require__(42);
-
-// xor4096, by Richard Brent, is a 4096-bit xor-shift with a
-// very long period that also adds a Weyl generator. It also passes
-// BigCrush with no systematic failures.  Its long period may
-// be useful if you have many generators and need to avoid
-// collisions.
-// Period: 2^4128-2^32.
-// No systematic BigCrush failures reported.
-var xor4096 = __webpack_require__(43);
-
-// Tyche-i, by Samuel Neves and Filipe Araujo, is a bit-shifting random
-// number generator derived from ChaCha, a modern stream cipher.
-// https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
-// Period: ~2^127
-// No systematic BigCrush failures reported.
-var tychei = __webpack_require__(44);
-
-// The original ARC4-based prng included in this library.
-// Period: ~2^1600
-var sr = __webpack_require__(45);
-
-sr.alea = alea;
-sr.xor128 = xor128;
-sr.xorwow = xorwow;
-sr.xorshift7 = xorshift7;
-sr.xor4096 = xor4096;
-sr.tychei = tychei;
-
-module.exports = sr;
-
-
-/***/ }),
-/* 39 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A port of an algorithm by Johannes Baagøe <baagoe@baagoe.com>, 2010
-// http://baagoe.com/en/RandomMusings/javascript/
-// https://github.com/nquinlan/better-random-numbers-for-javascript-mirror
-// Original work is under MIT license -
-
-// Copyright (C) 2010 by Johannes Baagøe <baagoe@baagoe.org>
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
-
-
-(function(global, module, define) {
-
-function Alea(seed) {
-  var me = this, mash = Mash();
-
-  me.next = function() {
-    var t = 2091639 * me.s0 + me.c * 2.3283064365386963e-10; // 2^-32
-    me.s0 = me.s1;
-    me.s1 = me.s2;
-    return me.s2 = t - (me.c = t | 0);
-  };
-
-  // Apply the seeding algorithm from Baagoe.
-  me.c = 1;
-  me.s0 = mash(' ');
-  me.s1 = mash(' ');
-  me.s2 = mash(' ');
-  me.s0 -= mash(seed);
-  if (me.s0 < 0) { me.s0 += 1; }
-  me.s1 -= mash(seed);
-  if (me.s1 < 0) { me.s1 += 1; }
-  me.s2 -= mash(seed);
-  if (me.s2 < 0) { me.s2 += 1; }
-  mash = null;
-}
-
-function copy(f, t) {
-  t.c = f.c;
-  t.s0 = f.s0;
-  t.s1 = f.s1;
-  t.s2 = f.s2;
-  return t;
-}
-
-function impl(seed, opts) {
-  var xg = new Alea(seed),
-      state = opts && opts.state,
-      prng = xg.next;
-  prng.int32 = function() { return (xg.next() * 0x100000000) | 0; }
-  prng.double = function() {
-    return prng() + (prng() * 0x200000 | 0) * 1.1102230246251565e-16; // 2^-53
-  };
-  prng.quick = prng;
-  if (state) {
-    if (typeof(state) == 'object') copy(state, xg);
-    prng.state = function() { return copy(xg, {}); }
-  }
-  return prng;
-}
-
-function Mash() {
-  var n = 0xefc8249d;
-
-  var mash = function(data) {
-    data = data.toString();
-    for (var i = 0; i < data.length; i++) {
-      n += data.charCodeAt(i);
-      var h = 0.02519603282416938 * n;
-      n = h >>> 0;
-      h -= n;
-      h *= n;
-      n = h >>> 0;
-      h -= n;
-      n += h * 0x100000000; // 2^32
-    }
-    return (n >>> 0) * 2.3283064365386963e-10; // 2^-32
-  };
-
-  return mash;
-}
-
-
-if (module && module.exports) {
-  module.exports = impl;
-} else if (__webpack_require__(34) && __webpack_require__(36)) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-} else {
-  this.alea = impl;
-}
-
-})(
-  this,
-  (typeof module) == 'object' && module,    // present in node.js
-  __webpack_require__(34)   // present with an AMD loader
-);
-
-
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35)(module)))
-
-/***/ }),
-/* 40 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "xor128" prng algorithm by
-// George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
-
-(function(global, module, define) {
-
-function XorGen(seed) {
-  var me = this, strseed = '';
-
-  me.x = 0;
-  me.y = 0;
-  me.z = 0;
-  me.w = 0;
-
-  // Set up generator function.
-  me.next = function() {
-    var t = me.x ^ (me.x << 11);
-    me.x = me.y;
-    me.y = me.z;
-    me.z = me.w;
-    return me.w ^= (me.w >>> 19) ^ t ^ (t >>> 8);
-  };
-
-  if (seed === (seed | 0)) {
-    // Integer seed.
-    me.x = seed;
-  } else {
-    // String seed.
-    strseed += seed;
-  }
-
-  // Mix in string seed, then discard an initial batch of 64 values.
-  for (var k = 0; k < strseed.length + 64; k++) {
-    me.x ^= strseed.charCodeAt(k) | 0;
-    me.next();
-  }
-}
-
-function copy(f, t) {
-  t.x = f.x;
-  t.y = f.y;
-  t.z = f.z;
-  t.w = f.w;
-  return t;
-}
-
-function impl(seed, opts) {
-  var xg = new XorGen(seed),
-      state = opts && opts.state,
-      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
-  prng.double = function() {
-    do {
-      var top = xg.next() >>> 11,
-          bot = (xg.next() >>> 0) / 0x100000000,
-          result = (top + bot) / (1 << 21);
-    } while (result === 0);
-    return result;
-  };
-  prng.int32 = xg.next;
-  prng.quick = prng;
-  if (state) {
-    if (typeof(state) == 'object') copy(state, xg);
-    prng.state = function() { return copy(xg, {}); }
-  }
-  return prng;
-}
-
-if (module && module.exports) {
-  module.exports = impl;
-} else if (__webpack_require__(34) && __webpack_require__(36)) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-} else {
-  this.xor128 = impl;
-}
-
-})(
-  this,
-  (typeof module) == 'object' && module,    // present in node.js
-  __webpack_require__(34)   // present with an AMD loader
-);
-
-
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35)(module)))
-
-/***/ }),
-/* 41 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "xorwow" prng algorithm by
-// George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
-
-(function(global, module, define) {
-
-function XorGen(seed) {
-  var me = this, strseed = '';
-
-  // Set up generator function.
-  me.next = function() {
-    var t = (me.x ^ (me.x >>> 2));
-    me.x = me.y; me.y = me.z; me.z = me.w; me.w = me.v;
-    return (me.d = (me.d + 362437 | 0)) +
-       (me.v = (me.v ^ (me.v << 4)) ^ (t ^ (t << 1))) | 0;
-  };
-
-  me.x = 0;
-  me.y = 0;
-  me.z = 0;
-  me.w = 0;
-  me.v = 0;
-
-  if (seed === (seed | 0)) {
-    // Integer seed.
-    me.x = seed;
-  } else {
-    // String seed.
-    strseed += seed;
-  }
-
-  // Mix in string seed, then discard an initial batch of 64 values.
-  for (var k = 0; k < strseed.length + 64; k++) {
-    me.x ^= strseed.charCodeAt(k) | 0;
-    if (k == strseed.length) {
-      me.d = me.x << 10 ^ me.x >>> 4;
-    }
-    me.next();
-  }
-}
-
-function copy(f, t) {
-  t.x = f.x;
-  t.y = f.y;
-  t.z = f.z;
-  t.w = f.w;
-  t.v = f.v;
-  t.d = f.d;
-  return t;
-}
-
-function impl(seed, opts) {
-  var xg = new XorGen(seed),
-      state = opts && opts.state,
-      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
-  prng.double = function() {
-    do {
-      var top = xg.next() >>> 11,
-          bot = (xg.next() >>> 0) / 0x100000000,
-          result = (top + bot) / (1 << 21);
-    } while (result === 0);
-    return result;
-  };
-  prng.int32 = xg.next;
-  prng.quick = prng;
-  if (state) {
-    if (typeof(state) == 'object') copy(state, xg);
-    prng.state = function() { return copy(xg, {}); }
-  }
-  return prng;
-}
-
-if (module && module.exports) {
-  module.exports = impl;
-} else if (__webpack_require__(34) && __webpack_require__(36)) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-} else {
-  this.xorwow = impl;
-}
-
-})(
-  this,
-  (typeof module) == 'object' && module,    // present in node.js
-  __webpack_require__(34)   // present with an AMD loader
-);
-
-
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35)(module)))
-
-/***/ }),
-/* 42 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "xorshift7" algorithm by
-// François Panneton and Pierre L'ecuyer:
-// "On the Xorgshift Random Number Generators"
-// http://saluc.engr.uconn.edu/refs/crypto/rng/panneton05onthexorshift.pdf
-
-(function(global, module, define) {
-
-function XorGen(seed) {
-  var me = this;
-
-  // Set up generator function.
-  me.next = function() {
-    // Update xor generator.
-    var X = me.x, i = me.i, t, v, w;
-    t = X[i]; t ^= (t >>> 7); v = t ^ (t << 24);
-    t = X[(i + 1) & 7]; v ^= t ^ (t >>> 10);
-    t = X[(i + 3) & 7]; v ^= t ^ (t >>> 3);
-    t = X[(i + 4) & 7]; v ^= t ^ (t << 7);
-    t = X[(i + 7) & 7]; t = t ^ (t << 13); v ^= t ^ (t << 9);
-    X[i] = v;
-    me.i = (i + 1) & 7;
-    return v;
-  };
-
-  function init(me, seed) {
-    var j, w, X = [];
-
-    if (seed === (seed | 0)) {
-      // Seed state array using a 32-bit integer.
-      w = X[0] = seed;
-    } else {
-      // Seed state using a string.
-      seed = '' + seed;
-      for (j = 0; j < seed.length; ++j) {
-        X[j & 7] = (X[j & 7] << 15) ^
-            (seed.charCodeAt(j) + X[(j + 1) & 7] << 13);
-      }
-    }
-    // Enforce an array length of 8, not all zeroes.
-    while (X.length < 8) X.push(0);
-    for (j = 0; j < 8 && X[j] === 0; ++j);
-    if (j == 8) w = X[7] = -1; else w = X[j];
-
-    me.x = X;
-    me.i = 0;
-
-    // Discard an initial 256 values.
-    for (j = 256; j > 0; --j) {
-      me.next();
-    }
-  }
-
-  init(me, seed);
-}
-
-function copy(f, t) {
-  t.x = f.x.slice();
-  t.i = f.i;
-  return t;
-}
-
-function impl(seed, opts) {
-  if (seed == null) seed = +(new Date);
-  var xg = new XorGen(seed),
-      state = opts && opts.state,
-      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
-  prng.double = function() {
-    do {
-      var top = xg.next() >>> 11,
-          bot = (xg.next() >>> 0) / 0x100000000,
-          result = (top + bot) / (1 << 21);
-    } while (result === 0);
-    return result;
-  };
-  prng.int32 = xg.next;
-  prng.quick = prng;
-  if (state) {
-    if (state.x) copy(state, xg);
-    prng.state = function() { return copy(xg, {}); }
-  }
-  return prng;
-}
-
-if (module && module.exports) {
-  module.exports = impl;
-} else if (__webpack_require__(34) && __webpack_require__(36)) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-} else {
-  this.xorshift7 = impl;
-}
-
-})(
-  this,
-  (typeof module) == 'object' && module,    // present in node.js
-  __webpack_require__(34)   // present with an AMD loader
-);
-
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35)(module)))
-
-/***/ }),
-/* 43 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of Richard Brent's Xorgens xor4096 algorithm.
-//
-// This fast non-cryptographic random number generator is designed for
-// use in Monte-Carlo algorithms. It combines a long-period xorshift
-// generator with a Weyl generator, and it passes all common batteries
-// of stasticial tests for randomness while consuming only a few nanoseconds
-// for each prng generated.  For background on the generator, see Brent's
-// paper: "Some long-period random number generators using shifts and xors."
-// http://arxiv.org/pdf/1004.3115v1.pdf
-//
-// Usage:
-//
-// var xor4096 = require('xor4096');
-// random = xor4096(1);                        // Seed with int32 or string.
-// assert.equal(random(), 0.1520436450538547); // (0, 1) range, 53 bits.
-// assert.equal(random.int32(), 1806534897);   // signed int32, 32 bits.
-//
-// For nonzero numeric keys, this impelementation provides a sequence
-// identical to that by Brent's xorgens 3 implementaion in C.  This
-// implementation also provides for initalizing the generator with
-// string seeds, or for saving and restoring the state of the generator.
-//
-// On Chrome, this prng benchmarks about 2.1 times slower than
-// Javascript's built-in Math.random().
-
-(function(global, module, define) {
-
-function XorGen(seed) {
-  var me = this;
-
-  // Set up generator function.
-  me.next = function() {
-    var w = me.w,
-        X = me.X, i = me.i, t, v;
-    // Update Weyl generator.
-    me.w = w = (w + 0x61c88647) | 0;
-    // Update xor generator.
-    v = X[(i + 34) & 127];
-    t = X[i = ((i + 1) & 127)];
-    v ^= v << 13;
-    t ^= t << 17;
-    v ^= v >>> 15;
-    t ^= t >>> 12;
-    // Update Xor generator array state.
-    v = X[i] = v ^ t;
-    me.i = i;
-    // Result is the combination.
-    return (v + (w ^ (w >>> 16))) | 0;
-  };
-
-  function init(me, seed) {
-    var t, v, i, j, w, X = [], limit = 128;
-    if (seed === (seed | 0)) {
-      // Numeric seeds initialize v, which is used to generates X.
-      v = seed;
-      seed = null;
-    } else {
-      // String seeds are mixed into v and X one character at a time.
-      seed = seed + '\0';
-      v = 0;
-      limit = Math.max(limit, seed.length);
-    }
-    // Initialize circular array and weyl value.
-    for (i = 0, j = -32; j < limit; ++j) {
-      // Put the unicode characters into the array, and shuffle them.
-      if (seed) v ^= seed.charCodeAt((j + 32) % seed.length);
-      // After 32 shuffles, take v as the starting w value.
-      if (j === 0) w = v;
-      v ^= v << 10;
-      v ^= v >>> 15;
-      v ^= v << 4;
-      v ^= v >>> 13;
-      if (j >= 0) {
-        w = (w + 0x61c88647) | 0;     // Weyl.
-        t = (X[j & 127] ^= (v + w));  // Combine xor and weyl to init array.
-        i = (0 == t) ? i + 1 : 0;     // Count zeroes.
-      }
-    }
-    // We have detected all zeroes; make the key nonzero.
-    if (i >= 128) {
-      X[(seed && seed.length || 0) & 127] = -1;
-    }
-    // Run the generator 512 times to further mix the state before using it.
-    // Factoring this as a function slows the main generator, so it is just
-    // unrolled here.  The weyl generator is not advanced while warming up.
-    i = 127;
-    for (j = 4 * 128; j > 0; --j) {
-      v = X[(i + 34) & 127];
-      t = X[i = ((i + 1) & 127)];
-      v ^= v << 13;
-      t ^= t << 17;
-      v ^= v >>> 15;
-      t ^= t >>> 12;
-      X[i] = v ^ t;
-    }
-    // Storing state as object members is faster than using closure variables.
-    me.w = w;
-    me.X = X;
-    me.i = i;
-  }
-
-  init(me, seed);
-}
-
-function copy(f, t) {
-  t.i = f.i;
-  t.w = f.w;
-  t.X = f.X.slice();
-  return t;
-};
-
-function impl(seed, opts) {
-  if (seed == null) seed = +(new Date);
-  var xg = new XorGen(seed),
-      state = opts && opts.state,
-      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
-  prng.double = function() {
-    do {
-      var top = xg.next() >>> 11,
-          bot = (xg.next() >>> 0) / 0x100000000,
-          result = (top + bot) / (1 << 21);
-    } while (result === 0);
-    return result;
-  };
-  prng.int32 = xg.next;
-  prng.quick = prng;
-  if (state) {
-    if (state.X) copy(state, xg);
-    prng.state = function() { return copy(xg, {}); }
-  }
-  return prng;
-}
-
-if (module && module.exports) {
-  module.exports = impl;
-} else if (__webpack_require__(34) && __webpack_require__(36)) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-} else {
-  this.xor4096 = impl;
-}
-
-})(
-  this,                                     // window object or global
-  (typeof module) == 'object' && module,    // present in node.js
-  __webpack_require__(34)   // present with an AMD loader
-);
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35)(module)))
-
-/***/ }),
-/* 44 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(module) {var __WEBPACK_AMD_DEFINE_RESULT__;// A Javascript implementaion of the "Tyche-i" prng algorithm by
-// Samuel Neves and Filipe Araujo.
-// See https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
-
-(function(global, module, define) {
-
-function XorGen(seed) {
-  var me = this, strseed = '';
-
-  // Set up generator function.
-  me.next = function() {
-    var b = me.b, c = me.c, d = me.d, a = me.a;
-    b = (b << 25) ^ (b >>> 7) ^ c;
-    c = (c - d) | 0;
-    d = (d << 24) ^ (d >>> 8) ^ a;
-    a = (a - b) | 0;
-    me.b = b = (b << 20) ^ (b >>> 12) ^ c;
-    me.c = c = (c - d) | 0;
-    me.d = (d << 16) ^ (c >>> 16) ^ a;
-    return me.a = (a - b) | 0;
-  };
-
-  /* The following is non-inverted tyche, which has better internal
-   * bit diffusion, but which is about 25% slower than tyche-i in JS.
-  me.next = function() {
-    var a = me.a, b = me.b, c = me.c, d = me.d;
-    a = (me.a + me.b | 0) >>> 0;
-    d = me.d ^ a; d = d << 16 ^ d >>> 16;
-    c = me.c + d | 0;
-    b = me.b ^ c; b = b << 12 ^ d >>> 20;
-    me.a = a = a + b | 0;
-    d = d ^ a; me.d = d = d << 8 ^ d >>> 24;
-    me.c = c = c + d | 0;
-    b = b ^ c;
-    return me.b = (b << 7 ^ b >>> 25);
-  }
-  */
-
-  me.a = 0;
-  me.b = 0;
-  me.c = 2654435769 | 0;
-  me.d = 1367130551;
-
-  if (seed === Math.floor(seed)) {
-    // Integer seed.
-    me.a = (seed / 0x100000000) | 0;
-    me.b = seed | 0;
-  } else {
-    // String seed.
-    strseed += seed;
-  }
-
-  // Mix in string seed, then discard an initial batch of 64 values.
-  for (var k = 0; k < strseed.length + 20; k++) {
-    me.b ^= strseed.charCodeAt(k) | 0;
-    me.next();
-  }
-}
-
-function copy(f, t) {
-  t.a = f.a;
-  t.b = f.b;
-  t.c = f.c;
-  t.d = f.d;
-  return t;
-};
-
-function impl(seed, opts) {
-  var xg = new XorGen(seed),
-      state = opts && opts.state,
-      prng = function() { return (xg.next() >>> 0) / 0x100000000; };
-  prng.double = function() {
-    do {
-      var top = xg.next() >>> 11,
-          bot = (xg.next() >>> 0) / 0x100000000,
-          result = (top + bot) / (1 << 21);
-    } while (result === 0);
-    return result;
-  };
-  prng.int32 = xg.next;
-  prng.quick = prng;
-  if (state) {
-    if (typeof(state) == 'object') copy(state, xg);
-    prng.state = function() { return copy(xg, {}); }
-  }
-  return prng;
-}
-
-if (module && module.exports) {
-  module.exports = impl;
-} else if (__webpack_require__(34) && __webpack_require__(36)) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return impl; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-} else {
-  this.tychei = impl;
-}
-
-})(
-  this,
-  (typeof module) == 'object' && module,    // present in node.js
-  __webpack_require__(34)   // present with an AMD loader
-);
-
-
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(35)(module)))
-
-/***/ }),
-/* 45 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var __WEBPACK_AMD_DEFINE_RESULT__;/*
-Copyright 2014 David Bau.
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+/*
+Wavetable instrument list:
+
+0: Piano - Acoustic Grand Piano
+1: Piano - Bright Acoustic Piano
+2: Piano - Electric Grand Piano
+3: Piano - Honky-tonk Piano
+4: Piano - Electric Piano 1
+5: Piano - Electric Piano 2
+6: Piano - Harpsichord
+7: Piano - Clavinet
+8: Chromatic Percussion - Celesta
+9: Chromatic Percussion - Glockenspiel
+10: Chromatic Percussion - Music Box
+11: Chromatic Percussion - Vibraphone
+12: Chromatic Percussion - Marimba
+13: Chromatic Percussion - Xylophone
+14: Chromatic Percussion - Tubular Bells
+15: Chromatic Percussion - Dulcimer
+16: Organ - Drawbar Organ
+17: Organ - Percussive Organ
+18: Organ - Rock Organ
+19: Organ - Church Organ
+20: Organ - Reed Organ
+21: Organ - Accordion
+22: Organ - Harmonica
+23: Organ - Tango Accordion
+24: Guitar - Acoustic Guitar (nylon)
+25: Guitar - Acoustic Guitar (steel)
+26: Guitar - Electric Guitar (jazz)
+27: Guitar - Electric Guitar (clean)
+28: Guitar - Electric Guitar (muted)
+29: Guitar - Overdriven Guitar
+30: Guitar - Distortion Guitar
+31: Guitar - Guitar Harmonics
+32: Bass - Acoustic Bass
+33: Bass - Electric Bass (finger)
+34: Bass - Electric Bass (pick)
+35: Bass - Fretless Bass
+36: Bass - Slap Bass 1
+37: Bass - Slap Bass 2
+38: Bass - Synth Bass 1
+39: Bass - Synth Bass 2
+40: Strings - Violin
+41: Strings - Viola
+42: Strings - Cello
+43: Strings - Contrabass
+44: Strings - Tremolo Strings
+45: Strings - Pizzicato Strings
+46: Strings - Orchestral Harp
+47: Strings - Timpani
+48: Ensemble - String Ensemble 1
+49: Ensemble - String Ensemble 2
+50: Ensemble - Synth Strings 1
+51: Ensemble - Synth Strings 2
+52: Ensemble - Choir Aahs
+53: Ensemble - Voice Oohs
+54: Ensemble - Synth Choir
+55: Ensemble - Orchestra Hit
+56: Brass - Trumpet
+57: Brass - Trombone
+58: Brass - Tuba
+59: Brass - Muted Trumpet
+60: Brass - French Horn
+61: Brass - Brass Section
+62: Brass - Synth Brass 1
+63: Brass - Synth Brass 2
+64: Reed - Soprano Sax
+65: Reed - Alto Sax
+66: Reed - Tenor Sax
+67: Reed - Baritone Sax
+68: Reed - Oboe
+69: Reed - English Horn
+70: Reed - Bassoon
+71: Reed - Clarinet
+72: Pipe - Piccolo
+73: Pipe - Flute
+74: Pipe - Recorder
+75: Pipe - Pan Flute
+76: Pipe - Blown bottle
+77: Pipe - Shakuhachi
+78: Pipe - Whistle
+79: Pipe - Ocarina
+80: Synth Lead - Lead 1 (square)
+81: Synth Lead - Lead 2 (sawtooth)
+82: Synth Lead - Lead 3 (calliope)
+83: Synth Lead - Lead 4 (chiff)
+84: Synth Lead - Lead 5 (charang)
+85: Synth Lead - Lead 6 (voice)
+86: Synth Lead - Lead 7 (fifths)
+87: Synth Lead - Lead 8 (bass + lead)
+88: Synth Pad - Pad 1 (new age)
+89: Synth Pad - Pad 2 (warm)
+90: Synth Pad - Pad 3 (polysynth)
+91: Synth Pad - Pad 4 (choir)
+92: Synth Pad - Pad 5 (bowed)
+93: Synth Pad - Pad 6 (metallic)
+94: Synth Pad - Pad 7 (halo)
+95: Synth Pad - Pad 8 (sweep)
+96: Synth Effects - FX 1 (rain)
+97: Synth Effects - FX 2 (soundtrack)
+98: Synth Effects - FX 3 (crystal)
+99: Synth Effects - FX 4 (atmosphere)
+100: Synth Effects - FX 5 (brightness)
+101: Synth Effects - FX 6 (goblins)
+102: Synth Effects - FX 7 (echoes)
+103: Synth Effects - FX 8 (sci-fi)
+104: Ethnic - Sitar
+105: Ethnic - Banjo
+106: Ethnic - Shamisen
+107: Ethnic - Koto
+108: Ethnic - Kalimba
+109: Ethnic - Bagpipe
+110: Ethnic - Fiddle
+111: Ethnic - Shanai
+112: Percussive - Tinkle Bell
+113: Percussive - Agogo
+114: Percussive - Steel Drums
+115: Percussive - Woodblock
+116: Percussive - Taiko Drum
+117: Percussive - Melodic Tom
+118: Percussive - Synth Drum
+119: Percussive - Reverse Cymbal
+120: Sound effects - Guitar Fret Noise
+121: Sound effects - Breath Noise
+122: Sound effects - Seashore
+123: Sound effects - Bird Tweet
+124: Sound effects - Telephone Ring
+125: Sound effects - Helicopter
+126: Sound effects - Applause
+127: Sound effects - Gunshot
+
+Drums:
+Drum_Stan1_SC88P
+Standard
+Standard_part2
+Standard
+DRUM_SFX
+Room_2
+Standard_2_PART3
+CM_64_32_MT_32
+Room_3
+Roomm_PART3
+Room_4
+Power_PART3
+Room_5
+Electronic_PART3
+Room_6
+zTR_808_PART3
+Room_7
+Dance_PART3
+Power
+Jazz_PART3
+Power_1
+Brush_PART3
+Power_2
+Orchestra_PART3
+Power_3
+SFX_PART3
+Drum_Room
+Standard_1
+Roomm_PART2
+Room
+Electronic
+Standard
+TR_808
+Roomm
+Jazz
+Power_SC_55
+Jazz_1
+Electronic_SC_55
+Jazz_2
+zTR_808
+Jazz_3
+Dance_SC_88
+Jazz_4
+Jazz
+Brush
+Brush_SC_55
+Brush_1
+Orchestra
+Brush_2
+SFX
+Drum_Room_SC88P
+Standard_2
+Power_PART2
+Power
+Orchestra_Kit
+Drum_Power
+Standard_3
+Electronic_PART2
+Electronic
+Drum_Elec_SC88P
+Standard_4
+zTR_808_PART2
+TR_808
+Drum_TR808_SC88P
+Standard_5
+Dance_PART2
+Jazz
+Drum_TR909_SC88P
+Standard_6
+Jazz_PART2
+Brush
+Drum_Jazz
+Standard_7
+Brush_PART2
+Orchestra
+Drum_Brush_SC88P
+Room
+Orchestra_PART2
+SFX
+Drum_Orch_SC88P
+Room_1
+SFX_PART2
 */
-
-(function (pool, math) {
-//
-// The following constants are related to IEEE 754 limits.
-//
-var global = this,
-    width = 256,        // each RC4 output is 0 <= x < 256
-    chunks = 6,         // at least six RC4 outputs for each double
-    digits = 52,        // there are 52 significant digits in a double
-    rngname = 'random', // rngname: name for Math.random and Math.seedrandom
-    startdenom = math.pow(width, chunks),
-    significance = math.pow(2, digits),
-    overflow = significance * 2,
-    mask = width - 1,
-    nodecrypto;         // node.js crypto module, initialized at the bottom.
-
-//
-// seedrandom()
-// This is the seedrandom function described above.
-//
-function seedrandom(seed, options, callback) {
-  var key = [];
-  options = (options == true) ? { entropy: true } : (options || {});
-
-  // Flatten the seed string or build one from local entropy if needed.
-  var shortseed = mixkey(flatten(
-    options.entropy ? [seed, tostring(pool)] :
-    (seed == null) ? autoseed() : seed, 3), key);
-
-  // Use the seed to initialize an ARC4 generator.
-  var arc4 = new ARC4(key);
-
-  // This function returns a random double in [0, 1) that contains
-  // randomness in every bit of the mantissa of the IEEE 754 value.
-  var prng = function() {
-    var n = arc4.g(chunks),             // Start with a numerator n < 2 ^ 48
-        d = startdenom,                 //   and denominator d = 2 ^ 48.
-        x = 0;                          //   and no 'extra last byte'.
-    while (n < significance) {          // Fill up all significant digits by
-      n = (n + x) * width;              //   shifting numerator and
-      d *= width;                       //   denominator and generating a
-      x = arc4.g(1);                    //   new least-significant-byte.
-    }
-    while (n >= overflow) {             // To avoid rounding up, before adding
-      n /= 2;                           //   last byte, shift everything
-      d /= 2;                           //   right using integer math until
-      x >>>= 1;                         //   we have exactly the desired bits.
-    }
-    return (n + x) / d;                 // Form the number within [0, 1).
-  };
-
-  prng.int32 = function() { return arc4.g(4) | 0; }
-  prng.quick = function() { return arc4.g(4) / 0x100000000; }
-  prng.double = prng;
-
-  // Mix the randomness into accumulated entropy.
-  mixkey(tostring(arc4.S), pool);
-
-  // Calling convention: what to return as a function of prng, seed, is_math.
-  return (options.pass || callback ||
-      function(prng, seed, is_math_call, state) {
-        if (state) {
-          // Load the arc4 state from the given state if it has an S array.
-          if (state.S) { copy(state, arc4); }
-          // Only provide the .state method if requested via options.state.
-          prng.state = function() { return copy(arc4, {}); }
-        }
-
-        // If called as a method of Math (Math.seedrandom()), mutate
-        // Math.random because that is how seedrandom.js has worked since v1.0.
-        if (is_math_call) { math[rngname] = prng; return seed; }
-
-        // Otherwise, it is a newer calling convention, so return the
-        // prng directly.
-        else return prng;
-      })(
-  prng,
-  shortseed,
-  'global' in options ? options.global : (this == math),
-  options.state);
-}
-math['seed' + rngname] = seedrandom;
-
-//
-// ARC4
-//
-// An ARC4 implementation.  The constructor takes a key in the form of
-// an array of at most (width) integers that should be 0 <= x < (width).
-//
-// The g(count) method returns a pseudorandom integer that concatenates
-// the next (count) outputs from ARC4.  Its return value is a number x
-// that is in the range 0 <= x < (width ^ count).
-//
-function ARC4(key) {
-  var t, keylen = key.length,
-      me = this, i = 0, j = me.i = me.j = 0, s = me.S = [];
-
-  // The empty key [] is treated as [0].
-  if (!keylen) { key = [keylen++]; }
-
-  // Set up S using the standard key scheduling algorithm.
-  while (i < width) {
-    s[i] = i++;
-  }
-  for (i = 0; i < width; i++) {
-    s[i] = s[j = mask & (j + key[i % keylen] + (t = s[i]))];
-    s[j] = t;
-  }
-
-  // The "g" method returns the next (count) outputs as one number.
-  (me.g = function(count) {
-    // Using instance members instead of closure state nearly doubles speed.
-    var t, r = 0,
-        i = me.i, j = me.j, s = me.S;
-    while (count--) {
-      t = s[i = mask & (i + 1)];
-      r = r * width + s[mask & ((s[i] = s[j = mask & (j + t)]) + (s[j] = t))];
-    }
-    me.i = i; me.j = j;
-    return r;
-    // For robust unpredictability, the function call below automatically
-    // discards an initial batch of values.  This is called RC4-drop[256].
-    // See http://google.com/search?q=rsa+fluhrer+response&btnI
-  })(width);
-}
-
-//
-// copy()
-// Copies internal state of ARC4 to or from a plain object.
-//
-function copy(f, t) {
-  t.i = f.i;
-  t.j = f.j;
-  t.S = f.S.slice();
-  return t;
-};
-
-//
-// flatten()
-// Converts an object tree to nested arrays of strings.
-//
-function flatten(obj, depth) {
-  var result = [], typ = (typeof obj), prop;
-  if (depth && typ == 'object') {
-    for (prop in obj) {
-      try { result.push(flatten(obj[prop], depth - 1)); } catch (e) {}
-    }
-  }
-  return (result.length ? result : typ == 'string' ? obj : obj + '\0');
-}
-
-//
-// mixkey()
-// Mixes a string seed into a key that is an array of integers, and
-// returns a shortened string seed that is equivalent to the result key.
-//
-function mixkey(seed, key) {
-  var stringseed = seed + '', smear, j = 0;
-  while (j < stringseed.length) {
-    key[mask & j] =
-      mask & ((smear ^= key[mask & j] * 19) + stringseed.charCodeAt(j++));
-  }
-  return tostring(key);
-}
-
-//
-// autoseed()
-// Returns an object for autoseeding, using window.crypto and Node crypto
-// module if available.
-//
-function autoseed() {
-  try {
-    var out;
-    if (nodecrypto && (out = nodecrypto.randomBytes)) {
-      // The use of 'out' to remember randomBytes makes tight minified code.
-      out = out(width);
-    } else {
-      out = new Uint8Array(width);
-      (global.crypto || global.msCrypto).getRandomValues(out);
-    }
-    return tostring(out);
-  } catch (e) {
-    var browser = global.navigator,
-        plugins = browser && browser.plugins;
-    return [+new Date, global, plugins, global.screen, tostring(pool)];
-  }
-}
-
-//
-// tostring()
-// Converts an array of charcodes to a string
-//
-function tostring(a) {
-  return String.fromCharCode.apply(0, a);
-}
-
-//
-// When seedrandom.js is loaded, we immediately mix a few bits
-// from the built-in RNG into the entropy pool.  Because we do
-// not want to interfere with deterministic PRNG state later,
-// seedrandom will not call math.random on its own again after
-// initialization.
-//
-mixkey(math.random(), pool);
-
-//
-// Nodejs and AMD support: export the implementation as a module using
-// either convention.
-//
-if ((typeof module) == 'object' && module.exports) {
-  module.exports = seedrandom;
-  // When in node.js, try using crypto package for autoseeding.
-  try {
-    nodecrypto = __webpack_require__(46);
-  } catch (ex) {}
-} else if (true) {
-  !(__WEBPACK_AMD_DEFINE_RESULT__ = (function() { return seedrandom; }).call(exports, __webpack_require__, exports, module),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-}
-
-// End anonymous scope, and pass initial values.
-})(
-  [],     // pool: entropy pool starts empty
-  Math    // math: package containing random, pow, and seedrandom
-);
-
-
-/***/ }),
-/* 46 */
-/***/ (function(module, exports) {
-
-/* (ignored) */
-
-/***/ }),
-/* 47 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = handleBuffers;
-/* harmony export (immutable) */ __webpack_exports__["c"] = prevBuffer;
-/* harmony export (immutable) */ __webpack_exports__["b"] = nextBuffer;
-const NUM_BUFFERS = 8;
-let currentBuffer = 1;
-// -------------------- Buffer navigation --------------------
-function handleBuffers(editor) {
-    handleEditorStorage(editor);
-    for (let i = 1; i <= NUM_BUFFERS; i++)
-        registerButton(i, editor);
-}
-function prevBuffer(editor) {
-    let num = currentBuffer - 1;
-    if (num < 1)
-        num = NUM_BUFFERS;
-    bufferChanged(num, editor);
-}
-function nextBuffer(editor) {
-    let num = currentBuffer + 1;
-    if (num > NUM_BUFFERS)
-        num = 1;
-    bufferChanged(num, editor);
-}
-function registerButton(id, editor) {
-    getButton$(id).click(_ => bufferChanged(id, editor));
-}
-function getButton$(id) {
-    return $('#walc-buffer-' + id);
-}
-function updateButtons(disableId, enableId) {
-    getButton$(disableId)
-        .removeClass('btn-info')
-        .addClass('btn-primary');
-    getButton$(enableId)
-        .removeClass('btn-primary')
-        .addClass('btn-info');
-}
-function bufferChanged(num, editor) {
-    updateButtons(currentBuffer, num);
-    storeBuffer(currentBuffer, getEditorText(editor));
-    setEditorText(editor, loadBuffer(num));
-    currentBuffer = num;
-    editor.focus();
-    editor.revealLine(1); // TODO store cursor positions
-}
-// -------------------- Buffer storage management --------------------
-function handleEditorStorage(editor) {
-    recoverStoredCode(editor);
-    watchCodeAndStoreIt(editor);
-}
-function recoverStoredCode(editor) {
-    let code = loadBuffer(currentBuffer);
-    if (code)
-        setEditorText(editor, code);
-}
-function watchCodeAndStoreIt(editor) {
-    let storedCode = getEditorText(editor);
-    setInterval(() => {
-        let code = getEditorText(editor);
-        if (storedCode == code)
-            return;
-        storeBuffer(currentBuffer, code);
-        storedCode = code;
-    }, 1000);
-}
-// -------------------- Helpers --------------------
-function storeBuffer(num, txt) {
-    localStorage.setItem('code_buffer_' + num, txt);
-}
-function loadBuffer(num) {
-    return localStorage.getItem('code_buffer_' + num) || '';
-}
-function setEditorText(editor, text) {
-    editor.getModel().setValue(text);
-}
-function getEditorText(editor) {
-    return editor.getModel().getValue();
-}
-
-
-/***/ }),
-/* 48 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["d"] = logToPanel;
-/* harmony export (immutable) */ __webpack_exports__["b"] = enableLog;
-/* harmony export (immutable) */ __webpack_exports__["e"] = preventLogParentScroll;
-/* harmony export (immutable) */ __webpack_exports__["f"] = txt2html;
-/* harmony export (immutable) */ __webpack_exports__["a"] = clearLog;
-/* harmony export (immutable) */ __webpack_exports__["c"] = logNote;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__scales__ = __webpack_require__(33);
-
-let logEnabled = true;
-let logCount = 0;
-const MAX_LOG_LINES = 1000;
-function logToPanel(always, asHTML, ...args) {
-    if (!always && !logEnabled)
-        return;
-    if (logCount++ > MAX_LOG_LINES)
-        $('#walc-log-content > *:first-child').remove();
-    let txt = args.join(', ');
-    let div = $('<div>');
-    if (asHTML)
-        div.html(txt);
-    else
-        div.text(txt);
-    $('#walc-log-content').append(div);
-    $('#walc-log-container').scrollTop(Number.MAX_SAFE_INTEGER);
-}
-function enableLog(flag) {
-    logEnabled = flag;
-}
-function preventLogParentScroll() {
-    $('#walc-log-container').bind('wheel', function (e) {
-        let evt = e.originalEvent;
-        this.scrollTop += evt.deltaY;
-        e.preventDefault();
-    });
-}
-function txt2html(s) {
-    return s.replace(/\[([^\]\|]+)\|([^\]\|]+)\]/g, (x, y, z) => `<span class="${y}">${z}</span>`);
-}
-function clearLog() {
-    $('#walc-log-content').empty();
-}
-function logNote(note, track) {
-    let noteName = __WEBPACK_IMPORTED_MODULE_0__scales__["a" /* Note */][note.number];
-    if (noteName && noteName.length < 3)
-        noteName += ' ';
-    let snote = noteName
-        ? `[log-bold|${noteName}] (${note.number})`
-        : `[log-bold|${note.number}]`;
-    let sinstr = `[log-instr|${note.instrument.name}]`;
-    let strack = `[log-track|${track.name}]`;
-    logToPanel(false, true, txt2html(`Note: ${snote} ${sinstr} ${strack}`));
-}
 
 
 /***/ })

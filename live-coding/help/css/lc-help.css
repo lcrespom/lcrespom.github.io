@@ -1,0 +1,38 @@
+#mdcontent {
+	padding: 0 1ex;
+}
+
+pre {
+	background-color: white;
+	overflow: auto;
+}
+
+pre > code {
+	border-radius: 3px;
+}
+
+img {
+	box-shadow: 5px 5px 10px 0px #999;
+	border-radius: 3px;
+}
+
+h1 {
+	border-bottom-color: #fff;
+}
+
+h2, h3 {
+	text-align: initial;
+	border-bottom-color: #eee;
+}
+
+.lc-api pre > code.hljs {
+	margin: 2em 0 0 0
+}
+
+ul {
+	margin-top: -1ex;
+}
+
+ul > li > ul {
+	margin-top: 0;
+}

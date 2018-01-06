@@ -7,6 +7,7 @@ html, body {
 
 body {
 	font-family: Electrolize, "Helvetica Neue", Helvetica, Arial, sans-serif;
+	transition: background-color 0.5s;
 }
 
 input.rounded {
@@ -60,7 +61,7 @@ input.rounded {
 
 /*----- General -----*/
 
-#synth, #live-coding {
+#synth {
 	margin: 10px 0;
 }
 
@@ -386,12 +387,30 @@ input[type=range][orient=vertical] {
 	display: flex;
 }
 
+#live-coding > .app-navbar {
+	width: 100%;
+	position: relative;
+	padding-left: 10px;
+	margin-top: 7px;
+}
+
+#live-coding > .app-navbar > .right-buttons {
+	right: 10px;
+}
+
 .walc-editor-box {
-	height: calc(100% - 20px);
+	min-width: 476px;
+	height: calc(100% - 10px);
 	overflow: hidden;
 	flex: 1;
 	display: flex;
 	flex-direction: column;
+}
+
+@media (max-width: 1040px) {
+	#walc-buffer-8 {
+		display: none;
+	}
 }
 
 #walc-code-editor {
@@ -429,7 +448,7 @@ input[type=range][orient=vertical] {
 
 #walc-right-col {
 	width: 476px;
-	margin-bottom: 20px;
+	margin-bottom: 10px;
 	margin-left: 8px;
 	display: flex;
 	flex-direction: column;
@@ -439,7 +458,7 @@ input[type=range][orient=vertical] {
 	display: flex;
 }
 
-.walc-graph-box > #audio-graph-fft {
+.walc-graph-box > #walc-graph-fft {
 	margin-right: 0;
 }
 
@@ -498,4 +517,13 @@ body.dark {
 
 .dark .log-track {
 	color: #66D9EF;
+}
+
+.dark .walc-running {
+	background-color: #0A0;
+}
+
+.dark .editor-cover {
+	opacity: 0.7;
+	background-color: black;
 }
