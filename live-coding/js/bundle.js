@@ -1540,10 +1540,13 @@ function eachTrack(cb) {
         cb(tracks[tname]);
 }
 function scheduleTrack(t) {
+    t.startTime = t.ac.currentTime;
     if (tracks[t.name])
         nextTracks[t.name] = t;
     else
         tracks[t.name] = t;
+    t.callback(t);
+    t.playing = true;
 }
 function playTrack(timer, track, time) {
     let played;
@@ -1608,6 +1611,9 @@ function shouldTrackEnd(track) {
         Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_0__log__["e" /* txt2html */])(`Track [log-track|${track.name}] has looped`));
         track.startTime += track.time;
         track.loopCount++;
+        track.notes = [];
+        track.time = 0;
+        track.callback(track);
         return false;
     }
     else {
@@ -2019,6 +2025,7 @@ function flashRange(range) {
     }, 100);
 }
 function doRunCode(code) {
+    __WEBPACK_IMPORTED_MODULE_4__random__["a" /* random */].seed(__WEBPACK_IMPORTED_MODULE_4__random__["a" /* random */].seed());
     setupAnalyzers();
     try {
         decorations = editor.deltaDecorations(decorations, []);
@@ -3949,10 +3956,8 @@ class LiveCoding {
         t.loop = loop;
         t.name = name;
         __WEBPACK_IMPORTED_MODULE_2__scheduler__["g" /* userTracks */][name] = t;
-        onInitialized(() => {
-            Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["d" /* scheduleTrack */])(t);
-            cb(t);
-        });
+        t.callback = cb;
+        onInitialized(() => Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["d" /* scheduleTrack */])(t));
         return this;
     }
     loop_track(name, cb) {
@@ -4056,7 +4061,6 @@ class TrackControl {
         this._gain = ac.createGain();
         this._gain.connect(out);
         this.lastGain = this._gain.gain.value;
-        this.startTime = this.ac.currentTime;
     }
     mute() {
         this.lastGain = this._gain.gain.value;
@@ -4101,18 +4105,22 @@ class Track extends TrackControl {
         this.notect = 0;
         this.notes = [];
         this.time = 0;
-        this.latency = 0.25;
+        this.latency = 0.2;
         this.loop = false;
         this.loopCount = 0;
         this.velocity = 1;
         this._transpose = 0;
+        this.playing = false;
     }
     instrument(inst) {
-        inst.connect(this._gain);
+        if (!this.playing)
+            inst.connect(this._gain);
         this.inst = inst;
         return this;
     }
     effect(e) {
+        if (this.playing)
+            return this;
         let dst = this._effect ? this._effect.output : this._gain;
         dst.disconnect();
         dst.connect(e.input);
@@ -4454,7 +4462,7 @@ class WavetableInstrument {
     noteOn(midi, velocity, when) {
         if (when === undefined)
             when = this.ctx.currentTime;
-        let envelope = wtPlayer.queueWaveTable(this.ctx, this.destination, this.preset, when, midi, 9999);
+        let envelope = wtPlayer.queueWaveTable(this.ctx, this.destination, this.preset, when, midi, 9999, velocity);
         this.envelopes[midi] = envelope;
     }
     noteOff(midi, velocity, when) {
@@ -4485,13 +4493,8 @@ class WavetableInstrument {
     }
     getURL(name, suffix) {
         // The following files have both _sf2 and _sf2_file ending:
-        // 0280_LesPaul
-        // 0290_LesPaul
-        // 0291_LesPaul
-        // 0292_LesPaul
-        // 0300_LesPaul
-        // 0301_LesPaul
-        // 0310_LesPaul
+        // 		0280_LesPaul, 0290_LesPaul, 0291_LesPaul, 0292_LesPaul
+        // 		0300_LesPaul, 0301_LesPaul, 0310_LesPaul
         // Therefore it is better to load them using their full name
         if (!name.endsWith('_sf2_file') && !name.endsWith('_sf2'))
             name += suffix;

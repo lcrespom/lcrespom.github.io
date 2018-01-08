@@ -35,6 +35,8 @@ $(function() {
 			$('#mdcontent').html(marked(md))
 			for (var i = 0; i < langs.length; i++)
 				highlightCode(langs[i])
+			makeAbsoluteLinksOpenInSeparateTab()
+			makeTOC($('#toc-list'))
 		})
 	}
 
@@ -46,6 +48,29 @@ $(function() {
 		})
 	}
 
+	// This function does exactly what its names says
+	function makeAbsoluteLinksOpenInSeparateTab() {
+		$('a').each((i, e) => {
+			let $e = $(e)
+			let href = $e.attr('href')
+			if (href.indexOf('://') >= 0)
+				$e.attr('target', '_blank')
+		})
+	}
+
+	function makeTOC(toc) {
+		toc.empty()
+		$('h2').each((i, e) => {
+			let $e = $(e)
+			let item = $('<li>'	+ $e.text() + '</a></li>')
+			toc.append(item)
+			item.click(_ => e.scrollIntoView())
+		})
+		if ($('h2').length > 0)
+			$('#in-this-page').show()
+		else
+			$('#in-this-page').hide()
+	}
 
 	//-------------------- TS Definitions parsing --------------------
 
@@ -137,7 +162,7 @@ $(function() {
 	//-------------------- Load initial content --------------------
 
 	if (location.hash == '')
-		location.hash = '#tutorial'
+		location.hash = '#about'
 	else
 		loadMD(location.hash.substr(1))
 })
