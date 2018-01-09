@@ -205,6 +205,8 @@ function upload(event, cb, readFunc) {
     const file = files[0];
     const reader = new FileReader();
     reader.onload = (loadEvt) => cb(loadEvt.target.result, file);
+    // let func = (<any>reader)[readFunc]
+    // func.bind(reader)(file)
     reader[readFunc](file);
 }
 
@@ -1568,7 +1570,7 @@ function playNote(track, note, timer, startTime) {
         setOptions(note.options);
     if (note.number < 1)
         return;
-    Object(__WEBPACK_IMPORTED_MODULE_0__log__["c" /* logNote */])(note, track);
+    Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logNote */])(note, track);
     note.instrument.noteOn(note.number, note.velocity, startTime + note.time);
     let duration = note.duration
         || note.instrument.duration || timer.noteDuration;
@@ -1608,16 +1610,19 @@ function shouldTrackEnd(track) {
         return false;
     }
     if (track.loop) {
-        Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_0__log__["e" /* txt2html */])(`Track [log-track|${track.name}] has looped`));
         track.startTime += track.time;
         track.loopCount++;
+        Object(__WEBPACK_IMPORTED_MODULE_0__log__["c" /* logEvent */])(track, `Track [log-track|${track.name}] has looped`);
         track.notes = [];
         track.time = 0;
         track.callback(track);
         return false;
     }
     else {
-        Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logToPanel */])(false, true, Object(__WEBPACK_IMPORTED_MODULE_0__log__["e" /* txt2html */])(`Track [log-track|${track.name}] has ended`));
+        // Update latency and loopCount just for the sake of logEvent
+        track.latency = 0;
+        track.loopCount++;
+        Object(__WEBPACK_IMPORTED_MODULE_0__log__["c" /* logEvent */])(track, `Track [log-track|${track.name}] has ended`);
         delete tracks[track.name];
         delete userTracks[track.name];
         return true;
@@ -1630,11 +1635,12 @@ function shouldTrackEnd(track) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["d"] = logToPanel;
+/* harmony export (immutable) */ __webpack_exports__["e"] = logToPanel;
 /* harmony export (immutable) */ __webpack_exports__["b"] = enableLog;
-/* harmony export (immutable) */ __webpack_exports__["e"] = txt2html;
+/* harmony export (immutable) */ __webpack_exports__["f"] = txt2html;
 /* harmony export (immutable) */ __webpack_exports__["a"] = clearLog;
-/* harmony export (immutable) */ __webpack_exports__["c"] = logNote;
+/* harmony export (immutable) */ __webpack_exports__["d"] = logNote;
+/* harmony export (immutable) */ __webpack_exports__["c"] = logEvent;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__scales__ = __webpack_require__(14);
 
 let logEnabled = true;
@@ -1667,6 +1673,7 @@ function clearLog() {
     $('#walc-log-content').empty();
 }
 function logNote(note, track) {
+    let time = formatTime(track, note);
     let noteName = __WEBPACK_IMPORTED_MODULE_0__scales__["a" /* Note */][note.number];
     if (noteName && noteName.length < 3)
         noteName += ' ';
@@ -1675,7 +1682,24 @@ function logNote(note, track) {
         : `[log-bold|${note.number}]`;
     let sinstr = `[log-instr|${note.instrument.name}]`;
     let strack = `[log-track|${track.name}]`;
-    logToPanel(false, true, txt2html(`Note: ${snote} ${sinstr} ${strack}`));
+    logToPanel(false, true, txt2html(`${time} - Note: ${snote} ${sinstr} ${strack}`));
+}
+function logEvent(track, txt) {
+    let time = formatTime(track);
+    logToPanel(false, true, txt2html(`${time} - ${txt}`));
+}
+function formatTime(track, note) {
+    let ntime = note ? note.time : 0;
+    let t = ntime + track.time * track.loopCount - track.latency;
+    let millis = (t % 1);
+    let smillis = millis.toLocaleString(undefined, {
+        minimumFractionDigits: 3, maximumFractionDigits: 3
+    }).substr(2);
+    t = Math.floor(t);
+    let secs = (t % 60);
+    let ssecs = secs.toLocaleString(undefined, { minimumIntegerDigits: 2 });
+    let mins = Math.floor(t / 60);
+    return `[log-time|${mins}:${ssecs}.${smillis}]`;
 }
 function ffTweak() {
     if (tweaked)
@@ -1914,9 +1938,10 @@ function createEditor(ac, presets, synthUI) {
             // fontSize: 15
         });
         handleEditorResize(editorElem);
-        Object(__WEBPACK_IMPORTED_MODULE_1__editor_actions__["a" /* registerActions */])(editor, monaco);
+        Object(__WEBPACK_IMPORTED_MODULE_1__editor_actions__["a" /* registerActions */])(editor);
         editor.focus();
         Object(__WEBPACK_IMPORTED_MODULE_5__editor_buffers__["a" /* handleBuffers */])(editor);
+        setupCompletion();
         $(document).on('route:show', (e, h) => {
             if (h != '#live-coding')
                 return;
@@ -1944,6 +1969,35 @@ function setupDefinitions() {
     fetch('js/lc-definitions.ts')
         .then(response => response.text())
         .then(addTypeScriptDefinitions);
+}
+function createProposals(name, obj) {
+    let members = [];
+    if (name.endsWith('s'))
+        name = name.substr(0, name.length - 1);
+    for (let pname in obj)
+        members.push({
+            label: pname,
+            kind: monaco.languages.CompletionItemKind.Field,
+            documentation: `The ${pname} ${name}`,
+            insertText: pname
+        });
+    return members;
+}
+function setupCompletion() {
+    monaco.languages.registerCompletionItemProvider('typescript', {
+        provideCompletionItems: function (model, pos) {
+            let lnum = pos.lineNumber;
+            let txt = model.getValueInRange({
+                startLineNumber: lnum, startColumn: 1,
+                endLineNumber: lnum, endColumn: pos.column
+            });
+            let globals = { instruments: __WEBPACK_IMPORTED_MODULE_8__scheduler__["c" /* instruments */], effects: __WEBPACK_IMPORTED_MODULE_8__scheduler__["b" /* effects */], tracks: __WEBPACK_IMPORTED_MODULE_8__scheduler__["g" /* userTracks */], global };
+            for (let name in globals)
+                if (txt.endsWith(name + '.'))
+                    return createProposals(name, globals[name]);
+            return [];
+        }
+    });
 }
 function handleEditorResize(elem) {
     let edw = elem.clientWidth;
@@ -1986,7 +2040,7 @@ function getErrorLocation(e) {
     return null;
 }
 function showError(msg, line, col) {
-    Object(__WEBPACK_IMPORTED_MODULE_7__log__["d" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_7__log__["e" /* txt2html */])(`[log-bold|Runtime error]: "${msg}" at line ${line}, column ${col}`));
+    Object(__WEBPACK_IMPORTED_MODULE_7__log__["e" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_7__log__["f" /* txt2html */])(`[log-bold|Runtime error]: "${msg}" at line ${line}, column ${col}`));
     editor.revealLineInCenter(line);
     let errorRange = getErrorRange(editor.getModel().getLineContent(line), col);
     decorations = editor.deltaDecorations(decorations, [{
@@ -3967,7 +4021,7 @@ class LiveCoding {
         return Object(__WEBPACK_IMPORTED_MODULE_4__scales__["b" /* makeScale */])(note, type, octaves);
     }
     log(...args) {
-        Object(__WEBPACK_IMPORTED_MODULE_5__log__["d" /* logToPanel */])(true, false, ...args);
+        Object(__WEBPACK_IMPORTED_MODULE_5__log__["e" /* logToPanel */])(true, false, ...args);
         return this;
     }
     log_enable(flag = true) {
@@ -4304,8 +4358,10 @@ function createEffect(ac, name) {
 "use strict";
 /* unused harmony export registerProvider */
 /* harmony export (immutable) */ __webpack_exports__["a"] = createInstrument;
+/* harmony export (immutable) */ __webpack_exports__["b"] = loadSamples;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_instrument__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__ = __webpack_require__(50);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__log__ = __webpack_require__(13);
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -4316,9 +4372,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 
 
+
 let providers = {
     Modulator: modulatorInstrProvider,
-    wavetable: wavetableInstrProvider
+    wavetable: wavetableInstrProvider,
+    sample: sampleInstrProvider
 };
 function registerProvider(prefix, provider) {
     providers[prefix] = provider;
@@ -4332,7 +4390,7 @@ function createInstrument(lc, // This is ugly and should be refactored
     let [prefix, iname] = preset.split('/');
     let provider = providers[prefix];
     if (!provider)
-        throw new Error(`Instrument "${preset}" not found: unknown prefix "${provider}"`);
+        throw new Error(`Instrument '${preset}' not found: unknown prefix '${provider}'`);
     return provider(lc, iname, name, numVoices);
 }
 function modulatorInstrProvider(lc, // This is ugly and should be refactored
@@ -4347,10 +4405,16 @@ function wavetableInstrProvider(lc, preset, name, numVoices = 4) {
     let instr = new WavetableInstrument(lc.context, preset, name);
     return instr;
 }
+function sampleInstrProvider(lc, preset, name, numVoices = 4) {
+    let instr = new SampleInstrument(lc.context, preset, name);
+    return instr;
+}
 // ------------------------- Modulator instrument -------------------------
 class ModulatorInstrument extends __WEBPACK_IMPORTED_MODULE_0__synth_instrument__["a" /* Instrument */] {
     initialize() {
-        return __awaiter(this, void 0, void 0, function* () { });
+        return __awaiter(this, void 0, void 0, function* () {
+            logInstrReady(this.name);
+        });
     }
     shutdown() { }
     param(pname, value, rampTime, exponential = true) {
@@ -4441,7 +4505,9 @@ class WavetableInstrument {
     }
     initialize() {
         return __awaiter(this, void 0, void 0, function* () {
+            log(`Loading instrument [log-instr|${this.name}]...`);
             this.preset = yield this.loadInstrument(this.presetName);
+            logInstrReady(this.name);
         });
     }
     shutdown() {
@@ -4480,6 +4546,11 @@ class WavetableInstrument {
             let response = yield fetch(this.getURL(name, '_sf2_file'));
             if (!response.ok)
                 response = yield fetch(this.getURL(name, '_sf2'));
+            if (!response.ok) {
+                let msg = `wavetable preset '${name}' not found`;
+                log('[log-bold|Error]: ' + msg);
+                throw new Error(msg);
+            }
             let data = yield response.json();
             return data;
         });
@@ -4502,6 +4573,128 @@ class WavetableInstrument {
     }
 }
 let wtPlayer = new __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__["a" /* WebAudioFontPlayer */]();
+let samples = {};
+let context = new AudioContext();
+function loadSamples(files) {
+    for (let i = 0; i < files.length; i++)
+        loadSample(files[i]);
+}
+function loadSample(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!file.type.startsWith('audio/'))
+            return log(`[log-bold|Error]: file ${file.name} is not an audio file`);
+        let fname = removeExtension(file.name);
+        log(`Loading sample [log-instr|${fname}]...`);
+        let data = yield readSampleFile(file);
+        let buffer = yield decodeSample(data);
+        samples[fname] = buffer;
+        log(`Sample [log-instr|${fname}] ready`);
+    });
+}
+function readSampleFile(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(resolve => {
+            let reader = new FileReader();
+            reader.onload = (loadEvt) => resolve(loadEvt.target.result);
+            reader.readAsArrayBuffer(file);
+        });
+    });
+}
+function decodeSample(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(resolve => {
+            context.decodeAudioData(data, resolve);
+        });
+    });
+}
+function removeExtension(fname) {
+    let pos = fname.lastIndexOf('.');
+    if (pos <= 0)
+        return fname;
+    return fname.substr(0, pos);
+}
+class SampleInstrument {
+    constructor(ctx, preset, name) {
+        this.ctx = ctx;
+        this.baseNote = 69;
+        this.ignoreNote = true;
+        this.loops = 1;
+        this.loopStart = 0;
+        this.loopEnd = 1000;
+        this.buffer = samples[preset];
+        if (!this.buffer)
+            throw new Error(`Sample '${preset}' not found`);
+        this.name = name || preset;
+        this.duration = this.buffer.duration;
+        this.loopEnd = this.duration;
+    }
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () {
+            logInstrReady(this.name);
+        });
+    }
+    shutdown() { }
+    param(pname, value, rampTime, exponential) {
+        if (this.paramNames().indexOf(pname) < 0)
+            throw new Error(`Parameter '${pname}' not found in instrument '${this.name}'`);
+        let that = this;
+        if (value === undefined)
+            return that[pname];
+        that[pname] = value;
+        return this;
+    }
+    paramNames() {
+        // TODO 'attack' and 'release'
+        return ['baseNote', 'ignoreNote', 'loops', 'loopStart', 'loopEnd'];
+    }
+    noteOn(midi, velocity, when) {
+        let bufferNode = this.ctx.createBufferSource();
+        this.src = bufferNode;
+        bufferNode.buffer = this.buffer;
+        let dst = this.connectGain(velocity);
+        bufferNode.connect(dst);
+        let ratio = this.ignoreNote ? 1 : this.midi2Ratio(midi);
+        bufferNode.playbackRate.value = ratio;
+        this.duration = this.buffer.duration / ratio;
+        this.setupLooping(ratio);
+        bufferNode.start(when);
+    }
+    noteOff(midi, velocity, when) {
+        this.src.stop(when);
+    }
+    connect(node) {
+        this.destination = node;
+    }
+    midi2Ratio(midi) {
+        const semitone = Math.pow(2, 1 / 12);
+        return Math.pow(semitone, midi - this.baseNote);
+    }
+    connectGain(velocity) {
+        let dst = this.destination;
+        if (velocity == 1)
+            return dst;
+        let gain = this.ctx.createGain();
+        gain.gain.value = velocity;
+        gain.connect(dst);
+        return gain;
+    }
+    setupLooping(ratio) {
+        if (this.loops == 1)
+            return;
+        this.src.loop = true;
+        this.src.loopStart = this.loopStart;
+        this.src.loopEnd = this.loopEnd;
+        this.duration = this.loopEnd + (this.loopEnd - this.loopStart) * (this.loops - 1);
+        this.duration = this.duration / ratio;
+    }
+}
+// ------------------------- Log helper -------------------------
+function log(txt) {
+    return Object(__WEBPACK_IMPORTED_MODULE_2__log__["e" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_2__log__["f" /* txt2html */])(txt));
+}
+function logInstrReady(name) {
+    log(`Instrument [log-instr|${name}] ready`);
+}
 
 
 /***/ }),
@@ -4512,14 +4705,17 @@ let wtPlayer = new __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__["a" /* W
 /* harmony export (immutable) */ __webpack_exports__["a"] = registerActions;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__editor__ = __webpack_require__(16);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__editor_buffers__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__instruments__ = __webpack_require__(34);
 
 
-function registerActions(editor, monaco) {
+
+function registerActions(editor) {
     const CTRL_ALT = monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd;
     const CTRL_SHIFT = monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift;
     let editorActions = new EditorActions(editor);
     registerButtons(editorActions);
     setColorTheme(editorActions);
+    registerDnD();
     // -------------------- Run code actions --------------------
     editor.addAction({
         id: 'walc-run-all',
@@ -4549,9 +4745,7 @@ function registerActions(editor, monaco) {
     editor.addAction({
         id: 'walc-font-sm',
         label: 'Reduce code font',
-        keybindings: [
-            CTRL_ALT | monaco.KeyCode.US_COMMA, CTRL_ALT | monaco.KeyCode.US_MINUS
-        ],
+        keybindings: [CTRL_ALT | monaco.KeyCode.US_COMMA],
         contextMenuGroupId: 'modulator',
         contextMenuOrder: 4,
         run: () => editorActions.reduceFont()
@@ -4559,9 +4753,7 @@ function registerActions(editor, monaco) {
     editor.addAction({
         id: 'walc-font-lg',
         label: 'Enlarge code font',
-        keybindings: [
-            CTRL_ALT | monaco.KeyCode.US_DOT, CTRL_ALT | monaco.KeyCode.US_EQUAL
-        ],
+        keybindings: [CTRL_ALT | monaco.KeyCode.US_DOT],
         contextMenuGroupId: 'modulator',
         contextMenuOrder: 5,
         run: () => editorActions.enlargeFont()
@@ -4595,6 +4787,16 @@ function setColorTheme(editorActions) {
     let theme = localStorage.walc_prefs_theme;
     if (theme == 'dark')
         editorActions.toggleTheme();
+}
+function registerDnD() {
+    $('body').on('drag dragstart dragend dragover dragenter dragleave drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+    })
+        .on('drop', e => {
+        let files = e.originalEvent.dataTransfer.files;
+        Object(__WEBPACK_IMPORTED_MODULE_2__instruments__["b" /* loadSamples */])(files);
+    });
 }
 class EditorActions {
     constructor(editor) {
@@ -8122,7 +8324,6 @@ function WebAudioFontPlayerConstructor() {
             };
             this.envelopes.push(envelope);
         }
-        console.log('---', this.envelopes.length);
         return envelope;
     };
     this.expireEnvelope = function (e, ctx) {
