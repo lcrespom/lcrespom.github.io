@@ -438,5 +438,9 @@ interface PresetData {
 	modulatorType: string
 }
 
+<<<<<<< HEAD
 /** The jQuery object, in case DOM manipulations are required. */
+=======
+/** The jQuery object */
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 declare let $: any

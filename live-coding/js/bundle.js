@@ -825,12 +825,16 @@ class SynthLoader {
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["e"] = logToPanel;
 /* harmony export (immutable) */ __webpack_exports__["b"] = enableLog;
+<<<<<<< HEAD
 /* unused harmony export isLogEnabled */
+=======
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 /* harmony export (immutable) */ __webpack_exports__["f"] = txt2html;
 /* harmony export (immutable) */ __webpack_exports__["a"] = clearLog;
 /* harmony export (immutable) */ __webpack_exports__["d"] = logNote;
 /* harmony export (immutable) */ __webpack_exports__["c"] = logEvent;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__scales__ = __webpack_require__(14);
+<<<<<<< HEAD
 
 let logEnabled = true;
 let logCount = 0;
@@ -904,6 +908,86 @@ function ffTweak() {
     logContainer.css('height', h + 'px');
 }
 let tweaked = false;
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils_modern__ = __webpack_require__(1);
+=======
+
+let logEnabled = true;
+let logCount = 0;
+const MAX_LOG_LINES = 1000;
+function logToPanel(always, asHTML, ...args) {
+    if (!always && !logEnabled)
+        return;
+    ffTweak();
+    if (logCount++ > MAX_LOG_LINES)
+        $('#walc-log-content > *:first-child').remove();
+    let txt = args.join(', ');
+    let div = $('<div>');
+    if (asHTML)
+        div.html(txt);
+    else
+        div.text(txt);
+    $('#walc-log-content').append(div);
+    let logContainer = $('#walc-log-container');
+    logContainer.scrollTop(MAX_LOG_LINES * 100);
+}
+function enableLog(flag) {
+    logEnabled = flag;
+}
+function txt2html(s) {
+    return s.replace(/\[([^\]\|]+)\|([^\]\|]+)\]/g, (x, y, z) => `<span class="${y}">${z}</span>`);
+}
+function clearLog() {
+    logCount = 0;
+    $('#walc-log-content').empty();
+}
+function logNote(note, track) {
+    let time = formatTime(track, note);
+    let noteName = __WEBPACK_IMPORTED_MODULE_0__scales__["a" /* Note */][note.number];
+    if (noteName && noteName.length < 3)
+        noteName += ' ';
+    let snote = noteName
+        ? `[log-bold|${noteName}] (${note.number})`
+        : `[log-bold|${note.number}]`;
+    let sinstr = `[log-instr|${note.instrument.name}]`;
+    let strack = `[log-track|${track.name}]`;
+    logToPanel(false, true, txt2html(`${time} - Note: ${snote} ${sinstr} ${strack}`));
+}
+function logEvent(track, txt) {
+    let time = formatTime(track);
+    logToPanel(false, true, txt2html(`${time} - ${txt}`));
+}
+function formatTime(track, note) {
+    let ntime = note ? note.time : 0;
+    let t = ntime + track.time * track.loopCount - track.latency;
+    let millis = (t % 1);
+    let smillis = millis.toLocaleString(undefined, {
+        minimumFractionDigits: 3, maximumFractionDigits: 3
+    }).substr(2);
+    t = Math.floor(t);
+    let secs = (t % 60);
+    let ssecs = secs.toLocaleString(undefined, { minimumIntegerDigits: 2 });
+    let mins = Math.floor(t / 60);
+    return `[log-time|${mins}:${ssecs}.${smillis}]`;
+}
+function ffTweak() {
+    if (tweaked)
+        return;
+    tweaked = true;
+    if (navigator.userAgent.indexOf('Firefox') < 0)
+        return;
+    let logContainer = $('#walc-log-container');
+    let h = logContainer.height();
+    logContainer.css('height', h + 'px');
+}
+let tweaked = false;
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -1616,6 +1700,7 @@ class LineInNode extends CustomNodeBase {
 /* harmony export (immutable) */ __webpack_exports__["a"] = eachTrack;
 /* harmony export (immutable) */ __webpack_exports__["d"] = listenNotes;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__log__ = __webpack_require__(9);
+<<<<<<< HEAD
 
 let instruments = {};
 let effects = {};
@@ -1729,10 +1814,120 @@ function shouldTrackEnd(track) {
         return true;
     }
 }
+=======
+
+let instruments = {};
+let effects = {};
+let userTracks = {};
+let tracks = {};
+let nextTracks = {};
+let noteInfoListener = function (n) { };
+function scheduleTrack(t) {
+    t.startTime = t.ac.currentTime;
+    if (tracks[t.name])
+        nextTracks[t.name] = t;
+    else
+        tracks[t.name] = t;
+    t.callback(t);
+    t.playing = true;
+}
+function timerTickHandler(timer, time) {
+    eachTrack(t => playTrack(timer, t, time));
+}
+function eachTrack(cb) {
+    let tnames = Object.getOwnPropertyNames(tracks);
+    for (let tname of tnames)
+        cb(tracks[tname]);
+}
+function listenNotes(listener) {
+    noteInfoListener = listener;
+}
+function playTrack(timer, track, time) {
+    let played;
+    do {
+        played = false;
+        if (shouldTrackEnd(track))
+            break;
+        track = tracks[track.name];
+        let note = track.notes[track.notect];
+        if (track.startTime + note.time <= time) {
+            playNote(track, note, timer, track.startTime);
+            played = true;
+            track.notect++;
+        }
+    } while (played);
+}
+function playNote(track, note, timer, startTime) {
+    if (note.options)
+        setOptions(note.options);
+    if (note.number < 1)
+        return;
+    Object(__WEBPACK_IMPORTED_MODULE_0__log__["d" /* logNote */])(note, track);
+    noteInfoListener(note); // TODO time accuracy could be improved
+    note.instrument.noteOn(note.number, note.velocity, startTime + note.time);
+    let duration = note.duration
+        || note.instrument.duration || timer.noteDuration;
+    note.instrument.noteOff(note.number, note.velocity, startTime + note.time + duration);
+}
+function setOptions(opts) {
+    if (opts.effect) {
+        let e = opts.effect;
+        for (let pname of Object.getOwnPropertyNames(opts))
+            if (pname != 'effect')
+                e.param(pname, opts[pname]);
+    }
+    else if (opts.instrument) {
+        let i = opts.instrument;
+        for (let pname of Object.getOwnPropertyNames(opts))
+            if (pname != 'instrument')
+                i.param(pname, opts[pname]);
+    }
+}
+function shouldTrackEnd(track) {
+    if (track.stopped)
+        return true;
+    if (track.notect < track.notes.length)
+        return false;
+    track.notect = 0;
+    if (track.shouldStop) {
+        track.stopped = true;
+        track.shouldStop = false;
+        return true;
+    }
+    if (nextTracks[track.name]) {
+        let nextTrack = nextTracks[track.name];
+        nextTrack.startTime = track.startTime + track.time;
+        tracks[track.name] = nextTrack;
+        userTracks[track.name] = nextTrack;
+        delete nextTracks[track.name];
+        return false;
+    }
+    if (track.loop) {
+        track.startTime += track.time;
+        track.loopCount++;
+        Object(__WEBPACK_IMPORTED_MODULE_0__log__["c" /* logEvent */])(track, `Track [log-track|${track.name}] has looped`);
+        track.notes = [];
+        track.time = 0;
+        track.callback(track);
+        return false;
+    }
+    else {
+        // Update latency and loopCount just for the sake of logEvent
+        track.latency = 0;
+        track.loopCount++;
+        Object(__WEBPACK_IMPORTED_MODULE_0__log__["c" /* logEvent */])(track, `Track [log-track|${track.name}] has ended`);
+        delete tracks[track.name];
+        delete userTracks[track.name];
+        return true;
+    }
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
 /* 14 */
+<<<<<<< HEAD
+=======
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1803,6 +1998,7 @@ function makeScale(note, type = 'major', octaves = 1) {
 
 /***/ }),
 /* 15 */
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1917,6 +2113,14 @@ class AudioAnalyzer {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__synthUI_analyzer__ = __webpack_require__(15);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__log__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__scheduler__ = __webpack_require__(13);
+<<<<<<< HEAD
+
+
+
+
+
+
+=======
 
 
 
@@ -1926,6 +2130,197 @@ class AudioAnalyzer {
 
 
 
+let sinkDiv = document.createElement('div');
+function byId(id) {
+    return document.getElementById(id) || sinkDiv;
+}
+// -------------------- Editor setup --------------------
+let global = window;
+let monacoRequire = global.require;
+let editor;
+let _synthUI;
+let analyzer;
+let decorations = [];
+function loadMonaco(cb) {
+    monacoRequire.config({ paths: { 'vs': 'js/vendor/monaco/min/vs' } });
+    monacoRequire(['vs/editor/editor.main'], cb);
+}
+function createEditor(ac, presets, synthUI) {
+    setupGlobals(new __WEBPACK_IMPORTED_MODULE_0__live_coding__["a" /* LiveCoding */](ac, presets, synthUI));
+    loadMonaco(function () {
+        let editorElem = byId('walc-code-editor');
+        setupDefinitions();
+        editor = monaco.editor.create(editorElem, {
+            value: '',
+            language: 'typescript',
+            lineNumbers: false,
+            renderLineHighlight: 'none',
+            minimap: { enabled: false }
+            // fontSize: 15
+        });
+        handleEditorResize(editorElem);
+        Object(__WEBPACK_IMPORTED_MODULE_1__editor_actions__["a" /* registerActions */])(editor);
+        editor.focus();
+        Object(__WEBPACK_IMPORTED_MODULE_5__editor_buffers__["a" /* handleBuffers */])(editor);
+        setupCompletion();
+        $(document).on('route:show', (e, h) => {
+            if (h != '#live-coding')
+                return;
+            editor.focus();
+            window.scrollTo(0, 0);
+        });
+        _synthUI = synthUI;
+        analyzer = new __WEBPACK_IMPORTED_MODULE_6__synthUI_analyzer__["a" /* AudioAnalyzer */]($('#walc-graph-fft'), $('#walc-graph-osc'));
+    });
+}
+function setupGlobals(lc) {
+    global.lc = lc;
+    global.instruments = __WEBPACK_IMPORTED_MODULE_8__scheduler__["c" /* instruments */];
+    global.effects = __WEBPACK_IMPORTED_MODULE_8__scheduler__["b" /* effects */];
+    global.tracks = __WEBPACK_IMPORTED_MODULE_8__scheduler__["h" /* userTracks */];
+    global.Note = __WEBPACK_IMPORTED_MODULE_3__scales__["a" /* Note */];
+    global.random = __WEBPACK_IMPORTED_MODULE_4__random__["a" /* random */];
+    global.global = {};
+    Object(__WEBPACK_IMPORTED_MODULE_2__rings__["a" /* setupRing */])();
+}
+function addTypeScriptDefinitions(defs) {
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(defs);
+}
+function setupDefinitions() {
+    fetch('js/lc-definitions.ts')
+        .then(response => response.text())
+        .then(addTypeScriptDefinitions);
+}
+function createProposals(name, obj) {
+    let members = [];
+    if (name.endsWith('s'))
+        name = name.substr(0, name.length - 1);
+    for (let pname in obj)
+        members.push({
+            label: pname,
+            kind: monaco.languages.CompletionItemKind.Field,
+            documentation: `The ${pname} ${name}`,
+            insertText: pname
+        });
+    return members;
+}
+function setupCompletion() {
+    monaco.languages.registerCompletionItemProvider('typescript', {
+        provideCompletionItems: function (model, pos) {
+            let lnum = pos.lineNumber;
+            let txt = model.getValueInRange({
+                startLineNumber: lnum, startColumn: 1,
+                endLineNumber: lnum, endColumn: pos.column
+            });
+            let globals = { instruments: __WEBPACK_IMPORTED_MODULE_8__scheduler__["c" /* instruments */], effects: __WEBPACK_IMPORTED_MODULE_8__scheduler__["b" /* effects */], tracks: __WEBPACK_IMPORTED_MODULE_8__scheduler__["h" /* userTracks */], global };
+            for (let name in globals)
+                if (txt.endsWith(name + '.'))
+                    return createProposals(name, globals[name]);
+            return [];
+        }
+    });
+}
+function handleEditorResize(elem) {
+    let edw = elem.clientWidth;
+    setInterval(_ => {
+        let newW = elem.clientWidth;
+        if (edw != newW) {
+            edw = newW;
+            editor.layout();
+        }
+    }, 1000);
+}
+function setupAnalyzers() {
+    analyzer.analyze(_synthUI.outNode);
+}
+// -------------------- Error handling --------------------
+function getRuntimeErrorDecoration(lineNum) {
+    let decs = editor.getLineDecorations(lineNum);
+    if (!decs || decs.length <= 0)
+        return null;
+    for (let dec of decs)
+        if (dec.options.className == 'walc-error')
+            return dec;
+    return null;
+}
+function getErrorLocation(e) {
+    // Safari
+    if (e.line)
+        return { line: e.line, column: e.column };
+    // Chrome: <anonymous>
+    // Firefox: > eval
+    if (!e.stack)
+        return null;
+    let match = e.stack.match(/(<anonymous>|> eval):(\d+):(\d+)/);
+    if (match && match.length == 4) {
+        return {
+            line: parseInt(match[2], 10),
+            column: parseInt(match[3], 10)
+        };
+    }
+    return null;
+}
+function showError(msg, line, col) {
+    Object(__WEBPACK_IMPORTED_MODULE_7__log__["e" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_7__log__["f" /* txt2html */])(`[log-bold|Runtime error]: "${msg}" at line ${line}, column ${col}`));
+    editor.revealLineInCenter(line);
+    let errorRange = getErrorRange(editor.getModel().getLineContent(line), col);
+    decorations = editor.deltaDecorations(decorations, [{
+            range: new monaco.Range(line, errorRange.from, line, errorRange.to),
+            options: {
+                isWholeLine: false,
+                className: 'walc-error',
+                hoverMessage: ['**Runtime Error**', msg]
+            }
+        }]);
+    return errorRange;
+}
+function getErrorRange(s, col) {
+    s = s.substring(col - 1);
+    let m = s.match(/\s*[\w_$]+/);
+    if (m && m.index !== undefined && m[0]) {
+        return { from: col + m.index, to: col + m.index + m[0].length };
+    }
+    return { from: 0, to: s.length + 1 };
+}
+// -------------------- Code execution --------------------
+function flashRange(range) {
+    let decs = [];
+    decs = editor.deltaDecorations(decs, [{
+            range,
+            options: {
+                isWholeLine: false,
+                className: 'walc-running'
+            }
+        }]);
+    setTimeout(_ => {
+        $('.walc-running').css('background-color', 'inherit');
+        setTimeout(() => {
+            decs = editor.deltaDecorations(decs, []);
+        }, 1000);
+    }, 100);
+}
+function doRunCode(code) {
+    __WEBPACK_IMPORTED_MODULE_4__random__["a" /* random */].seed(__WEBPACK_IMPORTED_MODULE_4__random__["a" /* random */].seed());
+    setupAnalyzers();
+    try {
+        decorations = editor.deltaDecorations(decorations, []);
+        // tslint:disable-next-line:no-eval
+        eval(code);
+    }
+    catch (e) {
+        let location = getErrorLocation(e);
+        if (location)
+            showError(e.message, location.line, location.column);
+    }
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+<<<<<<< HEAD
 let sinkDiv = document.createElement('div');
 function byId(id) {
     return document.getElementById(id) || sinkDiv;
@@ -2116,12 +2511,7 @@ function doRunCode(code) {
             showError(e.message, location.line, location.column);
     }
 }
-
-
-/***/ }),
-/* 17 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
+=======
 "use strict";
 /* unused harmony export registerProvider */
 /* harmony export (immutable) */ __webpack_exports__["a"] = createInstrument;
@@ -2462,10 +2852,459 @@ function log(txt) {
 function logInstrReady(name) {
     log(`Instrument [log-instr|${name}] ready`);
 }
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
 /* 18 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+<<<<<<< HEAD
+/* unused harmony export registerProvider */
+/* harmony export (immutable) */ __webpack_exports__["a"] = createInstrument;
+/* harmony export (immutable) */ __webpack_exports__["b"] = loadSamples;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__synth_instrument__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__ = __webpack_require__(35);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__log__ = __webpack_require__(9);
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+let providers = {
+    Modulator: modulatorInstrProvider,
+    wavetable: wavetableInstrProvider,
+    sample: sampleInstrProvider
+};
+function registerProvider(prefix, provider) {
+    providers[prefix] = provider;
+}
+function createInstrument(lc, // This is ugly and should be refactored
+    preset, name, numVoices = 4) {
+    if (typeof preset != 'string')
+        return modulatorInstrProvider(lc, preset, name, numVoices);
+    if (preset.indexOf('/') < 0)
+        preset = 'Modulator/' + preset;
+    let [prefix, iname] = preset.split('/');
+    let provider = providers[prefix];
+    if (!provider)
+        throw new Error(`Instrument '${preset}' not found: unknown prefix '${provider}'`);
+    return provider(lc, iname, name, numVoices);
+}
+function modulatorInstrProvider(lc, // This is ugly and should be refactored
+    preset, name, numVoices = 4) {
+    let prst = getPreset(lc.presets, preset);
+    let instr = new ModulatorInstrument(lc.context, prst, numVoices, lc.synthUI.outNode);
+    instr.name = name || prst.name;
+    instr.duration = findNoteDuration(prst);
+    return instr;
+}
+function wavetableInstrProvider(lc, preset, name, numVoices = 4) {
+    let instr = new WavetableInstrument(lc.context, preset, name);
+    return instr;
+}
+function sampleInstrProvider(lc, preset, name, numVoices = 4) {
+    let instr = new SampleInstrument(lc.context, preset, name);
+    return instr;
+}
+// ------------------------- Modulator instrument -------------------------
+class ModulatorInstrument extends __WEBPACK_IMPORTED_MODULE_0__synth_instrument__["a" /* Instrument */] {
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () {
+            logInstrReady(this.name);
+        });
+    }
+    shutdown() { }
+    param(pname, value, rampTime, exponential = true) {
+        let names = pname.split('/');
+        if (names.length < 2)
+            throw new Error(`Instrument parameters require "node/param" format`);
+        let node = names[0];
+        let name = names[1];
+        if (value === undefined) {
+            let prm = this.voices[0].getParameterNode(node, name);
+            return prm.value;
+        }
+        for (let v of this.voices) {
+            let prm = v.getParameterNode(node, name);
+            this.updateValue(prm, value, rampTime, exponential);
+        }
+        return this;
+    }
+    paramNames() {
+        let pnames = [];
+        let v = this.voices[0];
+        for (let nname of Object.getOwnPropertyNames(v.nodes))
+            for (let pname in v.nodes[nname])
+                if (v.nodes[nname][pname] instanceof AudioParam)
+                    pnames.push(nname + '/' + pname);
+        return pnames;
+    }
+    connect(node) {
+        for (let v of this.voices) {
+            v.synth.outGainNode.disconnect();
+            v.synth.outGainNode.connect(node);
+        }
+    }
+    updateValue(prm, value, rampTime, exponential = true) {
+        if (rampTime === undefined) {
+            prm._value = value;
+            prm.value = value;
+        }
+        else {
+            let ctx = this.voices[0].synth.ac;
+            if (exponential) {
+                prm.exponentialRampToValueAtTime(value, ctx.currentTime + rampTime);
+            }
+            else {
+                prm.linearRampToValueAtTime(value, ctx.currentTime + rampTime);
+            }
+        }
+    }
+}
+function getPreset(presets, preset) {
+    if (typeof preset == 'number') {
+        let maxPrst = presets.presets.length;
+        if (preset < 1 || preset > maxPrst)
+            throw new Error(`The preset number should be between 1 and ${maxPrst}`);
+        return presets.presets[preset - 1];
+    }
+    else if (typeof preset == 'string') {
+        for (let prs of presets.presets)
+            if (prs.name == preset)
+                return prs;
+        throw new Error(`Preset "${preset}" does not exist`);
+    }
+    return preset;
+}
+function findNoteDuration(preset) {
+    let duration = 0;
+    for (let node of preset.nodeData) {
+        if (node.type == 'ADSR') {
+            let d = node.params.attack + node.params.decay;
+            if (d > duration)
+                duration = d;
+        }
+    }
+    if (duration)
+        duration += 0.01;
+    return duration;
+}
+// ------------------------- Wavetable instrument -------------------------
+class WavetableInstrument {
+    constructor(ctx, presetName, name) {
+        this.ctx = ctx;
+        this.presetName = presetName;
+        this.envelopes = [];
+        this.duration = 0;
+        if (name === undefined)
+            name = presetName;
+        this.name = name;
+    }
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () {
+            log(`Loading instrument [log-instr|${this.name}]...`);
+            this.preset = yield this.loadInstrument(this.presetName);
+            logInstrReady(this.name);
+        });
+    }
+    shutdown() {
+        wtPlayer.expireEnvelopes(this.ctx);
+    }
+    param(pname, value, rampTime, exponential = true) {
+        // TODO maybe provide ADSR
+        return this;
+    }
+    paramNames() {
+        // TODO implement
+        let pnames = [];
+        return pnames;
+    }
+    connect(node) {
+        this.destination = node;
+    }
+    noteOn(midi, velocity, when) {
+        if (when === undefined)
+            when = this.ctx.currentTime;
+        let envelope = wtPlayer.queueWaveTable(this.ctx, this.destination, this.preset, when, midi, 9999, velocity);
+        this.envelopes[midi] = envelope;
+    }
+    noteOff(midi, velocity, when) {
+        let envelope = this.envelopes[midi];
+        if (envelope)
+            envelope.cancel(when);
+    }
+    adjustPreset(preset) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise(resolve => wtPlayer.adjustPreset(this.ctx, preset, resolve));
+        });
+    }
+    fetchPreset(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let response = yield fetch(this.getURL(name, '_sf2_file'));
+            if (!response.ok)
+                response = yield fetch(this.getURL(name, '_sf2'));
+            if (!response.ok) {
+                let msg = `wavetable preset '${name}' not found`;
+                log('[log-bold|Error]: ' + msg);
+                throw new Error(msg);
+            }
+            let data = yield response.json();
+            return data;
+        });
+    }
+    loadInstrument(name) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let preset = yield this.fetchPreset(name);
+            yield this.adjustPreset(preset);
+            return preset;
+        });
+    }
+    getURL(name, suffix) {
+        // The following files have both _sf2 and _sf2_file ending:
+        // 		0280_LesPaul, 0290_LesPaul, 0291_LesPaul, 0292_LesPaul
+        // 		0300_LesPaul, 0301_LesPaul, 0310_LesPaul
+        // Therefore it is better to load them using their full name
+        if (!name.endsWith('_sf2_file') && !name.endsWith('_sf2'))
+            name += suffix;
+        return `wavetables/${name}.json`;
+    }
+}
+let wtPlayer = new __WEBPACK_IMPORTED_MODULE_1__third_party_wavetable__["a" /* WebAudioFontPlayer */]();
+let samples = {};
+let context = new AudioContext();
+function loadSamples(files) {
+    for (let i = 0; i < files.length; i++)
+        loadSample(files[i]);
+}
+function loadSample(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!file.type.startsWith('audio/'))
+            return log(`[log-bold|Error]: file ${file.name} is not an audio file`);
+        let fname = removeExtension(file.name);
+        log(`Loading sample [log-instr|${fname}]...`);
+        let data = yield readSampleFile(file);
+        let buffer = yield decodeSample(data);
+        samples[fname] = buffer;
+        log(`Sample [log-instr|${fname}] ready`);
+    });
+}
+function readSampleFile(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(resolve => {
+            let reader = new FileReader();
+            reader.onload = (loadEvt) => resolve(loadEvt.target.result);
+            reader.readAsArrayBuffer(file);
+        });
+    });
+}
+function decodeSample(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return new Promise(resolve => {
+            context.decodeAudioData(data, resolve);
+        });
+    });
+}
+function removeExtension(fname) {
+    let pos = fname.lastIndexOf('.');
+    if (pos <= 0)
+        return fname;
+    return fname.substr(0, pos);
+}
+class SampleInstrument {
+    constructor(ctx, preset, name) {
+        this.ctx = ctx;
+        this.baseNote = 69;
+        this.ignoreNote = true;
+        this.loops = 1;
+        this.loopStart = 0;
+        this.loopEnd = 1000;
+        this.buffer = samples[preset];
+        if (!this.buffer)
+            throw new Error(`Sample '${preset}' not found`);
+        this.name = name || preset;
+        this.duration = this.buffer.duration;
+        this.loopEnd = this.duration;
+    }
+    initialize() {
+        return __awaiter(this, void 0, void 0, function* () {
+            logInstrReady(this.name);
+        });
+    }
+    shutdown() { }
+    param(pname, value, rampTime, exponential) {
+        if (this.paramNames().indexOf(pname) < 0)
+            throw new Error(`Parameter '${pname}' not found in instrument '${this.name}'`);
+        let that = this;
+        if (value === undefined)
+            return that[pname];
+        that[pname] = value;
+        return this;
+    }
+    paramNames() {
+        // TODO 'attack' and 'release'
+        return ['baseNote', 'ignoreNote', 'loops', 'loopStart', 'loopEnd'];
+    }
+    noteOn(midi, velocity, when) {
+        let bufferNode = this.ctx.createBufferSource();
+        this.src = bufferNode;
+        bufferNode.buffer = this.buffer;
+        let dst = this.connectGain(velocity);
+        bufferNode.connect(dst);
+        let ratio = this.ignoreNote ? 1 : this.midi2Ratio(midi);
+        bufferNode.playbackRate.value = ratio;
+        this.duration = this.buffer.duration / ratio;
+        this.setupLooping(ratio);
+        bufferNode.start(when);
+    }
+    noteOff(midi, velocity, when) {
+        this.src.stop(when);
+    }
+    connect(node) {
+        this.destination = node;
+    }
+    midi2Ratio(midi) {
+        const semitone = Math.pow(2, 1 / 12);
+        return Math.pow(semitone, midi - this.baseNote);
+    }
+    connectGain(velocity) {
+        let dst = this.destination;
+        if (velocity == 1)
+            return dst;
+        let gain = this.ctx.createGain();
+        gain.gain.value = velocity;
+        gain.connect(dst);
+        return gain;
+    }
+    setupLooping(ratio) {
+        if (this.loops == 1)
+            return;
+        this.src.loop = true;
+        this.src.loopStart = this.loopStart;
+        this.src.loopEnd = this.loopEnd;
+        this.duration = this.loopEnd + (this.loopEnd - this.loopStart) * (this.loops - 1);
+        this.duration = this.duration / ratio;
+    }
+}
+// ------------------------- Log helper -------------------------
+function log(txt) {
+    return Object(__WEBPACK_IMPORTED_MODULE_2__log__["e" /* logToPanel */])(true, true, Object(__WEBPACK_IMPORTED_MODULE_2__log__["f" /* txt2html */])(txt));
+}
+function logInstrReady(name) {
+    log(`Instrument [log-instr|${name}] ready`);
+}
+=======
+/* harmony export (immutable) */ __webpack_exports__["a"] = handleBuffers;
+/* harmony export (immutable) */ __webpack_exports__["c"] = prevBuffer;
+/* harmony export (immutable) */ __webpack_exports__["b"] = nextBuffer;
+const NUM_BUFFERS = 8;
+let currentBuffer = 1;
+// -------------------- Buffer navigation --------------------
+function handleBuffers(editor) {
+    handleEditorStorage(editor);
+    for (let i = 1; i <= NUM_BUFFERS; i++)
+        registerButton(i, editor);
+    selectSavedBuffer(editor);
+}
+function prevBuffer(editor) {
+    let num = currentBuffer - 1;
+    if (num < 1)
+        num = NUM_BUFFERS;
+    bufferChanged(num, editor);
+}
+function nextBuffer(editor) {
+    let num = currentBuffer + 1;
+    if (num > NUM_BUFFERS)
+        num = 1;
+    bufferChanged(num, editor);
+}
+function registerButton(id, editor) {
+    getButton$(id).click(_ => bufferChanged(id, editor));
+}
+function getButton$(id) {
+    return $('#walc-buffer-' + id);
+}
+function updateButtons(disableId, enableId) {
+    getButton$(disableId)
+        .removeClass('btn-info')
+        .addClass('btn-primary');
+    getButton$(enableId)
+        .removeClass('btn-primary')
+        .addClass('btn-info');
+}
+function bufferChanged(num, editor) {
+    updateButtons(currentBuffer, num);
+    storeBuffer(currentBuffer, editor);
+    loadBuffer(num, editor);
+    currentBuffer = num;
+    localStorage.setItem('code_buffer_selected', '' + currentBuffer);
+    editor.focus();
+}
+function selectSavedBuffer(editor) {
+    let snum = localStorage.getItem('code_buffer_selected') || '1';
+    let num = parseInt(snum, 10);
+    if (!isNaN(num))
+        bufferChanged(num, editor);
+}
+// -------------------- Buffer storage management --------------------
+function handleEditorStorage(editor) {
+    loadBuffer(currentBuffer, editor);
+    watchCodeAndStoreIt(editor);
+}
+function watchCodeAndStoreIt(editor) {
+    let storedCode = getEditorText(editor);
+    let storedPos = editor.getPosition();
+    setInterval(() => {
+        let code = getEditorText(editor);
+        let pos = editor.getPosition();
+        if (storedCode == code
+            && storedPos.lineNumber == pos.lineNumber
+            && storedPos.column == pos.column)
+            return;
+        storeBuffer(currentBuffer, editor);
+        storedCode = code;
+        storedPos = pos;
+    }, 1000);
+}
+// -------------------- Helpers --------------------
+function storeBuffer(num, editor) {
+    let txt = getEditorText(editor);
+    localStorage.setItem('code_buffer_' + num, txt);
+    let prefs = {
+        fontSize: editor.getConfiguration().fontInfo.fontSize,
+        position: editor.getPosition()
+    };
+    localStorage.setItem('code_buffer_prefs_' + num, JSON.stringify(prefs));
+}
+function loadBuffer(num, editor) {
+    let code = localStorage.getItem('code_buffer_' + num) || '';
+    setEditorText(editor, code);
+    let sprefs = localStorage.getItem('code_buffer_prefs_' + num);
+    if (sprefs) {
+        let prefs = JSON.parse(sprefs);
+        editor.setPosition(prefs.position);
+        editor.revealPositionInCenterIfOutsideViewport(prefs.position);
+        editor.updateOptions({ fontSize: prefs.fontSize });
+    }
+}
+function setEditorText(editor, text) {
+    editor.getModel().setValue(text);
+}
+function getEditorText(editor) {
+    return editor.getModel().getValue();
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
+
+
+/***/ }),
+/* 19 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2576,6 +3415,7 @@ function getEditorText(editor) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return random; });
+<<<<<<< HEAD
 const seedrandom = __webpack_require__(38);
 let random = {
     seed(newSeed) {
@@ -2612,6 +3452,44 @@ function setSeedNumber(newSeed) {
     seedNumber = newSeed;
 }
 setSeedNumber(0);
+=======
+const seedrandom = __webpack_require__(38);
+let random = {
+    seed(newSeed) {
+        if (newSeed !== undefined)
+            setSeedNumber(newSeed);
+        return seedNumber;
+    },
+    float(from, to) {
+        if (to === undefined)
+            return rng() * from;
+        return from + rng() * (to - from);
+    },
+    integer(from, to) {
+        return from + Math.floor(rng() * (to - from + 1));
+    },
+    dice(sides) {
+        return this.integer(1, sides);
+    },
+    one_in(times) {
+        return this.dice(times) === 1;
+    },
+    choose(...args) {
+        let arr = [];
+        for (let a of args)
+            arr = arr.concat(a);
+        return arr[this.dice(arr.length) - 1];
+    }
+};
+let seedNumber = 0;
+let rng;
+function setSeedNumber(newSeed) {
+    let seed = (newSeed + 123456789).toString();
+    rng = seedrandom(seed);
+    seedNumber = newSeed;
+}
+setSeedNumber(0);
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -2632,6 +3510,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__synthUI_presets__ = __webpack_require__(30);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__live_coding_editor__ = __webpack_require__(16);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__utils_routes__ = __webpack_require__(47);
+<<<<<<< HEAD
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -2712,6 +3591,45 @@ function fetchCode(url, editor) {
         editor.getModel().setValue(code + edtxt);
     });
 }
+=======
+/**
+ * Main entry point: setup synth editor and keyboard listener.
+ */
+
+
+
+
+
+const graphCanvas = $('#graph-canvas')[0];
+const ac = createAudioContext();
+const synthUI = new __WEBPACK_IMPORTED_MODULE_0__synthUI_synthUI__["a" /* SynthUI */](ac, graphCanvas, $('#node-params'), $('#audio-graph-fft'), $('#audio-graph-osc'));
+setupPanels();
+function createAudioContext() {
+    const CtxClass = window.AudioContext || window.webkitAudioContext;
+    return new CtxClass();
+}
+function setupPanels() {
+    setupPalette();
+    const inputs = new __WEBPACK_IMPORTED_MODULE_1__piano_noteInputs__["a" /* NoteInputs */](synthUI);
+    const prsts = new __WEBPACK_IMPORTED_MODULE_2__synthUI_presets__["a" /* Presets */](synthUI);
+    prsts.beforeSave = (json) => $.extend(json, { keyboard: inputs.piano.toJSON() });
+    prsts.afterLoad = (json) => inputs.piano.fromJSON(json.keyboard);
+    $(function () {
+        $('#synth').focus();
+    });
+    Object(__WEBPACK_IMPORTED_MODULE_4__utils_routes__["a" /* setupRoutes */])('#synth').then(_ => Object(__WEBPACK_IMPORTED_MODULE_3__live_coding_editor__["a" /* createEditor */])(ac, prsts, synthUI));
+    $(document).on('route:show', (e, h) => {
+        if (h == '#synth')
+            prsts.selectBestNode();
+    });
+}
+function setupPalette() {
+    $(function () {
+        let nano = $('.nano');
+        nano.nanoScroller({ preventPageScrolling: true });
+    });
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -4377,6 +5295,7 @@ class Presets {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__scales__ = __webpack_require__(14);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__log__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__instruments__ = __webpack_require__(17);
+<<<<<<< HEAD
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -4483,6 +5402,114 @@ class LiveCoding {
             return this;
         });
     }
+=======
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+class LiveCoding {
+    constructor(context, presets, synthUI) {
+        this.context = context;
+        this.presets = presets;
+        this.synthUI = synthUI;
+        this.timer = new __WEBPACK_IMPORTED_MODULE_0__synth_timer__["a" /* Timer */](context, 60, 0.2);
+        this.timer.start(time => Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["f" /* timerTickHandler */])(this.timer, time));
+    }
+    instrument(preset, name, numVoices = 4) {
+        if (typeof preset == 'string') {
+            let oldInstr = __WEBPACK_IMPORTED_MODULE_2__scheduler__["c" /* instruments */][name || preset];
+            if (oldInstr)
+                oldInstr.shutdown();
+        }
+        let instr = Object(__WEBPACK_IMPORTED_MODULE_6__instruments__["a" /* createInstrument */])(this, preset, name, numVoices);
+        if (name)
+            instr.name = name;
+        __WEBPACK_IMPORTED_MODULE_2__scheduler__["c" /* instruments */][instr.name] = instr;
+        initInstrument(instr);
+        return instr;
+    }
+    effect(name, newName) {
+        let eff = Object(__WEBPACK_IMPORTED_MODULE_3__effects__["a" /* createEffect */])(this.context, name);
+        __WEBPACK_IMPORTED_MODULE_2__scheduler__["b" /* effects */][newName || name] = eff;
+        return eff;
+    }
+    track(name, cb, loop = false) {
+        let t = new __WEBPACK_IMPORTED_MODULE_1__track__["a" /* Track */](this.context, this.synthUI.outNode, this.timer);
+        t.loop = loop;
+        t.name = name;
+        __WEBPACK_IMPORTED_MODULE_2__scheduler__["h" /* userTracks */][name] = t;
+        t.callback = cb;
+        onInitialized(() => Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["e" /* scheduleTrack */])(t));
+        return this;
+    }
+    loop_track(name, cb) {
+        return this.track(name, cb, true);
+    }
+    scale(note, type, octaves) {
+        return Object(__WEBPACK_IMPORTED_MODULE_4__scales__["b" /* makeScale */])(note, type, octaves);
+    }
+    log(...args) {
+        Object(__WEBPACK_IMPORTED_MODULE_5__log__["e" /* logToPanel */])(true, false, ...args);
+        return this;
+    }
+    log_enable(flag = true) {
+        Object(__WEBPACK_IMPORTED_MODULE_5__log__["b" /* enableLog */])(flag);
+        return this;
+    }
+    log_clear() {
+        Object(__WEBPACK_IMPORTED_MODULE_5__log__["a" /* clearLog */])();
+        return this;
+    }
+    bpm(value) {
+        if (value === undefined)
+            return this.timer.bpm;
+        this.timer.bpm = value;
+        return this;
+    }
+    stop() {
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => t.stop());
+        return this;
+    }
+    pause() {
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => t.pause());
+        return this;
+    }
+    continue() {
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => t.continue());
+        return this;
+    }
+    reset() {
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["a" /* eachTrack */])(t => {
+            if (t._effect)
+                t._effect.input.disconnect();
+            t.delete();
+        });
+        return this;
+    }
+    listen(listenFunc) {
+        Object(__WEBPACK_IMPORTED_MODULE_2__scheduler__["d" /* listenNotes */])(listenFunc);
+        return this;
+    }
+    init(initFunc) {
+        return __awaiter(this, void 0, void 0, function* () {
+            pushTask();
+            yield initFunc();
+            popTask();
+            return this;
+        });
+    }
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = LiveCoding;
 
@@ -4521,6 +5548,7 @@ function onInitialized(cb) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__scheduler__ = __webpack_require__(13);
+<<<<<<< HEAD
 
 class TrackControl {
     constructor(ac, out, timer) {
@@ -4651,6 +5679,138 @@ class Track extends TrackControl {
             cb(i);
         return this;
     }
+=======
+
+class TrackControl {
+    constructor(ac, out, timer) {
+        this.ac = ac;
+        this.out = out;
+        this.timer = timer;
+        this.shouldStop = false;
+        this.stopped = false;
+        this._gain = ac.createGain();
+        this._gain.connect(out);
+        this.lastGain = this._gain.gain.value;
+    }
+    mute() {
+        this.lastGain = this._gain.gain.value;
+        this._gain.gain.value = 1e-5;
+        return this;
+    }
+    unmute() {
+        this._gain.gain.value = this.lastGain;
+        return this;
+    }
+    gain(value, rampTime) {
+        if (value < 1e-5)
+            value = 1e-5;
+        if (rampTime === undefined)
+            this._gain.gain.value = value;
+        else
+            this._gain.gain.exponentialRampToValueAtTime(value, this.ac.currentTime + rampTime);
+        return this;
+    }
+    stop() {
+        this.shouldStop = true;
+        return this;
+    }
+    pause() {
+        this.stopped = true;
+        return this;
+    }
+    continue() {
+        this.shouldStop = false;
+        this.stopped = false;
+        return this;
+    }
+    delete() {
+        this.mute();
+        delete __WEBPACK_IMPORTED_MODULE_0__scheduler__["g" /* tracks */][this.name];
+        delete __WEBPACK_IMPORTED_MODULE_0__scheduler__["h" /* userTracks */][this.name];
+    }
+}
+class Track extends TrackControl {
+    constructor() {
+        super(...arguments);
+        this.notect = 0;
+        this.notes = [];
+        this.time = 0;
+        this.latency = 0.2;
+        this.loop = false;
+        this.loopCount = 0;
+        this.velocity = 1;
+        this._transpose = 0;
+        this.playing = false;
+    }
+    instrument(inst) {
+        if (!this.playing)
+            inst.connect(this._gain);
+        this.inst = inst;
+        return this;
+    }
+    effect(e) {
+        if (this.playing)
+            return this;
+        let dst = this._effect ? this._effect.output : this._gain;
+        dst.disconnect();
+        dst.connect(e.input);
+        e.output.connect(this.out);
+        this._effect = e;
+        return this;
+    }
+    volume(v) {
+        this.velocity = v;
+        return this;
+    }
+    play(note = 64, duration, options) {
+        if (!this.inst)
+            throw new Error(`Must call instrument before playing a note or setting parameters`);
+        this.notes.push({
+            track: this,
+            instrument: this.inst,
+            number: note + this._transpose,
+            time: this.time + this.latency,
+            velocity: this.velocity,
+            duration,
+            options
+        });
+        return this;
+    }
+    play_notes(notes, times, durations) {
+        if (times === undefined)
+            times = [0];
+        else if (typeof times == 'number')
+            times = [times];
+        let rtimes = times.ring();
+        if (typeof durations == 'number')
+            durations = [durations];
+        let rdurs = durations ? durations.ring() : undefined;
+        let rnotes = notes.ring();
+        this.repeat(notes.length, _ => this
+            .play(rnotes.tick(), rdurs ? rdurs.tick() : undefined)
+            .sleep(rtimes.tick()));
+        return this;
+    }
+    transpose(notes) {
+        this._transpose = notes;
+        return this;
+    }
+    params(options) {
+        return this.play(0, undefined, options);
+    }
+    param(pname, value) {
+        return this.params({ instrument: this.inst, [pname]: value });
+    }
+    sleep(time) {
+        this.time += time * 60 / this.timer.bpm;
+        return this;
+    }
+    repeat(times, cb) {
+        for (let i = 0; i < times; i++)
+            cb(i);
+        return this;
+    }
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = Track;
 
@@ -4664,6 +5824,7 @@ class Track extends TrackControl {
 /* unused harmony export registerProvider */
 /* harmony export (immutable) */ __webpack_exports__["a"] = createEffect;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__third_party_tuna__ = __webpack_require__(34);
+<<<<<<< HEAD
 
 class BaseEffect {
     constructor(ac, name) {
@@ -4701,6 +5862,45 @@ class BaseEffect {
             throw new Error(`Parameter "${name}" not found in effect "${this.name}"`);
         return prm;
     }
+=======
+
+class BaseEffect {
+    constructor(ac, name) {
+        this.ac = ac;
+        this.name = name;
+    }
+    param(name, value, rampTime, exponential = true) {
+        let prm = this.getAudioParam(name);
+        if (value === undefined) {
+            return prm.value;
+        }
+        if (rampTime === undefined) {
+            prm.value = value;
+        }
+        else {
+            if (exponential) {
+                prm.exponentialRampToValueAtTime(value, this.ac.currentTime + rampTime);
+            }
+            else {
+                prm.linearRampToValueAtTime(value, this.ac.currentTime + rampTime);
+            }
+        }
+        return this;
+    }
+    paramNames() {
+        let pnames = [];
+        for (let pname in this.input)
+            if (this.input[pname] instanceof AudioParam)
+                pnames.push(pname);
+        return pnames;
+    }
+    getAudioParam(name) {
+        let prm = this.input[name];
+        if (!prm || !(prm instanceof AudioParam))
+            throw new Error(`Parameter "${name}" not found in effect "${this.name}"`);
+        return prm;
+    }
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 }
 /* unused harmony export BaseEffect */
 
@@ -4774,6 +5974,7 @@ function createEffect(ac, name) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = Tuna;
+<<<<<<< HEAD
 /* This is just the great Tuna library, but adapted to a TypeScript module
     See https://github.com/Theodeus/tuna/wiki
     Original license follows below
@@ -6896,6 +8097,2130 @@ Tuna.prototype.LFO.prototype = Object.create(Super, {
 Tuna.toString = Tuna.prototype.toString = function () {
     return 'Please visit https://github.com/Theodeus/tuna/wiki for instructions on how to use Tuna.js';
 };
+=======
+/* This is just the great Tuna library, but adapted to a TypeScript module
+    See https://github.com/Theodeus/tuna/wiki
+    Original license follows below
+*/
+/*
+    Copyright (c) 2012 DinahMoe AB & Oskar Eriksson
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
+    modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
+    is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+    OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+let userContext, userInstance, pipe = function (param, val) {
+    param.value = val;
+};
+let Super = Object.create(null, {
+    activate: {
+        writable: true,
+        value: function (doActivate) {
+            if (doActivate) {
+                this.input.disconnect();
+                this.input.connect(this.activateNode);
+                if (this.activateCallback) {
+                    this.activateCallback(doActivate);
+                }
+            }
+            else {
+                this.input.disconnect();
+                this.input.connect(this.output);
+            }
+        }
+    },
+    bypass: {
+        get: function () {
+            return this._bypass;
+        },
+        set: function (value) {
+            if (this._lastBypassValue === value) {
+                return;
+            }
+            this._bypass = value;
+            this.activate(!value);
+            this._lastBypassValue = value;
+        }
+    },
+    connect: {
+        value: function (target) {
+            this.output.connect(target);
+        }
+    },
+    disconnect: {
+        value: function (target) {
+            this.output.disconnect(target);
+        }
+    },
+    connectInOrder: {
+        value: function (nodeArray) {
+            let i = nodeArray.length - 1;
+            while (i--) {
+                if (!nodeArray[i].connect) {
+                    return console.error('AudioNode.connectInOrder: TypeError: Not an AudioNode.', nodeArray[i]);
+                }
+                if (nodeArray[i + 1].input) {
+                    nodeArray[i].connect(nodeArray[i + 1].input);
+                }
+                else {
+                    nodeArray[i].connect(nodeArray[i + 1]);
+                }
+            }
+        }
+    },
+    getDefaults: {
+        value: function () {
+            let result = {};
+            // tslint:disable-next-line:forin
+            for (let key in this.defaults) {
+                result[key] = this.defaults[key].value;
+            }
+            return result;
+        }
+    },
+    automate: {
+        value: function (property, value, duration, startTime) {
+            let start = startTime ? ~~(startTime / 1000) : userContext.currentTime, dur = duration ? ~~(duration / 1000) : 0, _is = this.defaults[property], param = this[property], method;
+            if (param) {
+                if (_is.automatable) {
+                    if (!duration) {
+                        method = 'setValueAtTime';
+                    }
+                    else {
+                        method = 'linearRampToValueAtTime';
+                        param.cancelScheduledValues(start);
+                        param.setValueAtTime(param.value, start);
+                    }
+                    param[method](value, dur + start);
+                }
+                else {
+                    param = value;
+                }
+            }
+            else {
+                console.error('Invalid Property for ' + this.name);
+            }
+        }
+    }
+});
+let FLOAT = 'float', BOOLEAN = 'boolean', STRING = 'string', INT = 'int';
+function definition() {
+    return Tuna;
+}
+function Tuna(context) {
+    if (!(this instanceof Tuna)) {
+        return new Tuna(context);
+    }
+    let _window = typeof window === 'undefined' ? {} : window;
+    if (!_window.AudioContext) {
+        _window.AudioContext = _window.webkitAudioContext;
+    }
+    if (!context) {
+        console.log('tuna.js: Missing audio context! Creating a new context for you.');
+        context = _window.AudioContext && (new _window.AudioContext());
+    }
+    if (!context) {
+        throw new Error('Tuna cannot initialize because this environment does not support web audio.');
+    }
+    connectify(context);
+    userContext = context;
+    userInstance = this;
+}
+function connectify(context) {
+    if (context.__connectified__ === true)
+        return;
+    let gain = context.createGain(), proto = Object.getPrototypeOf(Object.getPrototypeOf(gain)), oconnect = proto.connect;
+    proto.connect = shimConnect;
+    context.__connectified__ = true; // Prevent overriding connect more than once
+    function shimConnect() {
+        let node = arguments[0];
+        arguments[0] = Super.isPrototypeOf ? (Super.isPrototypeOf(node) ? node.input : node) : (node.input || node);
+        oconnect.apply(this, arguments);
+        return node;
+    }
+}
+function dbToWAVolume(db) {
+    return Math.max(0, Math.round(100 * Math.pow(2, db / 6)) / 100);
+}
+function fmod(x, y) {
+    // http://kevin.vanzonneveld.net
+    // *     example 1: fmod(5.7, 1.3);
+    // *     returns 1: 0.5
+    let tmp, tmp2, p = 0, pY = 0, l = 0.0, l2 = 0.0;
+    tmp = x.toExponential().match(/^.\.?(.*)e(.+)$/) || '';
+    p = parseInt(tmp[2], 10) - (tmp[1] + '').length;
+    tmp = y.toExponential().match(/^.\.?(.*)e(.+)$/) || '';
+    pY = parseInt(tmp[2], 10) - (tmp[1] + '').length;
+    if (pY > p) {
+        p = pY;
+    }
+    tmp2 = (x % y);
+    if (p < -100 || p > 20) {
+        // toFixed will give an out of bound error so we fix it like this:
+        l = Math.round(Math.log(tmp2) / Math.log(10));
+        l2 = Math.pow(10, l);
+        let rr = (tmp2 / l2).toFixed(l - p);
+        return rr * l2;
+    }
+    else {
+        return parseFloat(tmp2.toFixed(-p));
+    }
+}
+function sign(x) {
+    if (x === 0) {
+        return 1;
+    }
+    else {
+        return Math.abs(x) / x;
+    }
+}
+function tanh(n) {
+    return (Math.exp(n) - Math.exp(-n)) / (Math.exp(n) + Math.exp(-n));
+}
+function initValue(userVal, defaultVal) {
+    return userVal === undefined ? defaultVal : userVal;
+}
+Tuna.prototype.Bitcrusher = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.bufferSize = properties.bufferSize || this.defaults.bufferSize.value;
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.processor = userContext.createScriptProcessor(this.bufferSize, 1, 1);
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.processor);
+    this.processor.connect(this.output);
+    let phaser = 0, last = 0, input, output, step, i, length;
+    this.processor.onaudioprocess = function (e) {
+        input = e.inputBuffer.getChannelData(0),
+            output = e.outputBuffer.getChannelData(0),
+            step = Math.pow(1 / 2, this.bits);
+        length = input.length;
+        for (i = 0; i < length; i++) {
+            phaser += this.normfreq;
+            if (phaser >= 1.0) {
+                phaser -= 1.0;
+                last = step * Math.floor(input[i] / step + 0.5);
+            }
+            output[i] = last;
+        }
+    };
+    this.bits = properties.bits || this.defaults.bits.value;
+    this.normfreq = initValue(properties.normfreq, this.defaults.normfreq.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Bitcrusher.prototype = Object.create(Super, {
+    name: {
+        value: 'Bitcrusher'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            bits: {
+                value: 4,
+                min: 1,
+                max: 16,
+                automatable: false,
+                type: INT
+            },
+            bufferSize: {
+                value: 4096,
+                min: 256,
+                max: 16384,
+                automatable: false,
+                type: INT
+            },
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            },
+            normfreq: {
+                value: 0.1,
+                min: 0.0001,
+                max: 1.0,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    bits: {
+        enumerable: true,
+        get: function () {
+            return this.processor.bits;
+        },
+        set: function (value) {
+            this.processor.bits = value;
+        }
+    },
+    normfreq: {
+        enumerable: true,
+        get: function () {
+            return this.processor.normfreq;
+        },
+        set: function (value) {
+            this.processor.normfreq = value;
+        }
+    }
+});
+Tuna.prototype.Cabinet = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.convolver = this.newConvolver(properties.impulsePath || '../impulses/impulse_guitar.wav');
+    this.makeupNode = userContext.createGain();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.convolver.input);
+    this.convolver.output.connect(this.makeupNode);
+    this.makeupNode.connect(this.output);
+    this.makeupGain = initValue(properties.makeupGain, this.defaults.makeupGain);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Cabinet.prototype = Object.create(Super, {
+    name: {
+        value: 'Cabinet'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            makeupGain: {
+                value: 1,
+                min: 0,
+                max: 20,
+                automatable: true,
+                type: FLOAT
+            },
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            }
+        }
+    },
+    makeupGain: {
+        enumerable: true,
+        get: function () {
+            return this.makeupNode.gain;
+        },
+        set: function (value) {
+            this.makeupNode.gain.value = value;
+        }
+    },
+    newConvolver: {
+        value: function (impulsePath) {
+            return new userInstance.Convolver({
+                impulse: impulsePath,
+                dryLevel: 0,
+                wetLevel: 1
+            });
+        }
+    }
+});
+Tuna.prototype.Chorus = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.attenuator = this.activateNode = userContext.createGain();
+    this.splitter = userContext.createChannelSplitter(2);
+    this.delayL = userContext.createDelay();
+    this.delayR = userContext.createDelay();
+    this.feedbackGainNodeLR = userContext.createGain();
+    this.feedbackGainNodeRL = userContext.createGain();
+    this.merger = userContext.createChannelMerger(2);
+    this.output = userContext.createGain();
+    this.lfoL = new userInstance.LFO({
+        target: this.delayL.delayTime,
+        callback: pipe
+    });
+    this.lfoR = new userInstance.LFO({
+        target: this.delayR.delayTime,
+        callback: pipe
+    });
+    this.input.connect(this.attenuator);
+    this.attenuator.connect(this.output);
+    this.attenuator.connect(this.splitter);
+    this.splitter.connect(this.delayL, 0);
+    this.splitter.connect(this.delayR, 1);
+    this.delayL.connect(this.feedbackGainNodeLR);
+    this.delayR.connect(this.feedbackGainNodeRL);
+    this.feedbackGainNodeLR.connect(this.delayR);
+    this.feedbackGainNodeRL.connect(this.delayL);
+    this.delayL.connect(this.merger, 0, 0);
+    this.delayR.connect(this.merger, 0, 1);
+    this.merger.connect(this.output);
+    this.feedback = initValue(properties.feedback, this.defaults.feedback.value);
+    this.rate = initValue(properties.rate, this.defaults.rate.value);
+    this.delay = initValue(properties.delay, this.defaults.delay.value);
+    this.depth = initValue(properties.depth, this.defaults.depth.value);
+    this.lfoR.phase = Math.PI / 2;
+    this.attenuator.gain.value = 0.6934; // 1 / (10 ^ (((20 * log10(3)) / 3) / 20))
+    this.lfoL.activate(true);
+    this.lfoR.activate(true);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Chorus.prototype = Object.create(Super, {
+    name: {
+        value: 'Chorus'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            feedback: {
+                value: 0.4,
+                min: 0,
+                max: 0.95,
+                automatable: false,
+                type: FLOAT
+            },
+            delay: {
+                value: 0.0045,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            depth: {
+                value: 0.7,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            rate: {
+                value: 1.5,
+                min: 0,
+                max: 8,
+                automatable: false,
+                type: FLOAT
+            },
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            }
+        }
+    },
+    delay: {
+        enumerable: true,
+        get: function () {
+            return this._delay;
+        },
+        set: function (value) {
+            this._delay = 0.0002 * (Math.pow(10, value) * 2);
+            this.lfoL.offset = this._delay;
+            this.lfoR.offset = this._delay;
+            this._depth = this._depth;
+        }
+    },
+    depth: {
+        enumerable: true,
+        get: function () {
+            return this._depth;
+        },
+        set: function (value) {
+            this._depth = value;
+            this.lfoL.oscillation = this._depth * this._delay;
+            this.lfoR.oscillation = this._depth * this._delay;
+        }
+    },
+    feedback: {
+        enumerable: true,
+        get: function () {
+            return this._feedback;
+        },
+        set: function (value) {
+            this._feedback = value;
+            this.feedbackGainNodeLR.gain.value = this._feedback;
+            this.feedbackGainNodeRL.gain.value = this._feedback;
+        }
+    },
+    rate: {
+        enumerable: true,
+        get: function () {
+            return this._rate;
+        },
+        set: function (value) {
+            this._rate = value;
+            this.lfoL.frequency = this._rate;
+            this.lfoR.frequency = this._rate;
+        }
+    }
+});
+Tuna.prototype.Compressor = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.compNode = this.activateNode = userContext.createDynamicsCompressor();
+    this.makeupNode = userContext.createGain();
+    this.output = userContext.createGain();
+    this.compNode.connect(this.makeupNode);
+    this.makeupNode.connect(this.output);
+    this.automakeup = initValue(properties.automakeup, this.defaults.automakeup.value);
+    this.makeupGain = initValue(properties.makeupGain, this.defaults.makeupGain.value);
+    this.threshold = initValue(properties.threshold, this.defaults.threshold.value);
+    this.release = initValue(properties.release, this.defaults.release.value);
+    this.attack = initValue(properties.attack, this.defaults.attack.value);
+    this.ratio = properties.ratio || this.defaults.ratio.value;
+    this.knee = initValue(properties.knee, this.defaults.knee.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Compressor.prototype = Object.create(Super, {
+    name: {
+        value: 'Compressor'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            threshold: {
+                value: -20,
+                min: -60,
+                max: 0,
+                automatable: true,
+                type: FLOAT
+            },
+            release: {
+                value: 250,
+                min: 10,
+                max: 2000,
+                automatable: true,
+                type: FLOAT
+            },
+            makeupGain: {
+                value: 1,
+                min: 1,
+                max: 100,
+                automatable: true,
+                type: FLOAT
+            },
+            attack: {
+                value: 1,
+                min: 0,
+                max: 1000,
+                automatable: true,
+                type: FLOAT
+            },
+            ratio: {
+                value: 4,
+                min: 1,
+                max: 50,
+                automatable: true,
+                type: FLOAT
+            },
+            knee: {
+                value: 5,
+                min: 0,
+                max: 40,
+                automatable: true,
+                type: FLOAT
+            },
+            automakeup: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            },
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            }
+        }
+    },
+    computeMakeup: {
+        value: function () {
+            let magicCoefficient = 4, // raise me if the output is too hot
+            c = this.compNode;
+            return -(c.threshold.value - c.threshold.value / c.ratio.value) / magicCoefficient;
+        }
+    },
+    automakeup: {
+        enumerable: true,
+        get: function () {
+            return this._automakeup;
+        },
+        set: function (value) {
+            this._automakeup = value;
+            if (this._automakeup)
+                this.makeupGain = this.computeMakeup();
+        }
+    },
+    threshold: {
+        enumerable: true,
+        get: function () {
+            return this.compNode.threshold;
+        },
+        set: function (value) {
+            this.compNode.threshold.value = value;
+            if (this._automakeup)
+                this.makeupGain = this.computeMakeup();
+        }
+    },
+    ratio: {
+        enumerable: true,
+        get: function () {
+            return this.compNode.ratio;
+        },
+        set: function (value) {
+            this.compNode.ratio.value = value;
+            if (this._automakeup)
+                this.makeupGain = this.computeMakeup();
+        }
+    },
+    knee: {
+        enumerable: true,
+        get: function () {
+            return this.compNode.knee;
+        },
+        set: function (value) {
+            this.compNode.knee.value = value;
+            if (this._automakeup)
+                this.makeupGain = this.computeMakeup();
+        }
+    },
+    attack: {
+        enumerable: true,
+        get: function () {
+            return this.compNode.attack;
+        },
+        set: function (value) {
+            this.compNode.attack.value = value / 1000;
+        }
+    },
+    release: {
+        enumerable: true,
+        get: function () {
+            return this.compNode.release;
+        },
+        set: function (value) {
+            this.compNode.release.value = value / 1000;
+        }
+    },
+    makeupGain: {
+        enumerable: true,
+        get: function () {
+            return this.makeupNode.gain;
+        },
+        set: function (value) {
+            this.makeupNode.gain.value = dbToWAVolume(value);
+        }
+    }
+});
+Tuna.prototype.Convolver = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.convolver = userContext.createConvolver();
+    this.dry = userContext.createGain();
+    this.filterLow = userContext.createBiquadFilter();
+    this.filterHigh = userContext.createBiquadFilter();
+    this.wet = userContext.createGain();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.filterLow);
+    this.activateNode.connect(this.dry);
+    this.filterLow.connect(this.filterHigh);
+    this.filterHigh.connect(this.convolver);
+    this.convolver.connect(this.wet);
+    this.wet.connect(this.output);
+    this.dry.connect(this.output);
+    this.dryLevel = initValue(properties.dryLevel, this.defaults.dryLevel.value);
+    this.wetLevel = initValue(properties.wetLevel, this.defaults.wetLevel.value);
+    this.highCut = properties.highCut || this.defaults.highCut.value;
+    this.buffer = properties.impulse || '../impulses/ir_rev_short.wav';
+    this.lowCut = properties.lowCut || this.defaults.lowCut.value;
+    this.level = initValue(properties.level, this.defaults.level.value);
+    this.filterHigh.type = 'lowpass';
+    this.filterLow.type = 'highpass';
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Convolver.prototype = Object.create(Super, {
+    name: {
+        value: 'Convolver'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            highCut: {
+                value: 22050,
+                min: 20,
+                max: 22050,
+                automatable: true,
+                type: FLOAT
+            },
+            lowCut: {
+                value: 20,
+                min: 20,
+                max: 22050,
+                automatable: true,
+                type: FLOAT
+            },
+            dryLevel: {
+                value: 1,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT
+            },
+            wetLevel: {
+                value: 1,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT
+            },
+            level: {
+                value: 1,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT
+            }
+        }
+    },
+    lowCut: {
+        get: function () {
+            return this.filterLow.frequency;
+        },
+        set: function (value) {
+            this.filterLow.frequency.value = value;
+        }
+    },
+    highCut: {
+        get: function () {
+            return this.filterHigh.frequency;
+        },
+        set: function (value) {
+            this.filterHigh.frequency.value = value;
+        }
+    },
+    level: {
+        get: function () {
+            return this.output.gain;
+        },
+        set: function (value) {
+            this.output.gain.value = value;
+        }
+    },
+    dryLevel: {
+        get: function () {
+            return this.dry.gain;
+        },
+        set: function (value) {
+            this.dry.gain.value = value;
+        }
+    },
+    wetLevel: {
+        get: function () {
+            return this.wet.gain;
+        },
+        set: function (value) {
+            this.wet.gain.value = value;
+        }
+    },
+    buffer: {
+        enumerable: false,
+        get: function () {
+            return this.convolver.buffer;
+        },
+        set: function (impulse) {
+            let convolver = this.convolver, xhr = new XMLHttpRequest();
+            if (!impulse) {
+                console.log('Tuna.Convolver.setBuffer: Missing impulse path!');
+                return;
+            }
+            xhr.open('GET', impulse, true);
+            xhr.responseType = 'arraybuffer';
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status < 300 && xhr.status > 199 || xhr.status === 302) {
+                        userContext.decodeAudioData(xhr.response, function (buffer) {
+                            convolver.buffer = buffer;
+                        }, function (e) {
+                            if (e)
+                                console.log('Tuna.Convolver.setBuffer: Error decoding data' + e);
+                        });
+                    }
+                }
+            };
+            xhr.send(null);
+        }
+    }
+});
+Tuna.prototype.Delay = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.dry = userContext.createGain();
+    this.wet = userContext.createGain();
+    this.filter = userContext.createBiquadFilter();
+    this.delay = userContext.createDelay(10);
+    this.feedbackNode = userContext.createGain();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.delay);
+    this.activateNode.connect(this.dry);
+    this.delay.connect(this.filter);
+    this.filter.connect(this.feedbackNode);
+    this.feedbackNode.connect(this.delay);
+    this.feedbackNode.connect(this.wet);
+    this.wet.connect(this.output);
+    this.dry.connect(this.output);
+    this.delayTime = properties.delayTime || this.defaults.delayTime.value;
+    this.feedback = initValue(properties.feedback, this.defaults.feedback.value);
+    this.wetLevel = initValue(properties.wetLevel, this.defaults.wetLevel.value);
+    this.dryLevel = initValue(properties.dryLevel, this.defaults.dryLevel.value);
+    this.cutoff = properties.cutoff || this.defaults.cutoff.value;
+    this.filter.type = 'lowpass';
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Delay.prototype = Object.create(Super, {
+    name: {
+        value: 'Delay'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            delayTime: {
+                value: 100,
+                min: 20,
+                max: 1000,
+                automatable: false,
+                type: FLOAT
+            },
+            feedback: {
+                value: 0.45,
+                min: 0,
+                max: 0.9,
+                automatable: true,
+                type: FLOAT
+            },
+            cutoff: {
+                value: 20000,
+                min: 20,
+                max: 20000,
+                automatable: true,
+                type: FLOAT
+            },
+            wetLevel: {
+                value: 0.5,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT
+            },
+            dryLevel: {
+                value: 1,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT
+            }
+        }
+    },
+    delayTime: {
+        enumerable: true,
+        get: function () {
+            return this.delay.delayTime;
+        },
+        set: function (value) {
+            this.delay.delayTime.value = value / 1000;
+        }
+    },
+    wetLevel: {
+        enumerable: true,
+        get: function () {
+            return this.wet.gain;
+        },
+        set: function (value) {
+            this.wet.gain.value = value;
+        }
+    },
+    dryLevel: {
+        enumerable: true,
+        get: function () {
+            return this.dry.gain;
+        },
+        set: function (value) {
+            this.dry.gain.value = value;
+        }
+    },
+    feedback: {
+        enumerable: true,
+        get: function () {
+            return this.feedbackNode.gain;
+        },
+        set: function (value) {
+            this.feedbackNode.gain.value = value;
+        }
+    },
+    cutoff: {
+        enumerable: true,
+        get: function () {
+            return this.filter.frequency;
+        },
+        set: function (value) {
+            this.filter.frequency.value = value;
+        }
+    }
+});
+Tuna.prototype.Filter = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.filter = userContext.createBiquadFilter();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.filter);
+    this.filter.connect(this.output);
+    this.frequency = properties.frequency || this.defaults.frequency.value;
+    this.Q = properties.resonance || this.defaults.Q.value;
+    this.filterType = initValue(properties.filterType, this.defaults.filterType.value);
+    this.gain = initValue(properties.gain, this.defaults.gain.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Filter.prototype = Object.create(Super, {
+    name: {
+        value: 'Filter'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            frequency: {
+                value: 800,
+                min: 20,
+                max: 22050,
+                automatable: true,
+                type: FLOAT
+            },
+            Q: {
+                value: 1,
+                min: 0.001,
+                max: 100,
+                automatable: true,
+                type: FLOAT
+            },
+            gain: {
+                value: 0,
+                min: -40,
+                max: 40,
+                automatable: true,
+                type: FLOAT
+            },
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            },
+            filterType: {
+                value: 'lowpass',
+                automatable: false,
+                type: STRING
+            }
+        }
+    },
+    filterType: {
+        enumerable: true,
+        get: function () {
+            return this.filter.type;
+        },
+        set: function (value) {
+            this.filter.type = value;
+        }
+    },
+    Q: {
+        enumerable: true,
+        get: function () {
+            return this.filter.Q;
+        },
+        set: function (value) {
+            this.filter.Q.value = value;
+        }
+    },
+    gain: {
+        enumerable: true,
+        get: function () {
+            return this.filter.gain;
+        },
+        set: function (value) {
+            this.filter.gain.value = value;
+        }
+    },
+    frequency: {
+        enumerable: true,
+        get: function () {
+            return this.filter.frequency;
+        },
+        set: function (value) {
+            this.filter.frequency.value = value;
+        }
+    }
+});
+Tuna.prototype.Gain = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.gainNode = userContext.createGain();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.gainNode);
+    this.gainNode.connect(this.output);
+    this.gain = initValue(properties.gain, this.defaults.gain.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Gain.prototype = Object.create(Super, {
+    name: {
+        value: 'Gain'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            },
+            gain: {
+                value: 1.0,
+                automatable: true,
+                type: FLOAT
+            }
+        }
+    },
+    gain: {
+        enumerable: true,
+        get: function () {
+            return this.gainNode.gain;
+        },
+        set: function (value) {
+            this.gainNode.gain.value = value;
+        }
+    }
+});
+Tuna.prototype.MoogFilter = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.bufferSize = properties.bufferSize || this.defaults.bufferSize.value;
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.processor = userContext.createScriptProcessor(this.bufferSize, 1, 1);
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.processor);
+    this.processor.connect(this.output);
+    let in1, in2, in3, in4, out1, out2, out3, out4;
+    in1 = in2 = in3 = in4 = out1 = out2 = out3 = out4 = 0.0;
+    let input, output, f, fb, i, length, inputFactor;
+    this.processor.onaudioprocess = function (e) {
+        input = e.inputBuffer.getChannelData(0),
+            output = e.outputBuffer.getChannelData(0),
+            f = this.cutoff * 1.16,
+            inputFactor = 0.35013 * (f * f) * (f * f);
+        fb = this.resonance * (1.0 - 0.15 * f * f);
+        length = input.length;
+        for (i = 0; i < length; i++) {
+            input[i] -= out4 * fb;
+            input[i] *= inputFactor;
+            out1 = input[i] + 0.3 * in1 + (1 - f) * out1; // Pole 1
+            in1 = input[i];
+            out2 = out1 + 0.3 * in2 + (1 - f) * out2; // Pole 2
+            in2 = out1;
+            out3 = out2 + 0.3 * in3 + (1 - f) * out3; // Pole 3
+            in3 = out2;
+            out4 = out3 + 0.3 * in4 + (1 - f) * out4; // Pole 4
+            in4 = out3;
+            output[i] = out4;
+        }
+    };
+    this.cutoff = initValue(properties.cutoff, this.defaults.cutoff.value);
+    this.resonance = initValue(properties.resonance, this.defaults.resonance.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.MoogFilter.prototype = Object.create(Super, {
+    name: {
+        value: 'MoogFilter'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            bufferSize: {
+                value: 4096,
+                min: 256,
+                max: 16384,
+                automatable: false,
+                type: INT
+            },
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            },
+            cutoff: {
+                value: 0.065,
+                min: 0.0001,
+                max: 1.0,
+                automatable: false,
+                type: FLOAT
+            },
+            resonance: {
+                value: 3.5,
+                min: 0.0,
+                max: 4.0,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    cutoff: {
+        enumerable: true,
+        get: function () {
+            return this.processor.cutoff;
+        },
+        set: function (value) {
+            this.processor.cutoff = value;
+        }
+    },
+    resonance: {
+        enumerable: true,
+        get: function () {
+            return this.processor.resonance;
+        },
+        set: function (value) {
+            this.processor.resonance = value;
+        }
+    }
+});
+Tuna.prototype.Overdrive = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.inputDrive = userContext.createGain();
+    this.waveshaper = userContext.createWaveShaper();
+    this.outputDrive = userContext.createGain();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.inputDrive);
+    this.inputDrive.connect(this.waveshaper);
+    this.waveshaper.connect(this.outputDrive);
+    this.outputDrive.connect(this.output);
+    this.ws_table = new Float32Array(this.k_nSamples);
+    this.drive = initValue(properties.drive, this.defaults.drive.value);
+    this.outputGain = initValue(properties.outputGain, this.defaults.outputGain.value);
+    this.curveAmount = initValue(properties.curveAmount, this.defaults.curveAmount.value);
+    this.algorithmIndex = initValue(properties.algorithmIndex, this.defaults.algorithmIndex.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Overdrive.prototype = Object.create(Super, {
+    name: {
+        value: 'Overdrive'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            drive: {
+                value: 1,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT,
+                scaled: true
+            },
+            outputGain: {
+                value: 1,
+                min: 0,
+                max: 1,
+                automatable: true,
+                type: FLOAT,
+                scaled: true
+            },
+            curveAmount: {
+                value: 0.725,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            algorithmIndex: {
+                value: 0,
+                min: 0,
+                max: 5,
+                automatable: false,
+                type: INT
+            }
+        }
+    },
+    k_nSamples: {
+        value: 8192
+    },
+    drive: {
+        get: function () {
+            return this.inputDrive.gain;
+        },
+        set: function (value) {
+            this._drive = value;
+        }
+    },
+    curveAmount: {
+        get: function () {
+            return this._curveAmount;
+        },
+        set: function (value) {
+            this._curveAmount = value;
+            if (this._algorithmIndex === undefined) {
+                this._algorithmIndex = 0;
+            }
+            this.waveshaperAlgorithms[this._algorithmIndex](this._curveAmount, this.k_nSamples, this.ws_table);
+            this.waveshaper.curve = this.ws_table;
+        }
+    },
+    outputGain: {
+        get: function () {
+            return this.outputDrive.gain;
+        },
+        set: function (value) {
+            this._outputGain = dbToWAVolume(value);
+        }
+    },
+    algorithmIndex: {
+        get: function () {
+            return this._algorithmIndex;
+        },
+        set: function (value) {
+            this._algorithmIndex = value;
+            this.curveAmount = this._curveAmount;
+        }
+    },
+    waveshaperAlgorithms: {
+        value: [
+            function (amount, n_samples, ws_table) {
+                amount = Math.min(amount, 0.9999);
+                let k = 2 * amount / (1 - amount), i, x;
+                for (i = 0; i < n_samples; i++) {
+                    x = i * 2 / n_samples - 1;
+                    ws_table[i] = (1 + k) * x / (1 + k * Math.abs(x));
+                }
+            },
+            function (amount, n_samples, ws_table) {
+                let i, x, y = 0;
+                for (i = 0; i < n_samples; i++) {
+                    x = i * 2 / n_samples - 1;
+                    y = ((0.5 * Math.pow((x + 1.4), 2)) - 1) * y >= 0 ? 5.8 : 1.2;
+                    ws_table[i] = tanh(y);
+                }
+            },
+            function (amount, n_samples, ws_table) {
+                let i, x, y, a = 1 - amount;
+                for (i = 0; i < n_samples; i++) {
+                    x = i * 2 / n_samples - 1;
+                    y = x < 0 ? -Math.pow(Math.abs(x), a + 0.04) : Math.pow(x, a);
+                    ws_table[i] = tanh(y * 2);
+                }
+            },
+            function (amount, n_samples, ws_table) {
+                let i, x, y = 0, abx, a = 1 - amount > 0.99 ? 0.99 : 1 - amount;
+                for (i = 0; i < n_samples; i++) {
+                    x = i * 2 / n_samples - 1;
+                    abx = Math.abs(x);
+                    if (abx < a)
+                        y = abx;
+                    else if (abx > a)
+                        y = a + (abx - a) / (1 + Math.pow((abx - a) / (1 - a), 2));
+                    else if (abx > 1)
+                        y = abx;
+                    ws_table[i] = sign(x) * y * (1 / ((a + 1) / 2));
+                }
+            },
+            function (amount, n_samples, ws_table) {
+                // fixed curve, amount doesn't do anything, the distortion is just from the drive
+                let i, x;
+                for (i = 0; i < n_samples; i++) {
+                    x = i * 2 / n_samples - 1;
+                    if (x < -0.08905) {
+                        ws_table[i] = (-3 / 4) * (1 - (Math.pow((1 - (Math.abs(x) - 0.032857)), 12)) + (1 / 3) * (Math.abs(x) - 0.032847)) + 0.01;
+                    }
+                    else if (x >= -0.08905 && x < 0.320018) {
+                        ws_table[i] = (-6.153 * (x * x)) + 3.9375 * x;
+                    }
+                    else {
+                        ws_table[i] = 0.630035;
+                    }
+                }
+            },
+            function (amount, n_samples, ws_table) {
+                let a = 2 + Math.round(amount * 14), 
+                // we go from 2 to 16 bits, keep in mind for the UI
+                bits = Math.round(Math.pow(2, a - 1)), 
+                // real number of quantization steps divided by 2
+                i, x;
+                for (i = 0; i < n_samples; i++) {
+                    x = i * 2 / n_samples - 1;
+                    ws_table[i] = Math.round(x * bits) / bits;
+                }
+            }
+        ]
+    }
+});
+Tuna.prototype.Panner = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.panner = userContext.createStereoPanner();
+    this.output = userContext.createGain();
+    this.activateNode.connect(this.panner);
+    this.panner.connect(this.output);
+    this.pan = initValue(properties.pan, this.defaults.pan.value);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Panner.prototype = Object.create(Super, {
+    name: {
+        value: 'Panner'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            bypass: {
+                value: false,
+                automatable: false,
+                type: BOOLEAN
+            },
+            pan: {
+                value: 0.0,
+                min: -1.0,
+                max: 1.0,
+                automatable: true,
+                type: FLOAT
+            }
+        }
+    },
+    pan: {
+        enumerable: true,
+        get: function () {
+            return this.panner.pan;
+        },
+        set: function (value) {
+            this.panner.pan.value = value;
+        }
+    }
+});
+Tuna.prototype.Phaser = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.splitter = this.activateNode = userContext.createChannelSplitter(2);
+    this.filtersL = [];
+    this.filtersR = [];
+    this.feedbackGainNodeL = userContext.createGain();
+    this.feedbackGainNodeR = userContext.createGain();
+    this.merger = userContext.createChannelMerger(2);
+    this.filteredSignal = userContext.createGain();
+    this.output = userContext.createGain();
+    this.lfoL = new userInstance.LFO({
+        target: this.filtersL,
+        callback: this.callback
+    });
+    this.lfoR = new userInstance.LFO({
+        target: this.filtersR,
+        callback: this.callback
+    });
+    let i = this.stage;
+    while (i--) {
+        this.filtersL[i] = userContext.createBiquadFilter();
+        this.filtersR[i] = userContext.createBiquadFilter();
+        this.filtersL[i].type = 'allpass';
+        this.filtersR[i].type = 'allpass';
+    }
+    this.input.connect(this.splitter);
+    this.input.connect(this.output);
+    this.splitter.connect(this.filtersL[0], 0, 0);
+    this.splitter.connect(this.filtersR[0], 1, 0);
+    this.connectInOrder(this.filtersL);
+    this.connectInOrder(this.filtersR);
+    this.filtersL[this.stage - 1].connect(this.feedbackGainNodeL);
+    this.filtersL[this.stage - 1].connect(this.merger, 0, 0);
+    this.filtersR[this.stage - 1].connect(this.feedbackGainNodeR);
+    this.filtersR[this.stage - 1].connect(this.merger, 0, 1);
+    this.feedbackGainNodeL.connect(this.filtersL[0]);
+    this.feedbackGainNodeR.connect(this.filtersR[0]);
+    this.merger.connect(this.output);
+    this.rate = initValue(properties.rate, this.defaults.rate.value);
+    this.baseModulationFrequency = properties.baseModulationFrequency || this.defaults.baseModulationFrequency.value;
+    this.depth = initValue(properties.depth, this.defaults.depth.value);
+    this.feedback = initValue(properties.feedback, this.defaults.feedback.value);
+    this.stereoPhase = initValue(properties.stereoPhase, this.defaults.stereoPhase.value);
+    this.lfoL.activate(true);
+    this.lfoR.activate(true);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Phaser.prototype = Object.create(Super, {
+    name: {
+        value: 'Phaser'
+    },
+    stage: {
+        value: 4
+    },
+    defaults: {
+        writable: true,
+        value: {
+            rate: {
+                value: 0.1,
+                min: 0,
+                max: 8,
+                automatable: false,
+                type: FLOAT
+            },
+            depth: {
+                value: 0.6,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            feedback: {
+                value: 0.7,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            stereoPhase: {
+                value: 40,
+                min: 0,
+                max: 180,
+                automatable: false,
+                type: FLOAT
+            },
+            baseModulationFrequency: {
+                value: 700,
+                min: 500,
+                max: 1500,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    callback: {
+        value: function (filters, value) {
+            for (let stage = 0; stage < 4; stage++) {
+                filters[stage].frequency.value = value;
+            }
+        }
+    },
+    depth: {
+        get: function () {
+            return this._depth;
+        },
+        set: function (value) {
+            this._depth = value;
+            this.lfoL.oscillation = this._baseModulationFrequency * this._depth;
+            this.lfoR.oscillation = this._baseModulationFrequency * this._depth;
+        }
+    },
+    rate: {
+        get: function () {
+            return this._rate;
+        },
+        set: function (value) {
+            this._rate = value;
+            this.lfoL.frequency = this._rate;
+            this.lfoR.frequency = this._rate;
+        }
+    },
+    baseModulationFrequency: {
+        enumerable: true,
+        get: function () {
+            return this._baseModulationFrequency;
+        },
+        set: function (value) {
+            this._baseModulationFrequency = value;
+            this.lfoL.offset = this._baseModulationFrequency;
+            this.lfoR.offset = this._baseModulationFrequency;
+            this._depth = this._depth;
+        }
+    },
+    feedback: {
+        get: function () {
+            return this._feedback;
+        },
+        set: function (value) {
+            this._feedback = value;
+            this.feedbackGainNodeL.gain.value = this._feedback;
+            this.feedbackGainNodeR.gain.value = this._feedback;
+        }
+    },
+    stereoPhase: {
+        get: function () {
+            return this._stereoPhase;
+        },
+        set: function (value) {
+            this._stereoPhase = value;
+            let newPhase = this.lfoL._phase + this._stereoPhase * Math.PI / 180;
+            newPhase = fmod(newPhase, 2 * Math.PI);
+            this.lfoR._phase = newPhase;
+        }
+    }
+});
+Tuna.prototype.PingPongDelay = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.wetLevel = userContext.createGain();
+    this.stereoToMonoMix = userContext.createGain();
+    this.feedbackLevel = userContext.createGain();
+    this.output = userContext.createGain();
+    this.delayLeft = userContext.createDelay(10);
+    this.delayRight = userContext.createDelay(10);
+    this.activateNode = userContext.createGain();
+    this.splitter = userContext.createChannelSplitter(2);
+    this.merger = userContext.createChannelMerger(2);
+    this.activateNode.connect(this.splitter);
+    this.splitter.connect(this.stereoToMonoMix, 0, 0);
+    this.splitter.connect(this.stereoToMonoMix, 1, 0);
+    this.stereoToMonoMix.gain.value = .5;
+    this.stereoToMonoMix.connect(this.wetLevel);
+    this.wetLevel.connect(this.delayLeft);
+    this.feedbackLevel.connect(this.delayLeft);
+    this.delayLeft.connect(this.delayRight);
+    this.delayRight.connect(this.feedbackLevel);
+    this.delayLeft.connect(this.merger, 0, 0);
+    this.delayRight.connect(this.merger, 0, 1);
+    this.merger.connect(this.output);
+    this.activateNode.connect(this.output);
+    this.delayTimeLeft = properties.delayTimeLeft !== undefined ? properties.delayTimeLeft : this.defaults.delayTimeLeft.value;
+    this.delayTimeRight = properties.delayTimeRight !== undefined ? properties.delayTimeRight : this.defaults.delayTimeRight.value;
+    this.feedbackLevel.gain.value = properties.feedback !== undefined ? properties.feedback : this.defaults.feedback.value;
+    this.wetLevel.gain.value = properties.wetLevel !== undefined ? properties.wetLevel : this.defaults.wetLevel.value;
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.PingPongDelay.prototype = Object.create(Super, {
+    name: {
+        value: 'PingPongDelay'
+    },
+    delayTimeLeft: {
+        enumerable: true,
+        get: function () {
+            return this._delayTimeLeft;
+        },
+        set: function (value) {
+            this._delayTimeLeft = value;
+            this.delayLeft.delayTime.value = value / 1000;
+        }
+    },
+    delayTimeRight: {
+        enumerable: true,
+        get: function () {
+            return this._delayTimeRight;
+        },
+        set: function (value) {
+            this._delayTimeRight = value;
+            this.delayRight.delayTime.value = value / 1000;
+        }
+    },
+    defaults: {
+        writable: true,
+        value: {
+            delayTimeLeft: {
+                value: 200,
+                min: 1,
+                max: 10000,
+                automatable: false,
+                type: INT
+            },
+            delayTimeRight: {
+                value: 400,
+                min: 1,
+                max: 10000,
+                automatable: false,
+                type: INT
+            },
+            feedback: {
+                value: 0.3,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            wetLevel: {
+                value: 0.5,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    }
+});
+Tuna.prototype.Tremolo = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.splitter = this.activateNode = userContext.createChannelSplitter(2),
+        this.amplitudeL = userContext.createGain(),
+        this.amplitudeR = userContext.createGain(),
+        this.merger = userContext.createChannelMerger(2),
+        this.output = userContext.createGain();
+    this.lfoL = new userInstance.LFO({
+        target: this.amplitudeL.gain,
+        callback: pipe
+    });
+    this.lfoR = new userInstance.LFO({
+        target: this.amplitudeR.gain,
+        callback: pipe
+    });
+    this.input.connect(this.splitter);
+    this.splitter.connect(this.amplitudeL, 0);
+    this.splitter.connect(this.amplitudeR, 1);
+    this.amplitudeL.connect(this.merger, 0, 0);
+    this.amplitudeR.connect(this.merger, 0, 1);
+    this.merger.connect(this.output);
+    this.rate = properties.rate || this.defaults.rate.value;
+    this.intensity = initValue(properties.intensity, this.defaults.intensity.value);
+    this.stereoPhase = initValue(properties.stereoPhase, this.defaults.stereoPhase.value);
+    this.lfoL.offset = 1 - (this.intensity / 2);
+    this.lfoR.offset = 1 - (this.intensity / 2);
+    this.lfoL.phase = this.stereoPhase * Math.PI / 180;
+    this.lfoL.activate(true);
+    this.lfoR.activate(true);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.Tremolo.prototype = Object.create(Super, {
+    name: {
+        value: 'Tremolo'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            intensity: {
+                value: 0.3,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            stereoPhase: {
+                value: 0,
+                min: 0,
+                max: 180,
+                automatable: false,
+                type: FLOAT
+            },
+            rate: {
+                value: 5,
+                min: 0.1,
+                max: 11,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    intensity: {
+        enumerable: true,
+        get: function () {
+            return this._intensity;
+        },
+        set: function (value) {
+            this._intensity = value;
+            this.lfoL.offset = 1 - this._intensity / 2;
+            this.lfoR.offset = 1 - this._intensity / 2;
+            this.lfoL.oscillation = this._intensity;
+            this.lfoR.oscillation = this._intensity;
+        }
+    },
+    rate: {
+        enumerable: true,
+        get: function () {
+            return this._rate;
+        },
+        set: function (value) {
+            this._rate = value;
+            this.lfoL.frequency = this._rate;
+            this.lfoR.frequency = this._rate;
+        }
+    },
+    stereoPhase: {
+        enumerable: true,
+        get: function () {
+            return this._stereoPhase;
+        },
+        set: function (value) {
+            this._stereoPhase = value;
+            let newPhase = this.lfoL._phase + this._stereoPhase * Math.PI / 180;
+            newPhase = fmod(newPhase, 2 * Math.PI);
+            this.lfoR.phase = newPhase;
+        }
+    }
+});
+Tuna.prototype.WahWah = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.activateNode = userContext.createGain();
+    this.envelopeFollower = new userInstance.EnvelopeFollower({
+        target: this,
+        callback: function (context, value) {
+            context.sweep = value;
+        }
+    });
+    this.filterBp = userContext.createBiquadFilter();
+    this.filterPeaking = userContext.createBiquadFilter();
+    this.output = userContext.createGain();
+    // Connect AudioNodes
+    this.activateNode.connect(this.filterBp);
+    this.filterBp.connect(this.filterPeaking);
+    this.filterPeaking.connect(this.output);
+    // Set Properties
+    this.init();
+    this.automode = initValue(properties.automode, this.defaults.automode.value);
+    this.resonance = properties.resonance || this.defaults.resonance.value;
+    this.sensitivity = initValue(properties.sensitivity, this.defaults.sensitivity.value);
+    this.baseFrequency = initValue(properties.baseFrequency, this.defaults.baseFrequency.value);
+    this.excursionOctaves = properties.excursionOctaves || this.defaults.excursionOctaves.value;
+    this.sweep = initValue(properties.sweep, this.defaults.sweep.value);
+    this.activateNode.gain.value = 2;
+    this.envelopeFollower.activate(true);
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.WahWah.prototype = Object.create(Super, {
+    name: {
+        value: 'WahWah'
+    },
+    defaults: {
+        writable: true,
+        value: {
+            automode: {
+                value: true,
+                automatable: false,
+                type: BOOLEAN
+            },
+            baseFrequency: {
+                value: 0.5,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            excursionOctaves: {
+                value: 2,
+                min: 1,
+                max: 6,
+                automatable: false,
+                type: FLOAT
+            },
+            sweep: {
+                value: 0.2,
+                min: 0,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            },
+            resonance: {
+                value: 10,
+                min: 1,
+                max: 100,
+                automatable: false,
+                type: FLOAT
+            },
+            sensitivity: {
+                value: 0.5,
+                min: -1,
+                max: 1,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    automode: {
+        get: function () {
+            return this._automode;
+        },
+        set: function (value) {
+            this._automode = value;
+            if (value) {
+                this.activateNode.connect(this.envelopeFollower.input);
+                this.envelopeFollower.activate(true);
+            }
+            else {
+                this.envelopeFollower.activate(false);
+                this.activateNode.disconnect();
+                this.activateNode.connect(this.filterBp);
+            }
+        }
+    },
+    filterFreqTimeout: {
+        writable: true,
+        value: 0
+    },
+    setFilterFreq: {
+        value: function () {
+            try {
+                this.filterBp.frequency.value = Math.min(22050, this._baseFrequency + this._excursionFrequency * this._sweep);
+                this.filterPeaking.frequency.value = Math.min(22050, this._baseFrequency + this._excursionFrequency * this._sweep);
+            }
+            catch (e) {
+                clearTimeout(this.filterFreqTimeout);
+                // put on the next cycle to let all init properties be set
+                this.filterFreqTimeout = setTimeout(function () {
+                    this.setFilterFreq();
+                }.bind(this), 0);
+            }
+        }
+    },
+    sweep: {
+        enumerable: true,
+        get: function () {
+            return this._sweep;
+        },
+        set: function (value) {
+            this._sweep = Math.pow(value > 1 ? 1 : value < 0 ? 0 : value, this._sensitivity);
+            this.setFilterFreq();
+        }
+    },
+    baseFrequency: {
+        enumerable: true,
+        get: function () {
+            return this._baseFrequency;
+        },
+        set: function (value) {
+            this._baseFrequency = 50 * Math.pow(10, value * 2);
+            this._excursionFrequency = Math.min(userContext.sampleRate / 2, this.baseFrequency * Math.pow(2, this._excursionOctaves));
+            this.setFilterFreq();
+        }
+    },
+    excursionOctaves: {
+        enumerable: true,
+        get: function () {
+            return this._excursionOctaves;
+        },
+        set: function (value) {
+            this._excursionOctaves = value;
+            this._excursionFrequency = Math.min(userContext.sampleRate / 2, this.baseFrequency * Math.pow(2, this._excursionOctaves));
+            this.setFilterFreq();
+        }
+    },
+    sensitivity: {
+        enumerable: true,
+        get: function () {
+            return this._sensitivity;
+        },
+        set: function (value) {
+            this._sensitivity = Math.pow(10, value);
+        }
+    },
+    resonance: {
+        enumerable: true,
+        get: function () {
+            return this._resonance;
+        },
+        set: function (value) {
+            this._resonance = value;
+            this.filterPeaking.Q.value = this._resonance;
+        }
+    },
+    init: {
+        value: function () {
+            this.output.gain.value = 1;
+            this.filterPeaking.type = 'peaking';
+            this.filterBp.type = 'bandpass';
+            this.filterPeaking.frequency.value = 100;
+            this.filterPeaking.gain.value = 20;
+            this.filterPeaking.Q.value = 5;
+            this.filterBp.frequency.value = 100;
+            this.filterBp.Q.value = 1;
+        }
+    }
+});
+Tuna.prototype.EnvelopeFollower = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    this.input = userContext.createGain();
+    this.jsNode = this.output = userContext.createScriptProcessor(this.buffersize, 1, 1);
+    this.input.connect(this.output);
+    this.attackTime = initValue(properties.attackTime, this.defaults.attackTime.value);
+    this.releaseTime = initValue(properties.releaseTime, this.defaults.releaseTime.value);
+    this._envelope = 0;
+    this.target = properties.target || {};
+    this.callback = properties.callback || function () { };
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.EnvelopeFollower.prototype = Object.create(Super, {
+    name: {
+        value: 'EnvelopeFollower'
+    },
+    defaults: {
+        value: {
+            attackTime: {
+                value: 0.003,
+                min: 0,
+                max: 0.5,
+                automatable: false,
+                type: FLOAT
+            },
+            releaseTime: {
+                value: 0.5,
+                min: 0,
+                max: 0.5,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    buffersize: {
+        value: 256
+    },
+    envelope: {
+        value: 0
+    },
+    sampleRate: {
+        value: 44100
+    },
+    attackTime: {
+        enumerable: true,
+        get: function () {
+            return this._attackTime;
+        },
+        set: function (value) {
+            this._attackTime = value;
+            this._attackC = Math.exp(-1 / this._attackTime * this.sampleRate / this.buffersize);
+        }
+    },
+    releaseTime: {
+        enumerable: true,
+        get: function () {
+            return this._releaseTime;
+        },
+        set: function (value) {
+            this._releaseTime = value;
+            this._releaseC = Math.exp(-1 / this._releaseTime * this.sampleRate / this.buffersize);
+        }
+    },
+    callback: {
+        get: function () {
+            return this._callback;
+        },
+        set: function (value) {
+            if (typeof value === 'function') {
+                this._callback = value;
+            }
+            else {
+                console.error('tuna.js: ' + this.name + ': Callback must be a function!');
+            }
+        }
+    },
+    target: {
+        get: function () {
+            return this._target;
+        },
+        set: function (value) {
+            this._target = value;
+        }
+    },
+    activate: {
+        value: function (doActivate) {
+            this.activated = doActivate;
+            if (doActivate) {
+                this.jsNode.connect(userContext.destination);
+                this.jsNode.onaudioprocess = this.returnCompute(this);
+            }
+            else {
+                this.jsNode.disconnect();
+                this.jsNode.onaudioprocess = null;
+            }
+            if (this.activateCallback) {
+                this.activateCallback(doActivate);
+            }
+        }
+    },
+    returnCompute: {
+        value: function (instance) {
+            return function (event) {
+                instance.compute(event);
+            };
+        }
+    },
+    compute: {
+        value: function (event) {
+            let count = event.inputBuffer.getChannelData(0).length, channels = event.inputBuffer.numberOfChannels, current, chan, rms, i;
+            chan = rms = i = 0;
+            if (channels > 1) {
+                for (i = 0; i < count; ++i) {
+                    for (; chan < channels; ++chan) {
+                        current = event.inputBuffer.getChannelData(chan)[i];
+                        rms += (current * current) / channels;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < count; ++i) {
+                    current = event.inputBuffer.getChannelData(0)[i];
+                    rms += (current * current);
+                }
+            }
+            rms = Math.sqrt(rms);
+            if (this._envelope < rms) {
+                this._envelope *= this._attackC;
+                this._envelope += (1 - this._attackC) * rms;
+            }
+            else {
+                this._envelope *= this._releaseC;
+                this._envelope += (1 - this._releaseC) * rms;
+            }
+            this._callback(this._target, this._envelope);
+        }
+    }
+});
+Tuna.prototype.LFO = function (properties) {
+    if (!properties) {
+        properties = this.getDefaults();
+    }
+    // Instantiate AudioNode
+    this.input = userContext.createGain();
+    this.output = userContext.createScriptProcessor(256, 1, 1);
+    this.activateNode = userContext.destination;
+    // Set Properties
+    this.frequency = initValue(properties.frequency, this.defaults.frequency.value);
+    this.offset = initValue(properties.offset, this.defaults.offset.value);
+    this.oscillation = initValue(properties.oscillation, this.defaults.oscillation.value);
+    this.phase = initValue(properties.phase, this.defaults.phase.value);
+    this.target = properties.target || {};
+    this.output.onaudioprocess = this.callback(properties.callback || function () { });
+    this.bypass = properties.bypass || false;
+};
+Tuna.prototype.LFO.prototype = Object.create(Super, {
+    name: {
+        value: 'LFO'
+    },
+    bufferSize: {
+        value: 256
+    },
+    sampleRate: {
+        value: 44100
+    },
+    defaults: {
+        value: {
+            frequency: {
+                value: 1,
+                min: 0,
+                max: 20,
+                automatable: false,
+                type: FLOAT
+            },
+            offset: {
+                value: 0.85,
+                min: 0,
+                max: 22049,
+                automatable: false,
+                type: FLOAT
+            },
+            oscillation: {
+                value: 0.3,
+                min: -22050,
+                max: 22050,
+                automatable: false,
+                type: FLOAT
+            },
+            phase: {
+                value: 0,
+                min: 0,
+                max: 2 * Math.PI,
+                automatable: false,
+                type: FLOAT
+            }
+        }
+    },
+    frequency: {
+        get: function () {
+            return this._frequency;
+        },
+        set: function (value) {
+            this._frequency = value;
+            this._phaseInc = 2 * Math.PI * this._frequency * this.bufferSize / this.sampleRate;
+        }
+    },
+    offset: {
+        get: function () {
+            return this._offset;
+        },
+        set: function (value) {
+            this._offset = value;
+        }
+    },
+    oscillation: {
+        get: function () {
+            return this._oscillation;
+        },
+        set: function (value) {
+            this._oscillation = value;
+        }
+    },
+    phase: {
+        get: function () {
+            return this._phase;
+        },
+        set: function (value) {
+            this._phase = value;
+        }
+    },
+    target: {
+        get: function () {
+            return this._target;
+        },
+        set: function (value) {
+            this._target = value;
+        }
+    },
+    activate: {
+        value: function (doActivate) {
+            if (doActivate) {
+                this.output.connect(userContext.destination);
+                if (this.activateCallback) {
+                    this.activateCallback(doActivate);
+                }
+            }
+            else {
+                this.output.disconnect();
+            }
+        }
+    },
+    callback: {
+        value: function (callback) {
+            let that = this;
+            return function () {
+                that._phase += that._phaseInc;
+                if (that._phase > 2 * Math.PI) {
+                    that._phase = 0;
+                }
+                callback(that._target, that._offset + that._oscillation * Math.sin(that._phase));
+            };
+        }
+    }
+});
+Tuna.toString = Tuna.prototype.toString = function () {
+    return 'Please visit https://github.com/Theodeus/tuna/wiki for instructions on how to use Tuna.js';
+};
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -6904,6 +10229,7 @@ Tuna.toString = Tuna.prototype.toString = function () {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return WebAudioFontPlayer; });
+<<<<<<< HEAD
 let WebAudioFontPlayer = WebAudioFontPlayerConstructor;
 function WebAudioFontPlayerConstructor() {
     this.envelopes = [];
@@ -7396,6 +10722,500 @@ Drum_Orch_SC88P
 Room_1
 SFX_PART2
 */
+=======
+let WebAudioFontPlayer = WebAudioFontPlayerConstructor;
+function WebAudioFontPlayerConstructor() {
+    this.envelopes = [];
+    this.onCacheFinish = null;
+    this.onCacheProgress = null;
+    this.afterTime = 0.05;
+    this.nearZero = 0.000001;
+    this.queueWaveTable = function (audioContext, target, preset, when, pitch, duration, volume, slides) {
+        if (volume) {
+            volume = 1.0 * volume;
+        }
+        else {
+            volume = 1.0;
+        }
+        let zone = this.findZone(audioContext, preset, pitch);
+        if (!(zone.buffer))
+            throw new Error('Preset is not ready: empty buffer');
+        let baseDetune = zone.originalPitch - 100.0 * zone.coarseTune - zone.fineTune;
+        let playbackRate = 1.0 * Math.pow(2, (100.0 * pitch - baseDetune) / 1200.0);
+        let sampleRatio = zone.sampleRate / audioContext.sampleRate;
+        let startWhen = when;
+        if (startWhen < audioContext.currentTime) {
+            startWhen = audioContext.currentTime;
+        }
+        let waveDuration = duration + this.afterTime;
+        let loop = true;
+        if (zone.loopStart < 1 || zone.loopStart >= zone.loopEnd) {
+            loop = false;
+        }
+        if (!loop) {
+            if (waveDuration > zone.buffer.duration / playbackRate) {
+                waveDuration = zone.buffer.duration / playbackRate;
+            }
+        }
+        let envelope = this.findEnvelope(audioContext, target, startWhen, waveDuration);
+        this.setupEnvelope(audioContext, envelope, zone, volume, startWhen, waveDuration, duration);
+        envelope.audioBufferSourceNode = audioContext.createBufferSource();
+        envelope.audioBufferSourceNode.playbackRate.value = playbackRate;
+        if (slides) {
+            if (slides.length > 0) {
+                envelope.audioBufferSourceNode.playbackRate.setValueAtTime(playbackRate, when);
+                for (let i = 0; i < slides.length; i++) {
+                    let newPlaybackRate = 1.0 * Math.pow(2, (100.0 * slides[i].pitch - baseDetune) / 1200.0);
+                    let newWhen = when + slides[i].when;
+                    envelope.audioBufferSourceNode.playbackRate.linearRampToValueAtTime(newPlaybackRate, newWhen);
+                }
+            }
+        }
+        envelope.audioBufferSourceNode.buffer = zone.buffer;
+        if (loop) {
+            envelope.audioBufferSourceNode.loop = true;
+            envelope.audioBufferSourceNode.loopStart = zone.loopStart / zone.sampleRate + zone.delay;
+            envelope.audioBufferSourceNode.loopEnd = zone.loopEnd / zone.sampleRate + zone.delay;
+        }
+        else {
+            envelope.audioBufferSourceNode.loop = false;
+        }
+        envelope.audioBufferSourceNode.connect(envelope);
+        envelope.audioBufferSourceNode.start(startWhen, zone.delay);
+        envelope.audioBufferSourceNode.stop(startWhen + waveDuration);
+        envelope.when = startWhen;
+        envelope.duration = waveDuration;
+        envelope.pitch = pitch;
+        envelope.preset = preset;
+        return envelope;
+    };
+    this.noZeroVolume = function (n) {
+        if (n > this.nearZero) {
+            return n;
+        }
+        else {
+            return this.nearZero;
+        }
+    };
+    this.setupEnvelope = function (audioContext, envelope, zone, volume, when, sampleDuration, noteDuration) {
+        envelope.gain.setValueAtTime(this.noZeroVolume(0), audioContext.currentTime);
+        let lastTime = 0;
+        let lastVolume = 0;
+        let duration = noteDuration;
+        let ahdsr = zone.ahdsr;
+        if (sampleDuration < duration + this.afterTime) {
+            duration = sampleDuration - this.afterTime;
+        }
+        if (ahdsr) {
+            if (!(ahdsr.length > 0)) {
+                ahdsr = [{
+                        duration: 0,
+                        volume: 1
+                    }, {
+                        duration: 0.5,
+                        volume: 1
+                    }, {
+                        duration: 1.5,
+                        volume: 0.5
+                    }, {
+                        duration: 3,
+                        volume: 0
+                    }
+                ];
+            }
+        }
+        else {
+            ahdsr = [{
+                    duration: 0,
+                    volume: 1
+                }, {
+                    duration: duration,
+                    volume: 1
+                }
+            ];
+        }
+        envelope.gain.cancelScheduledValues(when);
+        envelope.gain.setValueAtTime(this.noZeroVolume(ahdsr[0].volume * volume), when);
+        for (let i = 0; i < ahdsr.length; i++) {
+            if (ahdsr[i].duration > 0) {
+                if (ahdsr[i].duration + lastTime > duration) {
+                    let r = 1 - (ahdsr[i].duration + lastTime - duration) / ahdsr[i].duration;
+                    let n = lastVolume - r * (lastVolume - ahdsr[i].volume);
+                    envelope.gain.linearRampToValueAtTime(this.noZeroVolume(volume * n), when + duration);
+                    break;
+                }
+                lastTime = lastTime + ahdsr[i].duration;
+                lastVolume = ahdsr[i].volume;
+                envelope.gain.linearRampToValueAtTime(this.noZeroVolume(volume * lastVolume), when + lastTime);
+            }
+        }
+        envelope.gain.linearRampToValueAtTime(this.noZeroVolume(0), when + duration + this.afterTime);
+    };
+    this.numValue = function (aValue, defValue) {
+        if (typeof aValue === 'number') {
+            return aValue;
+        }
+        else {
+            return defValue;
+        }
+    };
+    this.findEnvelope = function (audioContext, target, when, duration) {
+        let envelope = null;
+        for (let i = 0; i < this.envelopes.length; i++) {
+            let e = this.envelopes[i];
+            if (this.expireEnvelope(e, audioContext)) {
+                envelope = e;
+                break;
+            }
+        }
+        if (!(envelope)) {
+            envelope = audioContext.createGain();
+            envelope.target = target;
+            envelope.connect(target);
+            envelope.cancel = function (time) {
+                if (time === undefined)
+                    time = audioContext.currentTime;
+                if (envelope.when + envelope.duration > audioContext.currentTime) {
+                    envelope.gain.cancelScheduledValues(time);
+                    envelope.gain.setTargetAtTime(0.00001, time, 0.1);
+                    envelope.when = time + 0.00001;
+                    envelope.duration = 0;
+                }
+            };
+            this.envelopes.push(envelope);
+        }
+        return envelope;
+    };
+    this.expireEnvelope = function (e, ctx) {
+        if (ctx.currentTime > e.when + e.duration + 0.1) {
+            try {
+                e.audioBufferSourceNode.disconnect();
+                e.audioBufferSourceNode.stop(0);
+                e.audioBufferSourceNode = null;
+            }
+            catch (x) {
+                // audioBufferSourceNode is dead already
+            }
+            return true;
+        }
+        return false;
+    };
+    this.expireEnvelopes = function (ctx) {
+        this.envelopes = this.envelopes.filter((e) => !this.expireEnvelope(e, ctx));
+    };
+    this.adjustPreset = function (audioContext, preset, cb) {
+        preset.bufferct = 0;
+        for (let i = 0; i < preset.zones.length; i++) {
+            this.adjustZone(audioContext, preset.zones[i], preset, cb);
+        }
+    };
+    this.adjustZone = function (audioContext, zone, preset, cb) {
+        if (zone.buffer) {
+            //
+        }
+        else {
+            zone.delay = 0;
+            if (zone.sample) {
+                let decoded = atob(zone.sample);
+                zone.buffer = audioContext.createBuffer(1, decoded.length / 2, zone.sampleRate);
+                let float32Array = zone.buffer.getChannelData(0);
+                let b1, b2, n;
+                for (let i = 0; i < decoded.length / 2; i++) {
+                    b1 = decoded.charCodeAt(i * 2);
+                    b2 = decoded.charCodeAt(i * 2 + 1);
+                    if (b1 < 0) {
+                        b1 = 256 + b1;
+                    }
+                    if (b2 < 0) {
+                        b2 = 256 + b2;
+                    }
+                    n = b2 * 256 + b1;
+                    if (n >= 65536 / 2) {
+                        n = n - 65536;
+                    }
+                    float32Array[i] = n / 65536.0;
+                }
+                preset.bufferct++;
+                if (preset.bufferct >= preset.zones.length && cb)
+                    cb();
+            }
+            else {
+                if (zone.file) {
+                    let datalen = zone.file.length;
+                    let arraybuffer = new ArrayBuffer(datalen);
+                    let view = new Uint8Array(arraybuffer);
+                    let decoded = atob(zone.file);
+                    let b;
+                    for (let i = 0; i < decoded.length; i++) {
+                        b = decoded.charCodeAt(i);
+                        view[i] = b;
+                    }
+                    audioContext.decodeAudioData(arraybuffer, function (audioBuffer) {
+                        zone.buffer = audioBuffer;
+                        preset.bufferct++;
+                        if (preset.bufferct >= preset.zones.length && cb)
+                            cb();
+                    });
+                }
+            }
+            zone.loopStart = this.numValue(zone.loopStart, 0);
+            zone.loopEnd = this.numValue(zone.loopEnd, 0);
+            zone.coarseTune = this.numValue(zone.coarseTune, 0);
+            zone.fineTune = this.numValue(zone.fineTune, 0);
+            zone.originalPitch = this.numValue(zone.originalPitch, 6000);
+            zone.sampleRate = this.numValue(zone.sampleRate, 44100);
+            zone.sustain = this.numValue(zone.originalPitch, 0);
+        }
+    };
+    this.findZone = function (audioContext, preset, pitch) {
+        let zone = null;
+        for (let i = preset.zones.length - 1; i >= 0; i--) {
+            zone = preset.zones[i];
+            if (zone.keyRangeLow <= pitch && zone.keyRangeHigh + 1 >= pitch) {
+                break;
+            }
+        }
+        try {
+            this.adjustZone(audioContext, zone);
+        }
+        catch (ex) {
+            console.log('adjustZone', ex);
+        }
+        return zone;
+    };
+    this.cancelQueue = function (audioContext) {
+        for (let i = 0; i < this.envelopes.length; i++) {
+            let e = this.envelopes[i];
+            e.gain.cancelScheduledValues(0);
+            e.gain.setValueAtTime(this.nearZero, audioContext.currentTime);
+            e.when = -1;
+            try {
+                e.audioBufferSourceNode.disconnect();
+            }
+            catch (ex) {
+                console.log(ex);
+            }
+        }
+    };
+    return this;
+}
+/*
+Wavetable instrument list:
+
+0: Piano - Acoustic Grand Piano
+1: Piano - Bright Acoustic Piano
+2: Piano - Electric Grand Piano
+3: Piano - Honky-tonk Piano
+4: Piano - Electric Piano 1
+5: Piano - Electric Piano 2
+6: Piano - Harpsichord
+7: Piano - Clavinet
+8: Chromatic Percussion - Celesta
+9: Chromatic Percussion - Glockenspiel
+10: Chromatic Percussion - Music Box
+11: Chromatic Percussion - Vibraphone
+12: Chromatic Percussion - Marimba
+13: Chromatic Percussion - Xylophone
+14: Chromatic Percussion - Tubular Bells
+15: Chromatic Percussion - Dulcimer
+16: Organ - Drawbar Organ
+17: Organ - Percussive Organ
+18: Organ - Rock Organ
+19: Organ - Church Organ
+20: Organ - Reed Organ
+21: Organ - Accordion
+22: Organ - Harmonica
+23: Organ - Tango Accordion
+24: Guitar - Acoustic Guitar (nylon)
+25: Guitar - Acoustic Guitar (steel)
+26: Guitar - Electric Guitar (jazz)
+27: Guitar - Electric Guitar (clean)
+28: Guitar - Electric Guitar (muted)
+29: Guitar - Overdriven Guitar
+30: Guitar - Distortion Guitar
+31: Guitar - Guitar Harmonics
+32: Bass - Acoustic Bass
+33: Bass - Electric Bass (finger)
+34: Bass - Electric Bass (pick)
+35: Bass - Fretless Bass
+36: Bass - Slap Bass 1
+37: Bass - Slap Bass 2
+38: Bass - Synth Bass 1
+39: Bass - Synth Bass 2
+40: Strings - Violin
+41: Strings - Viola
+42: Strings - Cello
+43: Strings - Contrabass
+44: Strings - Tremolo Strings
+45: Strings - Pizzicato Strings
+46: Strings - Orchestral Harp
+47: Strings - Timpani
+48: Ensemble - String Ensemble 1
+49: Ensemble - String Ensemble 2
+50: Ensemble - Synth Strings 1
+51: Ensemble - Synth Strings 2
+52: Ensemble - Choir Aahs
+53: Ensemble - Voice Oohs
+54: Ensemble - Synth Choir
+55: Ensemble - Orchestra Hit
+56: Brass - Trumpet
+57: Brass - Trombone
+58: Brass - Tuba
+59: Brass - Muted Trumpet
+60: Brass - French Horn
+61: Brass - Brass Section
+62: Brass - Synth Brass 1
+63: Brass - Synth Brass 2
+64: Reed - Soprano Sax
+65: Reed - Alto Sax
+66: Reed - Tenor Sax
+67: Reed - Baritone Sax
+68: Reed - Oboe
+69: Reed - English Horn
+70: Reed - Bassoon
+71: Reed - Clarinet
+72: Pipe - Piccolo
+73: Pipe - Flute
+74: Pipe - Recorder
+75: Pipe - Pan Flute
+76: Pipe - Blown bottle
+77: Pipe - Shakuhachi
+78: Pipe - Whistle
+79: Pipe - Ocarina
+80: Synth Lead - Lead 1 (square)
+81: Synth Lead - Lead 2 (sawtooth)
+82: Synth Lead - Lead 3 (calliope)
+83: Synth Lead - Lead 4 (chiff)
+84: Synth Lead - Lead 5 (charang)
+85: Synth Lead - Lead 6 (voice)
+86: Synth Lead - Lead 7 (fifths)
+87: Synth Lead - Lead 8 (bass + lead)
+88: Synth Pad - Pad 1 (new age)
+89: Synth Pad - Pad 2 (warm)
+90: Synth Pad - Pad 3 (polysynth)
+91: Synth Pad - Pad 4 (choir)
+92: Synth Pad - Pad 5 (bowed)
+93: Synth Pad - Pad 6 (metallic)
+94: Synth Pad - Pad 7 (halo)
+95: Synth Pad - Pad 8 (sweep)
+96: Synth Effects - FX 1 (rain)
+97: Synth Effects - FX 2 (soundtrack)
+98: Synth Effects - FX 3 (crystal)
+99: Synth Effects - FX 4 (atmosphere)
+100: Synth Effects - FX 5 (brightness)
+101: Synth Effects - FX 6 (goblins)
+102: Synth Effects - FX 7 (echoes)
+103: Synth Effects - FX 8 (sci-fi)
+104: Ethnic - Sitar
+105: Ethnic - Banjo
+106: Ethnic - Shamisen
+107: Ethnic - Koto
+108: Ethnic - Kalimba
+109: Ethnic - Bagpipe
+110: Ethnic - Fiddle
+111: Ethnic - Shanai
+112: Percussive - Tinkle Bell
+113: Percussive - Agogo
+114: Percussive - Steel Drums
+115: Percussive - Woodblock
+116: Percussive - Taiko Drum
+117: Percussive - Melodic Tom
+118: Percussive - Synth Drum
+119: Percussive - Reverse Cymbal
+120: Sound effects - Guitar Fret Noise
+121: Sound effects - Breath Noise
+122: Sound effects - Seashore
+123: Sound effects - Bird Tweet
+124: Sound effects - Telephone Ring
+125: Sound effects - Helicopter
+126: Sound effects - Applause
+127: Sound effects - Gunshot
+
+Drums:
+Drum_Stan1_SC88P
+Standard
+Standard_part2
+Standard
+DRUM_SFX
+Room_2
+Standard_2_PART3
+CM_64_32_MT_32
+Room_3
+Roomm_PART3
+Room_4
+Power_PART3
+Room_5
+Electronic_PART3
+Room_6
+zTR_808_PART3
+Room_7
+Dance_PART3
+Power
+Jazz_PART3
+Power_1
+Brush_PART3
+Power_2
+Orchestra_PART3
+Power_3
+SFX_PART3
+Drum_Room
+Standard_1
+Roomm_PART2
+Room
+Electronic
+Standard
+TR_808
+Roomm
+Jazz
+Power_SC_55
+Jazz_1
+Electronic_SC_55
+Jazz_2
+zTR_808
+Jazz_3
+Dance_SC_88
+Jazz_4
+Jazz
+Brush
+Brush_SC_55
+Brush_1
+Orchestra
+Brush_2
+SFX
+Drum_Room_SC88P
+Standard_2
+Power_PART2
+Power
+Orchestra_Kit
+Drum_Power
+Standard_3
+Electronic_PART2
+Electronic
+Drum_Elec_SC88P
+Standard_4
+zTR_808_PART2
+TR_808
+Drum_TR808_SC88P
+Standard_5
+Dance_PART2
+Jazz
+Drum_TR909_SC88P
+Standard_6
+Jazz_PART2
+Brush
+Drum_Jazz
+Standard_7
+Brush_PART2
+Orchestra
+Drum_Brush_SC88P
+Room
+Orchestra_PART2
+SFX
+Drum_Orch_SC88P
+Room_1
+SFX_PART2
+*/
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -7407,6 +11227,7 @@ SFX_PART2
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__editor__ = __webpack_require__(16);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__editor_buffers__ = __webpack_require__(18);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__instruments__ = __webpack_require__(17);
+<<<<<<< HEAD
 
 
 
@@ -7564,6 +11385,165 @@ class EditorActions {
         return this.editor.getConfiguration().fontInfo.fontSize;
     }
 }
+=======
+
+
+
+function registerActions(editor) {
+    const CTRL_ALT = monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd;
+    const CTRL_SHIFT = monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift;
+    let editorActions = new EditorActions(editor);
+    registerButtons(editorActions);
+    setColorTheme(editorActions);
+    registerDnD();
+    // -------------------- Run code actions --------------------
+    editor.addAction({
+        id: 'walc-run-all',
+        label: 'Run all code',
+        keybindings: [CTRL_ALT | monaco.KeyCode.Enter],
+        contextMenuGroupId: 'modulator',
+        contextMenuOrder: 1,
+        run: () => editorActions.runAllCode()
+    });
+    editor.addAction({
+        id: 'walc-run-part',
+        label: 'Run current line or selection',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+        contextMenuGroupId: 'modulator',
+        contextMenuOrder: 2,
+        run: () => editorActions.runSomeCode()
+    });
+    editor.addAction({
+        id: 'walc-stop-all',
+        label: 'Stop all tracks',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_DOT],
+        contextMenuGroupId: 'modulator',
+        contextMenuOrder: 3,
+        run: () => editorActions.stopAllTracks()
+    });
+    // -------------------- Font size actions --------------------
+    editor.addAction({
+        id: 'walc-font-sm',
+        label: 'Reduce code font',
+        keybindings: [CTRL_ALT | monaco.KeyCode.US_COMMA],
+        contextMenuGroupId: 'modulator',
+        contextMenuOrder: 4,
+        run: () => editorActions.reduceFont()
+    });
+    editor.addAction({
+        id: 'walc-font-lg',
+        label: 'Enlarge code font',
+        keybindings: [CTRL_ALT | monaco.KeyCode.US_DOT],
+        contextMenuGroupId: 'modulator',
+        contextMenuOrder: 5,
+        run: () => editorActions.enlargeFont()
+    });
+    // -------------------- Buffer actions --------------------
+    editor.addAction({
+        id: 'walc-buffer-prev',
+        label: 'Previous code buffer',
+        keybindings: [CTRL_SHIFT | monaco.KeyCode.US_COMMA],
+        run: () => editorActions.showPrevBuffer()
+    });
+    editor.addAction({
+        id: 'walc-buffer-next',
+        label: 'Next code buffer',
+        keybindings: [CTRL_SHIFT | monaco.KeyCode.US_DOT],
+        run: () => editorActions.showNextBuffer()
+    });
+}
+function registerButtons(editorActions) {
+    let refocus = (x) => editorActions.editor.focus();
+    // ----- Left buttons ----
+    $('#walc-run-all').click(_ => refocus(editorActions.runAllCode()));
+    $('#walc-run-sel').click(_ => refocus(editorActions.runSomeCode()));
+    $('#walc-stop').click(_ => refocus(editorActions.stopAllTracks()));
+    // ----- Right buttons -----
+    $('#walc-toggle-theme').click(_ => refocus(editorActions.toggleTheme()));
+    $('#walc-font-sm').click(_ => refocus(editorActions.reduceFont()));
+    $('#walc-font-lg').click(_ => refocus(editorActions.enlargeFont()));
+}
+function setColorTheme(editorActions) {
+    let theme = localStorage.walc_prefs_theme;
+    if (theme == 'dark')
+        editorActions.toggleTheme();
+}
+function registerDnD() {
+    $('#live-coding').on('drag dragstart dragend dragover dragenter dragleave drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+    })
+        .on('drop', e => {
+        let files = e.originalEvent.dataTransfer.files;
+        Object(__WEBPACK_IMPORTED_MODULE_2__instruments__["b" /* loadSamples */])(files);
+    });
+}
+class EditorActions {
+    constructor(editor) {
+        this.editor = editor;
+        this.lightTheme = true;
+    }
+    runAllCode() {
+        let model = this.editor.getModel();
+        Object(__WEBPACK_IMPORTED_MODULE_0__editor__["b" /* doRunCode */])(model.getValue());
+        Object(__WEBPACK_IMPORTED_MODULE_0__editor__["c" /* flashRange */])(model.getFullModelRange());
+    }
+    runSomeCode() {
+        let range = this.editor.getSelection();
+        let sel = this.getRange(range);
+        Object(__WEBPACK_IMPORTED_MODULE_0__editor__["b" /* doRunCode */])(sel);
+        Object(__WEBPACK_IMPORTED_MODULE_0__editor__["c" /* flashRange */])(range);
+    }
+    stopAllTracks() {
+        lc.reset();
+    }
+    toggleTheme() {
+        this.lightTheme = !this.lightTheme;
+        if (this.lightTheme) {
+            $('body').removeClass('dark');
+            monaco.editor.setTheme('vs');
+            $('.logo > img').attr('src', 'img/logo.svg');
+        }
+        else {
+            $('body').addClass('dark');
+            monaco.editor.setTheme('vs-dark');
+            $('.logo > img').attr('src', 'img/logo-white.svg');
+        }
+        localStorage.walc_prefs_theme = this.lightTheme ? 'light' : 'dark';
+    }
+    reduceFont() {
+        let fs = this.getFontSize();
+        if (fs <= 1)
+            return;
+        this.editor.updateOptions({ fontSize: fs - 1 });
+    }
+    enlargeFont() {
+        this.editor.updateOptions({ fontSize: this.getFontSize() + 1 });
+    }
+    showPrevBuffer() {
+        Object(__WEBPACK_IMPORTED_MODULE_1__editor_buffers__["c" /* prevBuffer */])(this.editor);
+    }
+    showNextBuffer() {
+        Object(__WEBPACK_IMPORTED_MODULE_1__editor_buffers__["b" /* nextBuffer */])(this.editor);
+    }
+    getRange(range) {
+        let sel;
+        if (range.startLineNumber != range.endLineNumber
+            || range.startColumn != range.endColumn) {
+            sel = this.editor.getModel().getValueInRange(range);
+        }
+        else {
+            sel = this.editor.getModel().getLineContent(range.startLineNumber);
+            range.startColumn = 1;
+            range.endColumn = sel.length + 1;
+        }
+        return '\n'.repeat(range.startLineNumber - 1) + sel;
+    }
+    getFontSize() {
+        return this.editor.getConfiguration().fontInfo.fontSize;
+    }
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -7573,6 +11553,7 @@ class EditorActions {
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = setupRing;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__random__ = __webpack_require__(19);
+<<<<<<< HEAD
 
 class Ring extends Array {
     constructor() {
@@ -7689,6 +11670,124 @@ function copytick(from, to) {
         to.tick_ct = to.length - 1;
     return to;
 }
+=======
+
+class Ring extends Array {
+    constructor() {
+        super(...arguments);
+        this.tick_ct = 0;
+    }
+    tick() {
+        let result = this[this.tick_ct];
+        this.tick_ct++;
+        if (this.tick_ct >= this.length)
+            this.tick_ct = 0;
+        return result;
+    }
+    choose() {
+        return this[__WEBPACK_IMPORTED_MODULE_0__random__["a" /* random */].integer(0, this.length - 1)];
+    }
+    fromArray(arr) {
+        for (let x of arr)
+            this.push(x);
+        return this;
+    }
+    toArray() {
+        return new Array(...this);
+    }
+    clone() {
+        return copytick(this, this.toArray().ring());
+    }
+    reverse() {
+        return copytick(this, this.toArray().reverse().ring());
+    }
+    sort(compareFn) {
+        let r = this.toArray().sort(compareFn).ring();
+        return copytick(this, r);
+    }
+    shuffle() {
+        let r = this.clone();
+        for (let i = r.length - 1; i > 0; i--) {
+            let j = __WEBPACK_IMPORTED_MODULE_0__random__["a" /* random */].integer(0, i);
+            let temp = r[i];
+            r[i] = r[j];
+            r[j] = temp;
+        }
+        return copytick(this, r);
+    }
+    take(n) {
+        return copytick(this, this.slice(0, n));
+    }
+    drop(n) {
+        return copytick(this, this.slice(n));
+    }
+    butlast() {
+        return this.take(this.length - 1);
+    }
+    drop_last(n) {
+        return this.take(this.length - n);
+    }
+    take_last(n) {
+        return this.drop(this.length - n);
+    }
+    stretch(n) {
+        let r = new Ring();
+        for (let x of this)
+            for (let i = 0; i < n; i++)
+                r.push(x);
+        return copytick(this, r);
+    }
+    repeat(n) {
+        let r = new Ring();
+        for (let i = 0; i < n; i++)
+            for (let x of this)
+                r.push(x);
+        return copytick(this, r);
+    }
+    mirror() {
+        let r = this.concat(this.reverse());
+        return copytick(this, r);
+    }
+    reflect() {
+        let r = this.concat(this.reverse().drop(1));
+        return copytick(this, r);
+    }
+    scale(n) {
+        let r = this.clone();
+        for (let i = 0; i < r.length; i++)
+            r[i] *= n;
+        return copytick(this, r);
+    }
+    transpose(n) {
+        let r = this.clone();
+        for (let i = 0; i < r.length; i++)
+            r[i] += n;
+        return copytick(this, r);
+    }
+    toString() {
+        let arr = [];
+        for (let x of this)
+            arr.push(x.toString());
+        arr[this.tick_ct] = '>' + arr[this.tick_ct] + '<';
+        return '(' + arr.join(', ') + ')';
+    }
+}
+/* unused harmony export Ring */
+
+function setupRing() {
+    if (!Array.prototype.ring) {
+        Array.prototype.ring = function () {
+            return new Ring().fromArray(this);
+        };
+    }
+}
+function copytick(from, to) {
+    to.tick_ct = from.tick_ct;
+    if (to.tick_ct >= to.length)
+        to.tick_ct = to.length - 1;
+    return to;
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ }),
@@ -8698,6 +12797,7 @@ if ((typeof module) == 'object' && module.exports) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = setupRoutes;
+<<<<<<< HEAD
 let oldPage;
 let mainRoute;
 function setupRoutes(initialRoute) {
@@ -8730,6 +12830,34 @@ function loadPage(pname) {
         });
     });
 }
+=======
+let oldPage;
+let mainRoute;
+function setupRoutes(initialRoute) {
+    window.onhashchange = showPageFromHash;
+    mainRoute = initialRoute;
+    showPageFromHash();
+    return loadPages();
+}
+function showPageFromHash() {
+    const hash = location.hash || mainRoute;
+    $('#page > div').hide();
+    $(hash).show().css('outline', 'none').focus();
+    if (oldPage)
+        $(document).trigger('route:hide', oldPage);
+    $(document).trigger('route:show', hash);
+    oldPage = hash;
+    window.scrollTo(0, 0);
+}
+function loadPages() {
+    return new Promise(resolve => {
+        $.get('live-coding.html', data => {
+            $('#live-coding').empty().append(data);
+            resolve();
+        });
+    });
+}
+>>>>>>> a3f01367e8c490980b06e24c1852547fdcb8cff8
 
 
 /***/ })
