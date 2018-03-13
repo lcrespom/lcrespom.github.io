@@ -112,7 +112,7 @@ function loadImage(url) {
 
 function main() {
 	let canvas = document.getElementById('fire-canvas')
-	loadImage(location.hash.substr(1))
+	loadImage(location.search.substr(1))
 	.then(img => {
 		canvas.width = img.offsetWidth
 		canvas.height = img.offsetHeight
