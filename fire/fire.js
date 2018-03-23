@@ -97,16 +97,21 @@ function runAnimation(canvas, img) {
 		framect++
 		if (framect % 3) return
 		fire.step()
-		ctx.clearRect(0, 0, w, h)
 		drawAnimation(ctx, imgData, fire, palette)
 	});
 }
 
 function loadImage(url) {
+	const DEFAULT_IMG = { offsetWidth: 640, offsetHeight: 320 }
 	return new Promise(resolve => {
+		if (!url) {
+			resolve(DEFAULT_IMG)
+			return
+		}
 		var img = document.getElementById('fire-image')
 		img.src = url
 		img.onload = _ => resolve(img)
+		img.onerror = _ => resolve(DEFAULT_IMG)
 	})
 }
 
