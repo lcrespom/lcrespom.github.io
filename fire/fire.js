@@ -114,8 +114,10 @@ function main() {
 	let canvas = document.getElementById('fire-canvas')
 	loadImage(location.search.substr(1))
 	.then(img => {
-		canvas.width = img ? img.offsetWidth : 640
-		canvas.height = img ? img.offsetHeight : 320
+		if (img) {
+			canvas.width = img.offsetWidth
+			canvas.height = img.offsetHeight
+		}
 		runAnimation(canvas, img)
 	})
 }
