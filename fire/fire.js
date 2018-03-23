@@ -107,7 +107,7 @@ function loadImage(url) {
 		var img = document.getElementById('fire-image')
 		img.src = url
 		img.onload = _ => resolve(img)
-		img.onerror = _ => resolve(DEFAULT_IMG)
+		img.onerror = _ => resolve(Object.assign(img, DEFAULT_IMG))
 	})
 }
 
