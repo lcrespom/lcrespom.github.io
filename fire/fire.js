@@ -86,7 +86,7 @@ function drawLoop(cb) {
 
 function runAnimation(canvas, img) {
 	let ctx = canvas.getContext('2d')
-	ctx.drawImage(img, 0, 0)
+	if (img) ctx.drawImage(img, 0, 0)
 	let w = canvas.width
 	let h = canvas.height
 	let fire = new Fire(w, h) // Max 128
@@ -102,12 +102,11 @@ function runAnimation(canvas, img) {
 }
 
 function loadImage(url) {
-	const DEFAULT_IMG = { offsetWidth: 640, offsetHeight: 320 }
 	return new Promise(resolve => {
 		var img = document.getElementById('fire-image')
 		img.src = url
 		img.onload = _ => resolve(img)
-		img.onerror = _ => resolve(Object.assign(img, DEFAULT_IMG))
+		img.onerror = _ => resolve(false)
 	})
 }
 
@@ -115,8 +114,8 @@ function main() {
 	let canvas = document.getElementById('fire-canvas')
 	loadImage(location.search.substr(1))
 	.then(img => {
-		canvas.width = img.offsetWidth
-		canvas.height = img.offsetHeight
+		canvas.width = img ? img.offsetWidth : 640
+		canvas.height = img ? img.offsetHeight : 320
 		runAnimation(canvas, img)
 	})
 }
