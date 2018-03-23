@@ -104,10 +104,6 @@ function runAnimation(canvas, img) {
 function loadImage(url) {
 	const DEFAULT_IMG = { offsetWidth: 640, offsetHeight: 320 }
 	return new Promise(resolve => {
-		if (!url) {
-			resolve(DEFAULT_IMG)
-			return
-		}
 		var img = document.getElementById('fire-image')
 		img.src = url
 		img.onload = _ => resolve(img)
