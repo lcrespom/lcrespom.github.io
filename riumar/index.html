@@ -1,0 +1,47 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Riumar</title>
+	<link rel="stylesheet" href="css/styles.css">
+	 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+</head>
+
+<body>
+	<header>
+		<h1>Fotos de Riumar</h1>
+	</header>
+
+	<div class="apt-photos">
+		<h2>Exterior</h2>
+		<div id="pics-ext"></div>
+		<h2>Interior</h2>
+		<div id="pics-apt"></div>
+		<h2>Alrededores</h2>
+		<div id="pics-area"></div>
+	</div>
+
+	<script type="text/javascript">
+		$(function() {
+			var extNames = "piscina-1 piscina-2 terraza-1 terraza-2 verja-coches";
+			var aptNames = "sala-1 sala-2 sala-3 sala-4 sala-5 dormitorio1-1 dormitorio1-2 dormitorio2-1 dormitorio2-2" +
+				" banyo-1 banyo-2 cocina-1 cocina-2 trastero-lavadero";
+			var areaNames = "playa-1 playa-2 playa-3 playa-4 flamencos";
+
+			function layoutPics(parent, names, path) {
+				$.each(names.split(" "), function(i, name) {
+					var imgUrl = path + '/' + name + '.jpg';
+					var node = $('<a href="' + imgUrl + '" target="_blank"><img src="' + imgUrl + '"/></a>');
+					parent.append(node);
+				});
+			}
+
+			layoutPics($("#pics-ext"), extNames, "fotos-apto");
+			layoutPics($("#pics-apt"), aptNames, "fotos-apto");
+			layoutPics($("#pics-area"), areaNames, "fotos-zona");
+		});
+	</script>
+
+</body>
+</html>
