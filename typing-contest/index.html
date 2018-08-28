@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Typing Contest</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="style.css">
+	<script src="jquery-3.3.1.min.js"></script>
+</head>
+<body>
+<div id="main">
+	<h1>Typing contest</h1>
+	<h2>Input text</h2>
+	<textarea id="input_text"
+		rows="5"
+		placeholder="Place input text here"></textarea>
+
+
+	<h2>Type box</h2>
+	<div class="overlay_container">
+		<div id="type_progress" class="rich_text_area"></div>
+		<div id="type_box" contenteditable="true" class="rich_text_area"></div>
+	</div>
+
+	<h2>Statistics</h2>
+	<b>Time</b>: <span id="stat_time"></span> <br/>
+	<b>Errors</b>: <span id="stat_errors">0</span> <br/>
+	<b>Speed</b>: <span id="stat_speed">0</span> keys/min<br/>
+</div>
+
+	<script src="main.js"></script>
+</body>
+</html>

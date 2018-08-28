@@ -1,0 +1,39 @@
+body {
+	font-family: sans-serif;
+}
+
+textarea {
+	width: 100%;
+}
+
+#main {
+	max-width: 60em;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rich_text_area {
+	font-family: monospace;
+	white-space: pre-wrap;
+	background: white;
+	width: 100%;
+	border: 1px solid #a9a9a9;
+	padding: 2px;
+	min-height: 10em;
+}
+
+.overlay_container {
+	position: relative;
+}
+
+#type_progress {
+	color: #888;
+}
+
+#type_box {
+	position: absolute;
+	top: 0;
+	background-color: rgba(0, 0, 0, 0);
+	color: #00f;
+	font-weight: bold;
+}
