@@ -24,6 +24,7 @@ textarea {
 
 .overlay_container {
 	position: relative;
+	font-size: 130%;
 }
 
 #type_progress {
@@ -34,6 +35,17 @@ textarea {
 	position: absolute;
 	top: 0;
 	background-color: rgba(0, 0, 0, 0);
-	color: #00f;
 	font-weight: bold;
+	color: #00f;
+	transition: color 3s;
+}
+
+#errors_row {
+	color: black;
+	transition: color 3s;
+}
+
+.flashing {
+	color: red !important;
+	transition: color 0.1s !important;
 }
