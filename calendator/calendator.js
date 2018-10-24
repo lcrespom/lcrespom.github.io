@@ -146,7 +146,7 @@ $(function() {
 	function events2hash(events) {
 		let hash = ''
 		for (let e of events)
-			hash += '\\' + encodeURI(e.name) +
+			hash += '\\' + encodeURIComponent(e.name) +
 				'|' + e.color + '|' + e.start +
 				'|' + e.duration + '|' + e.every +
 				'|' + e.repeat
@@ -154,7 +154,8 @@ $(function() {
 	}
 
 	function hash2events() {
-		let sevts = location.hash.substr(1).split('\\')
+		let hash = decodeURIComponent(location.hash.substr(1))
+		let sevts = hash.split('\\')
 		let events = []
 		for (let sevt of sevts) {
 			edata = sevt.split('|')
