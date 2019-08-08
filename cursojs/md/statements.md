@@ -126,7 +126,7 @@ Según esto, si queremos comprobar si una variable `x` contiene el valor `NaN`, 
 ```javascript
 let num = +process.argv[2];
 if (isNaN(num)) {
-	console.log('Error: el parámetro ' + num + ' debe ser numérico');
+	console.log('Error: el parámetro debe ser numérico');
 }
 else if (num < 0) {
 	console.log(num + ' es negativo');
@@ -252,7 +252,6 @@ Escribe un programa llamado `tablamult.js` que lea un número como parámetro y 
 7 por 8 es 56
 7 por 9 es 63
 7 por 10 es 70
-}
 ```
 
 **Solución**:
