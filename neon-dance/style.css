@@ -1,0 +1,26 @@
+@font-face {
+    font-family: NeonClubMusic;
+    src: url("fonts/NEON CLUB MUSIC.otf") format("opentype");
+}
+
+@font-face {
+    font-family: SingleLine;
+    src: url("fonts/BanksMilesSingleLine.ttf") format("truetype");
+}
+
+body {
+    background-color: #272822;
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+}
+
+canvas {
+    background-color: black;
+}
+
+.centered {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
