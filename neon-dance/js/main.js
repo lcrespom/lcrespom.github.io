@@ -1,6 +1,6 @@
 import { Figure } from './figure.js'
 import { stepBoard, drawBoard, lives } from './board.js'
-import { playSound } from './audio.js'
+import { playSound, startMusic, stopMusic } from './audio.js'
 
 const RADIUS = 40
 const MAX_DROP_PERIOD = 240
@@ -61,11 +61,13 @@ function startGame() {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     document.body.addEventListener('keydown', handleKeyDown)
+    startMusic(music => music.rate(MAX_DROP_PERIOD / dropPeriod))
 }
 
 function gameOver() {
     ctx.font = '50px NeonClubMusic'
     ctx.fillText('GAME OVER', width / 2, height / 2)
+    stopMusic()
     playSound('gameover')
     document.body.addEventListener('click', _ => location.reload())
 }
