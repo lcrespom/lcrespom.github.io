@@ -116,12 +116,20 @@ function animateFrame() {
 }
 
 function calculateSpeed() {
-  let count = 30
-  let startTime = performance.now()
+  let count = 31
+  let startTime = 0
 
   function frame() {
+    // Gather time of first frame
+    if (startTime == 0) {
+      startTime = performance.now()
+      requestAnimationFrame(frame)
+      return
+    }
+    // Count 30 frames
     count--
     if (count > 0) requestAnimationFrame(frame)
+    // Compute speed from duration of 30 frames
     else {
       let elapsed = performance.now() - startTime
       console.log('Elapsed:', elapsed)
