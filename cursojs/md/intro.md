@@ -104,7 +104,7 @@ Este paradigma existe a nivel académico desde hace mucho tiempo, y recientement
 	- Su nombre original era _LiveScript_
 	- Se cambió a JavaScript por motivos comerciales: un acuerdo entre Netscape y Sun
 	- La especificación estándar se conoce como _ECMAScript_ (no podía estandarizarse el nombre JavaScript por ser copyright de Sun)
-- A pesar de tener 20 años, el lenguaje continúa evolucionando. La versión actual es la 6, también conocida com ES6. Incorpora grandes mejoras respecto de versiones anteriores y está soportada por la práctica totalidad de los navegadores, excepto Internet Explorer 11 (que es el que usaba Windows 7 - Windows 10 usa _Edge_, que sí soporta ES6).
+- A pesar de tener 30 años, el lenguaje continúa evolucionando. Cada año se van incorporando mejoras respecto de versiones anteriores, haciéndolo un lenguaje muy potente y moderno.
 
 ## ¿Por qué aprender JavaScript?
 - JavaScript es el lenguaje de ámbito general **más ubicuo** del mundo:
